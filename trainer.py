@@ -7,6 +7,7 @@ import torch_geometric.utils as pyg_utils
 
 import time
 from datetime import datetime
+import pdb
 
 import networkx as nx
 import numpy as np
@@ -128,6 +129,7 @@ def train(dataset, task, writer):
         total_loss = 0
         model.train()
         for batch in loader:
+            pdb.set_trace()
             #print(batch.train_mask, '----')
             opt.zero_grad()
             embedding, pred = model(batch)

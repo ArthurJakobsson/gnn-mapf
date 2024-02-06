@@ -1,6 +1,7 @@
 # Our files and data
 tutorial_data/
-
+log/
+map_data/
 
 
 # Byte-compiled / optimized / DLL files
