@@ -79,15 +79,18 @@ class MyOwnDataset(Dataset):
 
         return edge_attributes
 
+    def get_idx_name(self, raw_path):
+        if 'val' in raw_path:
+            return 'val'
+        elif 'train' in raw_path:
+            return 'train'
+        else:
+            return 'unknownNPZ'
+
     def process(self):
         idx = 0
         for raw_path in self.raw_paths:
-            if 'val' in raw_path:
-                idx = 'val'
-            elif 'train' in raw_path:
-                idx = 'train'
-            else:
-                idx = 'unknownNPZ'
+            idx = self.get_idx_name(raw_path)
             # Read data from `raw_path`.
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             # cur_dataset is an array of all info for one file, cur_dataset[0] is first sample
@@ -119,8 +122,9 @@ class MyOwnDataset(Dataset):
         return len(self.processed_file_names)
 
     def get(self, idx):
-        # idx 0 = train, idx 1 = val
-        data = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
-        return data
+        data_train = torch.load(osp.join(self.processed_dir, f"data_train.pt"))
+        data_val = torch.load(osp.join(self.processed_dir, f"data_val.pt"))
+        data = torch.cat(data_train, data_val)
+        return data[idx]
 
 john = MyOwnDataset('map_data')
