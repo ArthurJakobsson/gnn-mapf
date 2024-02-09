@@ -17,6 +17,7 @@ class MyOwnDataset(Dataset):
         self.m = 5 # number of agents considered close
         self.size = float('inf')
         self.max_agents = 500
+        self.length = 0
         super().__init__(root, transform, pre_transform, pre_filter)
 
     @property
@@ -96,12 +97,14 @@ class MyOwnDataset(Dataset):
             # cur_dataset is an array of all info for one file, cur_dataset[0] is first sample
             data_list = []
             for time_instance in cur_dataset:
+                # Graphify
                 num_agents, pos_list, bd_list, labels = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
                 x = [(self.slice_bd(pos, bd)) for (pos,bd) in zip(pos_list, bd_list)] # (2k+1,2k+1,n)
                 m_closest_nborsIdx_list = [(self.get_neighbors(self.m, pos, pos_list)) for pos in zip(pos_list)] # (m,n)
-                edge_index = self.convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list)
-                edge_attr = self.get_edge_attributes(edge_index, pos_list)
+                edge_index = self.convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
+                edge_attr = self.get_edge_attributes(edge_index, pos_list) # (2, num_edges)
 
+                # Tensorify
                 x = torch.tensor(x, dtype=torch.float)
                 edge_attr = torch.tensor(edge_attr, dtype=torch.float)
                 labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
@@ -114,12 +117,14 @@ class MyOwnDataset(Dataset):
 
             # if self.pre_transform is not None:
             #     data = self.pre_transform(data)
+            self.length += len(data_list)
 
+            # each file is either train or val and contains many graphs
             torch.save(data_list, osp.join(self.processed_dir, f"data_{idx}.pt"))
             idx += 1
 
     def len(self):
-        return len(self.processed_file_names)
+        return self.length
 
     def get(self, idx):
         data_train = torch.load(osp.join(self.processed_dir, f"data_train.pt"))
