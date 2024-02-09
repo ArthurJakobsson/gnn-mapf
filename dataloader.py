@@ -7,6 +7,8 @@ from torch_geometric.data import Dataset, download_url
 import numpy as np
 import pdb
 import data_manipulator
+from torch_geometric.data import Data
+
 
 
 class MyOwnDataset(Dataset):
@@ -44,8 +46,8 @@ class MyOwnDataset(Dataset):
         param: m, pos, pos_list
         output: list of indices of 5 closest
         """
-        distances = cdist([pos], pos_list, 'euclidean')
         closest_5_in_box = []
+        distances = cdist([pos], pos_list, 'euclidean')
         zipped_lists = zip(distances, pos_list, list(range(0,len(pos_list)))) #knit distances, pos, and idxs
         sorted_lists = sorted(zipped_lists, key = lambda t: t[0])
         k = self.k
@@ -53,37 +55,64 @@ class MyOwnDataset(Dataset):
         while count<m and i<len(pos_list):
             xdif = pos_list[i][0]-pos[0]
             ydif = pos_list[i][1]-pos[0]
-            if xdif<k+1 and -k<xdif and ydif<k+1 and -k<ydif:
+            if xdif<k+1 and -k<xdif and ydif<k+1 and -k<ydif: #TODO: check bounding box
                 count+=1
                 closest_5_in_box.append(sorted_lists[i])
                 # add to list if within bounding box
             i+=1
         return closest_5_in_box
 
+    def convert_neighbors_to_edge_list(self, num_agents, closest_neighbors_idx):
+        edge_index = [] # edge list source, destination
+        for i in range(0,num_agents):
+            for j in closest_neighbors_idx[i]:
+                edge_index.append([i,j])
+
+        return torch.tensor(edge_index, dtype=torch.long).t().contiguous() #transpose
+
+    def get_edge_attributes(self, edge_index, pos_list):
+        edge_attributes = []
+        for source_idx, dest_idx in zip(edge_index[0], edge_index[1]):
+            source_pos = pos_list[source_idx]
+            dest_pos = pos_list[dest_idx]
+            edge_attributes.append(source_pos[0]-dest_pos[0], source_pos[1]-dest_pos[1])
+
+        return edge_attributes
 
     def process(self):
         idx = 0
         for raw_path in self.raw_paths:
+            if 'val' in raw_path:
+                idx = 'val'
+            elif 'train' in raw_path:
+                idx = 'train'
+            else:
+                idx = 'unknownNPZ'
             # Read data from `raw_path`.
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             # cur_dataset is an array of all info for one file, cur_dataset[0] is first sample
             data_list = []
             for time_instance in cur_dataset:
-                num_agents, pos_list, bd_list = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
+                num_agents, pos_list, bd_list, labels = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
                 x = [(self.slice_bd(pos, bd)) for (pos,bd) in zip(pos_list, bd_list)] # (2k+1,2k+1,n)
-                m_closest_nborsIdx_list = [(self.get_neighbors(self.m, pos, pos_list)) for pos in zip(pos_list)] # (5,n)
+                m_closest_nborsIdx_list = [(self.get_neighbors(self.m, pos, pos_list)) for pos in zip(pos_list)] # (m,n)
+                edge_index = self.convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list)
+                edge_attr = self.get_edge_attributes(edge_index, pos_list)
+
+                x = torch.tensor(x, dtype=torch.float)
+                edge_attr = torch.tensor(edge_attr, dtype=torch.float)
+                labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
+                curdata = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
+                data_list.append(curdata)
 
 
+            # if self.pre_filter is not None and not self.pre_filter(data):
+            #     continue
 
-            pdb.set_trace()
-            # n node graph
-            if self.pre_filter is not None and not self.pre_filter(data):
-                continue
+            # if self.pre_transform is not None:
+            #     data = self.pre_transform(data)
 
-            if self.pre_transform is not None:
-                data = self.pre_transform(data)
-
-            torch.save(data, osp.join(self.processed_dir, f"data_{idx}.pt"))
+            torch.save(data_list, osp.join(self.processed_dir, f"data_{idx}.pt"))
             idx += 1
 
     def len(self):
