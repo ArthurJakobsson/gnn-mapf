@@ -77,7 +77,7 @@ class PipelineDataset(Dataset):
             return
 
         bd, grid, paths, timestep, agent, t = self.find_instance(idx)
-        curloc = paths[timestep, agent]
+        curloc = paths[timestep, :]
         nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
         prevloc = paths[timestep-1, agent] - paths[timestep, agent] if timestep > 0 else curloc # get previous step to avoid jitter
 
@@ -117,8 +117,8 @@ class PipelineDataset(Dataset):
         temp = dijk * (1-grid)
         dijk = np.where(np.abs(dijk) > 10000, 0, dijk)
 
-        helper_bds, windowAgentLocs = self.process_helper_bds(bd, windowAgentLocs, windowAgents, curloc, dijk) # get a list of bds for 4 nearest agents, centered at curloc and padded with 0s
-        helper_bds = np.where(np.abs(helper_bds) > 10000, 0, helper_bds)
+        # helper_bds, windowAgentLocs = self.process_helper_bds(bd, windowAgentLocs, windowAgents, curloc, dijk) # get a list of bds for 4 nearest agents, centered at curloc and padded with 0s
+        # helper_bds = np.where(np.abs(helper_bds) > 10000, 0, helper_bds)
         label = nextloc - curloc # get the label: where did the agent go next?
 
         # create one-hot vector
@@ -191,6 +191,7 @@ class PipelineDataset(Dataset):
             return bd
 
         items = list(self.tn2.items())
+
         tn2ind = 0
         tracker = 0
         while tracker + items[tn2ind][1][0] <= idx:
@@ -211,6 +212,7 @@ class PipelineDataset(Dataset):
         t, n, _ = np.shape(paths)
         timestep, agent = newidx // n, newidx % n
         # if idx == 1: pdb.set_trace()
+        pdb.set_trace()
         return bd, grid, paths, timestep, agent, t
 
     def parse_npz(self, loaded):
@@ -231,10 +233,12 @@ class PipelineDataset(Dataset):
             k += 1
         self.tn2 = dict(items[j:k]) # get all the paths in (t,n,2) form
         # since the # of data is simply number of agent locations, this is t*n, which we append to the dictionary for each path
+        maxT = 0
         for k, v in self.tn2.items():
             t, n, _ = np.shape(v)
             self.tn2[k] = (t*n, v)
-        self.length = min(self.size, sum([value[0] for value in self.tn2.values()]))
+            maxT = t if maxT<t else maxT
+        self.length = maxT
         # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form\
         npads = ((0,0),(self.k, self.k), (self.k, self.k))
         for key in self.bds:
@@ -292,6 +296,7 @@ def parse_path(pathfile):
                 if c == ',': timesteps += 1
             maxTimesteps = max(maxTimesteps, timesteps)
             linenum += 1
+
     # get path for each agent and update dictionary of maps accordingly
     with open(pathfile, 'r') as fd:
         linenum = 0
