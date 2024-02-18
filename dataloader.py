@@ -55,8 +55,8 @@ class MyOwnDataset(Dataset):
         count, i = 0,0
         while count<m and i<len(pos_list):
             xdif = pos_list[i][0]-pos[0]
-            ydif = pos_list[i][1]-pos[0]
-            if xdif<k+1 and -k<xdif and ydif<k+1 and -k<ydif: #TODO: check bounding box
+            ydif = pos_list[i][1]-pos[1]
+            if abs(xdif) <= k and abs(ydif): #TODO: check bounding box
                 count+=1
                 closest_5_in_box.append(sorted_lists[i])
                 # add to list if within bounding box
