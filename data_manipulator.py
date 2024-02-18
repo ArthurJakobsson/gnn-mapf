@@ -52,7 +52,7 @@ class PipelineDataset(Dataset):
         # pdb.set_trace()
         self.k = k
         self.size = size
-        self.parse_npz(loaded)
+        self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
         self.max_agents = max_agents
         self.helper_bd_preprocess = helper_bd_preprocess
 
@@ -76,64 +76,31 @@ class PipelineDataset(Dataset):
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
 
-        bd, grid, paths, timestep, agent, t = self.find_instance(idx)
-        curloc = paths[timestep, :]
-        nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
-        prevloc = paths[timestep-1, agent] - paths[timestep, agent] if timestep > 0 else curloc # get previous step to avoid jitter
+        bd, grid, paths = self.find_instance(idx)
+        for agent in range(self.size):
+            curloc = paths[idx, :]
+            nextloc = paths[idx+1, agent] if idx < self.__len__() -1 else curloc
+            # prevloc = paths[timestep-1, agent] - paths[timestep, agent] if timestep > 0 else curloc # get previous step to avoid jitter
 
-        # have ids of 4 closest agents within the window (will be passing in the bds of those 4 agents)
-        # 1. get ids of 4 closest agents
-        # 2. for all those agents that are in the window, return their bd centered at current location
-        # e.g. bd[agent 2, curlocx-k:curlocx+k+1,curlocy-k:curlocy+k+1]
-        # return map, bd, and direction
+            dijk = bd[agent]
+            # dijk = dijk - dijk[self.k,self.k] # TODO try normalizing wrt current agent position
+            dijk = np.where(np.abs(dijk) > 10000, 0, dijk)
 
-        # get the agents within the window (that are not the agent we are looking at),
-        windowAgents = list(filter(lambda loc: abs(loc[1][0]-curloc[0]) <= self.k and abs(loc[1][1]-curloc[1]) <= self.k and loc[0] != agent, enumerate(paths[timestep])))
-        # and create list of tuples of (euclidean distance from agent,agentnumber)
-        windowAgents = list(map(lambda tup: (math.sqrt((tup[1][0]-curloc[0])**2 + (tup[1][1]-curloc[1])**2), tup[0]), windowAgents))
+            label = nextloc - curloc # get the label: where did the agent go next?
 
-        # get the 4 closest agents, if possible
-        windowAgents.sort()
-        numAgentsInWindow = len(windowAgents)
-        windowAgents = windowAgents[:4]
+            # create one-hot vector
+            index = None
+            if label[0] == 0 and label[1] == 0: index = 0
+            elif label[0] == 0 and label[1] == 1: index = 1
+            elif label[0] == 1 and label[1] == 0: index = 2
+            elif label[0] == -1 and label[1] == 0: index = 3
+            else: index = 4
+            finallabel = np.zeros(5)
+            finallabel[index] = 1
 
-        # get the x,y indices of all agents within k distance
-        windowAgentIdxs = [agent[1] for agent in windowAgents]
-        windowAgentLocs = paths[timestep][windowAgentIdxs]
-
-        # return 2k+1 by 2k+1 grid centered at agent's current location for both the map, bd
-        g = grid
-        unp = g[2:-2,2:-2]
-        x = bd[agent,2:-2,2:-2]*(1-unp)
-        bad = np.sum(x > 1000)
-        # if bad == 0: pdb.set_trace()
-        grid = grid[curloc[0]-self.k:curloc[0]+self.k+1, curloc[1]-self.k:curloc[1]+self.k+1]
-        dijk = bd[agent][curloc[0]-self.k:curloc[0]+self.k+1, curloc[1]-self.k:curloc[1]+self.k+1]
-        if dijk[self.k, self.k] >= 10000: pdb.set_trace()
-        if grid[self.k, self.k] != 0: pdb.set_trace()
-
-        dijk = dijk - dijk[self.k,self.k]
-
-        temp = dijk * (1-grid)
-        dijk = np.where(np.abs(dijk) > 10000, 0, dijk)
-
-        # helper_bds, windowAgentLocs = self.process_helper_bds(bd, windowAgentLocs, windowAgents, curloc, dijk) # get a list of bds for 4 nearest agents, centered at curloc and padded with 0s
-        # helper_bds = np.where(np.abs(helper_bds) > 10000, 0, helper_bds)
-        label = nextloc - curloc # get the label: where did the agent go next?
-
-        # create one-hot vector
-        index = None
-        if label[0] == 0 and label[1] == 0: index = 0
-        elif label[0] == 0 and label[1] == 1: index = 1
-        elif label[0] == 1 and label[1] == 0: index = 2
-        elif label[0] == -1 and label[1] == 0: index = 3
-        else: index = 4
-        finallabel = np.zeros(5)
-        finallabel[index] = 1
-
-        relativeAgentLocs = (windowAgentLocs - curloc).flatten()
-        # return grid, dijk, helper_bds, relativeAgentLocs, finallabel, prevloc.flatten()
-        return grid, dijk, helper_bds, relativeAgentLocs, finallabel, prevloc.flatten(), np.array([dijk[self.k+1, self.k+1] == 0])
+        # pos_list, bd_list, labels, grid
+        return curloc, finallabel, dijk, grid
+        # return grid, dijk, relativeAgentLocs, finallabel, prevloc.flatten(), np.array([dijk[self.k+1, self.k+1] == 0])
 
     def process_helper_bds(self, bd, windowAgentLocs, windowAgents, curloc, dijk):
         '''
