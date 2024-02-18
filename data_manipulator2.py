@@ -159,7 +159,9 @@ class PipelineDataset(Dataset):
         paths += self.k # adjust for padding
         for agent in len(bd):
             bd[agent] *= (1-grid)
-        return bd, grid, paths
+        t, n, _ = np.shape(paths)
+        timestep = newidx // n
+        return bd, grid, paths, timestep, t
 
     def parse_npz(self, loaded):
         loaded = {k:v for k, v in loaded.items()}
