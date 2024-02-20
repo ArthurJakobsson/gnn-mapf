@@ -15,6 +15,7 @@ import torch
 import torch.optim as optim
 
 from torch_geometric.datasets import TUDataset
+from dataloader import MyOwnDataset
 from torch_geometric.datasets import Planetoid
 from torch_geometric.data import DataLoader
 
@@ -129,7 +130,7 @@ def train(dataset, task, writer):
         total_loss = 0
         model.train()
         for batch in loader:
-            pdb.set_trace()
+            # pdb.set_trace()
             #print(batch.train_mask, '----')
             opt.zero_grad()
             embedding, pred = model(batch)
@@ -196,7 +197,7 @@ def visualize():
 
 writer = SummaryWriter("./log/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
-dataset = TUDataset(root='./tutorial_data/', name='ENZYMES')
+dataset = MyOwnDataset(root='./map_data/')
 dataset = dataset.shuffle()
 task = 'graph'
 

@@ -46,7 +46,6 @@ class PipelineDataset(Dataset):
             naming convention: mapname + "," + bdname + "," + seed
         helper_bd_preprocess: method by which we center helper backward dijkstras. can be 'middle', 'current', or 'subtraction'.
         '''
-
         # read in the dataset, saving map, bd, and path info to class variables
         loaded = np.load(numpy_data_path)
         # pdb.set_trace()
@@ -71,20 +70,20 @@ class PipelineDataset(Dataset):
             curloc: (n,2)
             finallabel: (n,5)
         '''
+
         if idx >= self.__len__():
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
-    
         bd, grid, paths, timestep, t = self.find_instance(idx)
+        # pdb.set_trace()
         labels = []
         locs = []
-        num_agent = len(bd)
-        for agent in range(num_agent):
+        num_agent = paths.shape[1]
+        # pdb.set_trace()
+        for agent in range(0,num_agent):
             curloc = paths[timestep, agent]
             nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
-
             label = nextloc - curloc # get the label: where did the agent go next?
-
             # create one-hot vector
             index = None
             if label[0] == 0 and label[1] == 0: index = 0
@@ -96,7 +95,7 @@ class PipelineDataset(Dataset):
             finallabel[index] = 1
             labels.append(finallabel)
             locs.append(curloc)
-
+        # pdb.set_trace()
         return np.array(locs), np.array(labels), bd, grid
 
     def process_helper_bds(self, bd, windowAgentLocs, windowAgents, curloc, dijk):
@@ -129,7 +128,7 @@ class PipelineDataset(Dataset):
         # pdb.set_trace()
         return helper_bds, windowAgentLocs
 
-    
+
     def find_instance(self, idx):
         '''
         returns the backward dijkstra, map, and path arrays, and indices to get into the path array
@@ -143,7 +142,7 @@ class PipelineDataset(Dataset):
         tn2ind = 0
         tracker = 0
         while tracker + items[tn2ind][1][0] <= idx:
-            tracker += items[tn2ind][1][0] # adding number of timesteps *this* run of eecbs took 
+            tracker += items[tn2ind][1][0] # adding number of timesteps *this* run of eecbs took
             tn2ind += 1
         # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
         mapname, bdname, seed = items[tn2ind][0].split(",")
@@ -157,7 +156,8 @@ class PipelineDataset(Dataset):
         newidx = idx - tracker # index within the matrix to get
         paths = items[tn2ind][1][1].copy() # (t,n,2) paths matrix
         paths += self.k # adjust for padding
-        for agent in len(bd):
+        # pdb.set_trace()
+        for agent in range(len(bd)):
             bd[agent] *= (1-grid)
         t, n, _ = np.shape(paths)
         timestep = newidx // n
@@ -234,7 +234,7 @@ def parse_path(pathfile):
     with open(pathfile, 'r') as fd:
         linenum = 0
         for line in fd.readlines():
-            if linenum == 0: 
+            if linenum == 0:
                 linenum += 1
                 continue # ignore dimension line
             timesteps = 0
@@ -263,7 +263,7 @@ def parse_path(pathfile):
             # add the coordinates to the dictionary of maps
             for i, coord in enumerate(rawCoords):
                 temp = coord.split(',')
-                x = int(temp[0][1:])                    
+                x = int(temp[0][1:])
                 y = int(temp[1][:-1])
                 # if you're at the last coordinate then append it to the rest of the maps
                 if i == len(rawCoords) - 1:
@@ -272,11 +272,11 @@ def parse_path(pathfile):
                         i += 1
                 else: timestepsToMaps[i].append([x, y])
             linenum += 1
-    
+
     # make each map a np array
     for key in timestepsToMaps:
         timestepsToMaps[key] = np.asarray(timestepsToMaps[key])
-    
+
     # make this t x n x 2
     res = []
     for i in range(len(timestepsToMaps)):
@@ -334,7 +334,7 @@ def parse_bd(bdfile):
             new.append(takeaway)
             nwh = nwh[w:]
         timetobd[key] = new
-    
+
     # make this n x w x h from dictionary of n w x h arrays
     res = []
     for i in range(len(timetobd)):
@@ -360,7 +360,7 @@ def batch_map(dir):
             if ".DS_Store" in f: continue # deal with invisible ds_store file
             # parse the map file and add to a global dictionary (or some class variable dictionary)
             val = parse_map(f)
-            res[filename] = val 
+            res[filename] = val
         else:
             raise RuntimeError("bad map dir")
     return res
@@ -388,7 +388,7 @@ def batch_bd(dir):
 
 def batch_path(dir):
     '''
-        goes through a directory of outputted EECBS paths, 
+        goes through a directory of outputted EECBS paths,
         returning a dictionary of tuples of the map name, bd name, and paths dictionary
         NOTE we assume that the file of each path is formatted as 'raw_data/paths/mapnameandbdname.txt'
         NOTE and also that bdname has agent number grandfathered into it
@@ -413,7 +413,7 @@ def batch_path(dir):
         f = os.path.join(dir, filename)
         # checking if it is a file
         if os.path.isfile(f):
-            # parse the path file, index out its map name, seed, agent number, and bd that it was formed from based on file name, 
+            # parse the path file, index out its map name, seed, agent number, and bd that it was formed from based on file name,
             # and add the resulting triplet to a global dictionary (or some class variable dictionary)
             raw = filename.split(".txt")[0] # remove .txt
             seed = raw[-1]
@@ -425,7 +425,7 @@ def batch_path(dir):
             print("___________________________\n")
             if idx in valFiles:
                 res2[mapname + "," + bdname + "," + seed] = val
-            else: 
+            else:
                 res1[mapname + "," + bdname + "," + seed] = val
             # res2[mapname + "," + bdname + "," + seed + ",twh"] = val2
             print(f)
@@ -439,11 +439,11 @@ def main():
     # cmdline argument parsing: take in dirs for paths, maps, and bds, and where you want the outputted npz
     parser = argparse.ArgumentParser()
     parser.add_argument("pathsIn", help="directory containing txt files of agents and paths taken", type=str)
-    parser.add_argument("bdIn", help="directory containing txt files with backward djikstra output", type=str) 
-    parser.add_argument("mapIn", help="directory containing txt files with obstacles", type=str) 
+    parser.add_argument("bdIn", help="directory containing txt files with backward djikstra output", type=str)
+    parser.add_argument("mapIn", help="directory containing txt files with obstacles", type=str)
     npzMsg = "output file with maps, bds as name->array dicts, along with (mapname, bdname, path) triplets for each EECBS run"
-    parser.add_argument("trainOut", help=npzMsg, type=str) 
-    parser.add_argument("valOut", help=npzMsg, type=str) 
+    parser.add_argument("trainOut", help=npzMsg, type=str)
+    parser.add_argument("valOut", help=npzMsg, type=str)
 
 
     args = parser.parse_args()

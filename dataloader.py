@@ -6,9 +6,9 @@ import torch
 from torch_geometric.data import Dataset, download_url
 import numpy as np
 import pdb
-import data_manipulator
+import data_manipulator2 as data_manipulator
 from torch_geometric.data import Data
-
+from tqdm import tqdm
 
 
 class MyOwnDataset(Dataset):
@@ -26,12 +26,12 @@ class MyOwnDataset(Dataset):
 
     @property
     def processed_file_names(self):
-        return ["data_1.pt", "data_2.pt"]
+        return ["data_train.pt", "data_val.pt"]
 
     def download():
         pass
 
-    def slice_bd(self, pos, bd):
+    def slice_maps(self, pos, curmap):
         """
         Turns a full size bd into a 2k+1, 2k+1
         param: pos, bd (current position and bd)
@@ -39,7 +39,7 @@ class MyOwnDataset(Dataset):
         """
         r,c = pos[0], pos[1]
         k = self.k
-        return bd[r-k:r+k+1,c-k:c+k+1] #TODO: adjust +1 or -1
+        return curmap[r-k:r+k+1,c-k:c+k+1] #TODO: adjust +1 or -1
 
     def get_neighbors(self, m, pos, pos_list):
         """
@@ -48,7 +48,8 @@ class MyOwnDataset(Dataset):
         output: list of indices of 5 closest
         """
         closest_5_in_box = []
-        distances = cdist([pos], pos_list, 'euclidean')
+
+        distances = cdist([pos], pos_list, 'euclidean')[0]
         zipped_lists = zip(distances, pos_list, list(range(0,len(pos_list)))) #knit distances, pos, and idxs
         sorted_lists = sorted(zipped_lists, key = lambda t: t[0])
         k = self.k
@@ -58,13 +59,15 @@ class MyOwnDataset(Dataset):
             ydif = pos_list[i][1]-pos[1]
             if abs(xdif) <= k and abs(ydif): #TODO: check bounding box
                 count+=1
-                closest_5_in_box.append(sorted_lists[i])
+                closest_5_in_box.append(sorted_lists[i][2])
                 # add to list if within bounding box
             i+=1
+        # pdb.set_trace()
         return closest_5_in_box
 
     def convert_neighbors_to_edge_list(self, num_agents, closest_neighbors_idx):
         edge_index = [] # edge list source, destination
+
         for i in range(0,num_agents):
             for j in closest_neighbors_idx[i]:
                 edge_index.append([i,j])
@@ -73,10 +76,12 @@ class MyOwnDataset(Dataset):
 
     def get_edge_attributes(self, edge_index, pos_list):
         edge_attributes = []
+
         for source_idx, dest_idx in zip(edge_index[0], edge_index[1]):
             source_pos = pos_list[source_idx]
             dest_pos = pos_list[dest_idx]
-            edge_attributes.append(source_pos[0]-dest_pos[0], source_pos[1]-dest_pos[1])
+            # pdb.set_trace()
+            edge_attributes.append(np.array([source_pos[0]-dest_pos[0], source_pos[1]-dest_pos[1]]))
 
         return edge_attributes
 
@@ -89,24 +94,32 @@ class MyOwnDataset(Dataset):
             return 'unknownNPZ'
 
     def process(self):
-        idx = 0
         for raw_path in self.raw_paths:
+            print(raw_path)
             idx = self.get_idx_name(raw_path)
+            # if osp.isfile(osp.join(self.processed_dir, f"data_{idx}.pt")):
+                # return
             # Read data from `raw_path`.
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             # cur_dataset is an array of all info for one file, cur_dataset[0] is first sample
             data_list = []
-            for time_instance in cur_dataset:
+            # pdb.set_trace()
+            count = 0
+            for time_instance in tqdm(cur_dataset):
                 # Graphify
-                num_agents, pos_list, bd_list, labels = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
-                x = [(self.slice_bd(pos, bd)) for (pos,bd) in zip(pos_list, bd_list)] # (2k+1,2k+1,n)
-                m_closest_nborsIdx_list = [(self.get_neighbors(self.m, pos, pos_list)) for pos in zip(pos_list)] # (m,n)
+                count+=1
+                if count==100: break
+                if not time_instance: break #idk why but the last one is None
+                pos_list, labels, bd_list, grid = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
+                num_agents = len(pos_list)
+                x = [(np.vstack([self.slice_maps(pos, grid),self.slice_maps(pos, bd)])) for (pos,bd) in zip(pos_list, bd_list)] # (2, 2k+1,2k+1,n) both grid and bds for each agent's window
+                m_closest_nborsIdx_list = [self.get_neighbors(self.m, pos, pos_list) for pos in pos_list] # (m,n)
                 edge_index = self.convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
                 edge_attr = self.get_edge_attributes(edge_index, pos_list) # (2, num_edges)
 
                 # Tensorify
-                x = torch.tensor(x, dtype=torch.float)
-                edge_attr = torch.tensor(edge_attr, dtype=torch.float)
+                x = torch.tensor(np.array(x), dtype=torch.float)
+                edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
                 labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
                 curdata = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
                 data_list.append(curdata)
@@ -118,18 +131,23 @@ class MyOwnDataset(Dataset):
             # if self.pre_transform is not None:
             #     data = self.pre_transform(data)
             self.length += len(data_list)
-
+            pdb.set_trace()
+            data_list = torch.tensor(data_list)
             # each file is either train or val and contains many graphs
+            print("Saving File ", osp.join(self.processed_dir, f"data_{idx}.pt"))
             torch.save(data_list, osp.join(self.processed_dir, f"data_{idx}.pt"))
-            idx += 1
 
     def len(self):
+        data_train = torch.load(osp.join(self.processed_dir, f"data_train.pt"))
+        data_val = torch.load(osp.join(self.processed_dir, f"data_val.pt"))
+        self.length = len(data_train)+len(data_val)
         return self.length
 
     def get(self, idx):
         data_train = torch.load(osp.join(self.processed_dir, f"data_train.pt"))
         data_val = torch.load(osp.join(self.processed_dir, f"data_val.pt"))
+        pdb.set_trace()
         data = torch.cat(data_train, data_val)
         return data[idx]
 
-john = MyOwnDataset('map_data')
+# john = MyOwnDataset('map_data')
