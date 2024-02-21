@@ -2,6 +2,7 @@
 tutorial_data/
 log/
 map_data/
+map_data_small/
 test.py
 
 # Byte-compiled / optimized / DLL files

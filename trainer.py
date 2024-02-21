@@ -121,6 +121,7 @@ def train(dataset, task, writer):
         test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True)
     else:
         test_loader = loader = DataLoader(dataset, batch_size=64, shuffle=True)
+        # pdb.set_trace()
 
     # build model
     model = GNNStack(max(dataset.num_node_features, 1), 32, dataset.num_classes, task=task)
@@ -205,7 +206,7 @@ def visualize():
 writer = SummaryWriter("./log/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
 
-dataset = MyOwnDataset(root='./map_data/')
+dataset = MyOwnDataset(root='./map_data_small/')
 dataset = dataset.shuffle()
 task = 'node'
 

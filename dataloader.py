@@ -17,15 +17,18 @@ class MyOwnDataset(Dataset):
         self.m = 5 # number of agents considered close
         self.size = float('inf')
         self.max_agents = 500
-        self.data_dictionaries = []
+        # self.data_dictionaries = []
         self.length = 0
         super().__init__(root, transform, pre_transform, pre_filter)
-        self.load_dictionaries()
+        self.load_metadata()
 
-
+    def load_metadata(self):
+        if osp.isfile(osp.join(self.processed_dir, f"meta_data.pt")):
+            self.length = torch.load(osp.join(self.processed_dir, f"meta_data.pt"))[0]
 
     def load_dictionaries(self):
         # if files exist cache them
+        print("here")
         for raw_path in self.raw_paths:
             idx = self.get_idx_name(raw_path)
             file_path = osp.join(self.processed_dir, f"data_{idx}.npz")
@@ -35,6 +38,7 @@ class MyOwnDataset(Dataset):
         # Sum length of all timesteps
         for datum in self.data_dictionaries:
             self.length += len(datum['x'])
+        print("out")
 
 
     @property
@@ -43,7 +47,10 @@ class MyOwnDataset(Dataset):
 
     @property
     def processed_file_names(self):
-        return ["data_train.npz", "data_val.npz"]
+        file_names = []
+        for i in range(self.length):
+            file_names.append(f"data_{i}.pt")
+        return  file_names # ["data_train.npz", "data_val.npz"]
 
     def download():
         pass
@@ -110,20 +117,30 @@ class MyOwnDataset(Dataset):
         else:
             return 'unknownNPZ'
 
+    def apply_masks(self, data_len, curdata):
+        tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
+        tr_mask[:int((3/4)*data_len)] = 1
+        te_mask[int((3/4)*data_len):] = 1
+        curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)
+        curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
+        return curdata
+
     def process(self):
+        idx = 0
         for raw_path in self.raw_paths:
             print(raw_path)
-            idx = self.get_idx_name(raw_path)
             if osp.isfile(osp.join(self.processed_dir, f"data_{idx}.pt")):
                 return
             # Read data from `raw_path`.
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             # cur_dataset is an array of all info for one file, cur_dataset[0] is first sample
-            data_dict = {'x':[], 'edge_index': [], 'edge_attr':[], 'labels': [], 'length': 0}
+            # data_dict = {'x':[], 'edge_index': [], 'edge_attr':[], 'labels': [], 'length': 0}
             # pdb.set_trace()
             count = 0
             for time_instance in tqdm(cur_dataset):
                 # Graphify
+                count+=1
+                if count==2000: break
                 if not time_instance: break #idk why but the last one is None
                 pos_list, labels, bd_list, grid = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
                 num_agents = len(pos_list)
@@ -139,13 +156,14 @@ class MyOwnDataset(Dataset):
                 labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
                 # pdb.set_trace()
                 # Add to dict
-                data_dict['x'].append(x)
-                data_dict['edge_index'].append(edge_index)
-                data_dict['edge_attr'].append(edge_attr)
-                data_dict['labels'].append(labels)
-
-                # curdata = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
-                # data_list.append(curdata)
+                # data_dict['x'].append(x)
+                # data_dict['edge_index'].append(edge_index)
+                # data_dict['edge_attr'].append(edge_attr)
+                # data_dict['labels'].append(labels)
+                curdata = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
+                curdata = self.apply_masks(len(x), curdata)
+                torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+                idx+=1
 
 
             # if self.pre_filter is not None and not self.pre_filter(data):
@@ -153,40 +171,40 @@ class MyOwnDataset(Dataset):
 
             # if self.pre_transform is not None:
             #     data = self.pre_transform(data)
-            self.length += len(data_dict['x'])
-            data_dict['length'] = len(data_dict['x'])
-            # pdb.set_trace()
-            # pdb.set_trace()
+            self.length = idx
+            meta = torch.tensor([self.length])
+            torch.save(meta, osp.join(self.processed_dir, f"meta_data.pt"))
             # each file is either train or val and contains many graphs
-            print("Saving File ", osp.join(self.processed_dir, f"data_{idx}.pt"))
-            np.savez(osp.join(self.processed_dir, f"data_{idx}.npz"), **data_dict)
+            # print("Saving File ", osp.join(self.processed_dir, f"data_{idx}.npz"))
+            # np.savez(osp.join(self.processed_dir, f"data_{idx}.npz"), **data_dict)
 
     def len(self):
         return self.length
 
     def get(self, idx):
-        timestep_count = 0
-        curdata = None
-        for file_dict in self.data_dictionaries:
-            timestep_count+=file_dict['length']
-            if timestep_count < idx:
-                pass
-            else:
-                relative_idx = timestep_count-idx-1
-                x = file_dict['x'][relative_idx]
-                edge_index = file_dict['edge_index'][relative_idx]
-                edge_attr = file_dict['edge_attr'][relative_idx]
-                labels = file_dict['labels'][relative_idx]
-                # pdb.set_trace()
-                curdata = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
-                data_len = len(x)
-                tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
-                tr_mask[:int((3/4)*data_len)] = 1
-                te_mask[int((3/4)*data_len):] = 1
-                curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)
-                curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
-                break
+        # timestep_count = 0
+        # curdata = None
+        # for file_dict in self.data_dictionaries:
+        #     timestep_count+=file_dict['length']
+        #     if timestep_count < idx:
+        #         pass
+        #     else:
+        #         relative_idx = timestep_count-idx-1
+        #         x = file_dict['x'][relative_idx]
+        #         edge_index = file_dict['edge_index'][relative_idx]
+        #         edge_attr = file_dict['edge_attr'][relative_idx]
+        #         labels = file_dict['labels'][relative_idx]
+        #         # pdb.set_trace()
+        #         curdata = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
+        #         data_len = len(x)
+        #         tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
+        #         tr_mask[:int((3/4)*data_len)] = 1
+        #         te_mask[int((3/4)*data_len):] = 1
+        #         curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)
+        #         curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
+        #         break
 
+        curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata
 
 # john = MyOwnDataset('map_data')
