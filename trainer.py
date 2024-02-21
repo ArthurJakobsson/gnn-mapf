@@ -8,6 +8,7 @@ import torch_geometric.utils as pyg_utils
 import time
 from datetime import datetime
 import pdb
+from tqdm import tqdm
 
 import networkx as nx
 import numpy as np
@@ -126,19 +127,25 @@ def train(dataset, task, writer):
     opt = optim.Adam(model.parameters(), lr=0.01)
 
     # train
-    for epoch in range(200):
+    for epoch in tqdm(range(200)):
         total_loss = 0
         model.train()
         for batch in loader:
-            # pdb.set_trace()
             #print(batch.train_mask, '----')
             opt.zero_grad()
             embedding, pred = model(batch)
             label = batch.y
+
             if task == 'node':
                 pred = pred[batch.train_mask]
                 label = label[batch.train_mask]
-            loss = model.loss(pred, label)
+            # lab_1_hot = torch.zeros(pred.shape[0]).type(torch.LongTensor)
+            label_maxes = torch.zeros(label.shape[0]).type(torch.LongTensor)
+            for i in range(len(label)):
+            #     lab_1_hot[i] = torch.argmax(pred[i])
+                label_maxes[i] = torch.argmax(label[i])
+            # pdb.set_trace()
+            loss = model.loss(pred, label_maxes)
             loss.backward()
             opt.step()
             total_loss += loss.item() * batch.num_graphs
@@ -161,13 +168,13 @@ def test(loader, model, is_validation=False):
         with torch.no_grad():
             emb, pred = model(data)
             pred = pred.argmax(dim=1)
-            label = data.y
+            label = data.y.argmax(dim=1)
 
         if model.task == 'node':
             mask = data.val_mask if is_validation else data.test_mask
             # node classification: only evaluate on nodes in test set
             pred = pred[mask]
-            label = data.y[mask]
+            label = data.y[mask].argmax(dim=1)
 
         correct += pred.eq(label).sum().item()
 
@@ -197,8 +204,9 @@ def visualize():
 
 writer = SummaryWriter("./log/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
+
 dataset = MyOwnDataset(root='./map_data/')
 dataset = dataset.shuffle()
-task = 'graph'
+task = 'node'
 
 model = train(dataset, task, writer)
