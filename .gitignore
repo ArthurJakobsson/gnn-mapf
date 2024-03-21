@@ -3,6 +3,9 @@ tutorial_data/
 log/
 map_data/
 map_data_small/
+map_data_big2d/
+map_data_old/
+map_data_big2d_new/
 test.py
 
 # Byte-compiled / optimized / DLL files

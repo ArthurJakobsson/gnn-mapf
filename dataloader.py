@@ -81,12 +81,11 @@ class MyOwnDataset(Dataset):
         while count<m and i<len(pos_list):
             xdif = pos_list[i][0]-pos[0]
             ydif = pos_list[i][1]-pos[1]
-            if abs(xdif) <= k and abs(ydif): #TODO: check bounding box
+            if abs(xdif) <= k and abs(ydif)<=k:
                 count+=1
                 closest_5_in_box.append(sorted_lists[i][2])
                 # add to list if within bounding box
             i+=1
-        # pdb.set_trace()
         return closest_5_in_box
 
     def convert_neighbors_to_edge_list(self, num_agents, closest_neighbors_idx):
@@ -104,7 +103,6 @@ class MyOwnDataset(Dataset):
         for source_idx, dest_idx in zip(edge_index[0], edge_index[1]):
             source_pos = pos_list[source_idx]
             dest_pos = pos_list[dest_idx]
-            # pdb.set_trace()
             edge_attributes.append(np.array([source_pos[0]-dest_pos[0], source_pos[1]-dest_pos[1]]))
 
         return edge_attributes
@@ -125,6 +123,30 @@ class MyOwnDataset(Dataset):
         curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
         return curdata
 
+    def apply_edge_normalization(self, edge_weights):
+        # TODO have an option to choose method based on flags
+        edge_weights = torch.exp(-edge_weights)
+        return edge_weights
+
+    def apply_bd_normalization(self, bd_grid):
+        # TODO have an otpion to choose method based on flags
+        k = self.k
+        temp = bd_grid.clone()
+
+        #centering
+        center = bd_grid[:,1,k,k].clone() # 1 is to get bd, 0 for grid
+        for i, cent in enumerate(center):
+            bd_grid[i,1,:,:] -= cent
+        bd_grid[:,1,:,:]*= (1-bd_grid[:,0,:,:]) # set obstacles as 0
+
+        #normalize
+        bd_grid[:, 1,:,:]/=k
+        bd_grid[:,1,:,:] = torch.maximum(bd_grid[:,1,:,:], torch.tensor([-10]))
+        bd_grid[:,1,:,:] = torch.minimum(bd_grid[:,1,:,:], torch.tensor([10]))
+        return bd_grid
+
+
+
     def process(self):
         idx = 0
         for raw_path in self.raw_paths:
@@ -135,16 +157,15 @@ class MyOwnDataset(Dataset):
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             # cur_dataset is an array of all info for one file, cur_dataset[0] is first sample
             # data_dict = {'x':[], 'edge_index': [], 'edge_attr':[], 'labels': [], 'length': 0}
-            # pdb.set_trace()
             count = 0
             for time_instance in tqdm(cur_dataset):
                 # Graphify
-                count+=1
-                if count==2000: break
                 if not time_instance: break #idk why but the last one is None
                 pos_list, labels, bd_list, grid = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
                 num_agents = len(pos_list)
-                x = [(np.vstack([self.slice_maps(pos, grid),self.slice_maps(pos, bd)])).flatten() for (pos,bd) in zip(pos_list, bd_list)] # (2, 2k+1,2k+1,n) both grid and bds for each agent's window
+                x = [np.array([self.slice_maps(pos, grid), self.slice_maps(pos, bd)]) for (pos, bd) in zip(pos_list, bd_list)]
+                assert(x[0].shape[0] == 2)
+                # x = [np.expand_dims(np.vstack([self.slice_maps(pos, grid),self.slice_maps(pos, bd)]), 0) for (pos,bd) in zip(pos_list, bd_list)] # (2, 2k+1,2k+1,n) both grid and bds for each agent's window
                 m_closest_nborsIdx_list = [self.get_neighbors(self.m, pos, pos_list) for pos in pos_list] # (m,n)
                 edge_index = self.convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
                 edge_attr = self.get_edge_attributes(edge_index, pos_list) # (num_edges,2 )
@@ -154,7 +175,6 @@ class MyOwnDataset(Dataset):
                 x = torch.tensor(np.array(x), dtype=torch.float)
                 edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
                 labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
-                # pdb.set_trace()
                 # Add to dict
                 # data_dict['x'].append(x)
                 # data_dict['edge_index'].append(edge_index)
@@ -182,29 +202,15 @@ class MyOwnDataset(Dataset):
         return self.length
 
     def get(self, idx):
-        # timestep_count = 0
-        # curdata = None
-        # for file_dict in self.data_dictionaries:
-        #     timestep_count+=file_dict['length']
-        #     if timestep_count < idx:
-        #         pass
-        #     else:
-        #         relative_idx = timestep_count-idx-1
-        #         x = file_dict['x'][relative_idx]
-        #         edge_index = file_dict['edge_index'][relative_idx]
-        #         edge_attr = file_dict['edge_attr'][relative_idx]
-        #         labels = file_dict['labels'][relative_idx]
-        #         # pdb.set_trace()
-        #         curdata = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
-        #         data_len = len(x)
-        #         tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
-        #         tr_mask[:int((3/4)*data_len)] = 1
-        #         te_mask[int((3/4)*data_len):] = 1
-        #         curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)
-        #         curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
-        #         break
-
         curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
+
+        # normalize bd, normalize edge attributes
+        edge_weights, bd_and_grids = curdata.edge_attr, curdata.x
+        curdata.edge_attr = self.apply_edge_normalization(edge_weights)
+        curdata.x = self.apply_bd_normalization(bd_and_grids)
+
+
         return curdata
 
-# john = MyOwnDataset('map_data')
+# john = MyOwnDataset('map_data_big2d_new')
+# john.get(5)

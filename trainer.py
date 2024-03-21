@@ -31,12 +31,12 @@ class GNNStack(nn.Module):
         super(GNNStack, self).__init__()
         self.task = task
         self.convs = nn.ModuleList()
-        self.convs.append(self.build_conv_model(input_dim, hidden_dim))
+        self.convs.append(self.build_conv_model(input_dim, hidden_dim, True))
         self.lns = nn.ModuleList()
         self.lns.append(nn.LayerNorm(hidden_dim))
         self.lns.append(nn.LayerNorm(hidden_dim))
         for l in range(2):
-            self.convs.append(self.build_conv_model(hidden_dim, hidden_dim))
+            self.convs.append(self.build_conv_model(hidden_dim, hidden_dim, False))
 
         # post-message-passing
         self.post_mp = nn.Sequential(
@@ -48,7 +48,9 @@ class GNNStack(nn.Module):
         self.dropout = 0.25
         self.num_layers = 3
 
-    def build_conv_model(self, input_dim, hidden_dim):
+    def build_conv_model(self, input_dim, hidden_dim, image_flag):
+        if image_flag:
+            return CustomConv(input_dim,hidden_dim)
         # refer to pytorch geometric nn module for different implementation of GNNs.
         if self.task == 'node':
             return pyg_nn.GCNConv(input_dim, hidden_dim)
@@ -81,25 +83,47 @@ class GNNStack(nn.Module):
 
 
 class CustomConv(pyg_nn.MessagePassing):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels): # currently, both == 1
         super(CustomConv, self).__init__(aggr='add')  # "Add" aggregation.
-        self.lin = nn.Linear(in_channels, out_channels)
-        self.lin_self = nn.Linear(in_channels, out_channels)
+        linear_in = 98 # TODO calculate the number of output pixels, using a formula and not hardcoded
+        self.lin = nn.Linear(linear_in, out_channels)
+        self.lin_self = nn.Linear(linear_in, out_channels)
+        conv_channels_in = 2
+        conv_channels_out = 2
+        self.conv = nn.Conv2d(conv_channels_in, conv_channels_out, kernel_size=(3,3), stride=1, padding=0)
+        self.conv_self = nn.Conv2d(conv_channels_in, conv_channels_out, kernel_size=(3,3), stride=1, padding=0)
+        '''
+        architecture questions
+        - should we pad? ("most relevant info should be near center") - no need rn
+        - should we make it 2x9x9? (same logic) - yes
+        - should we have multiple layers of convolution? - good for now
+        '''
 
     def forward(self, x, edge_index):
         # x has shape [N, in_channels]
         # edge_index has shape [2, E]
 
-        # Add self-loops to the adjacency matrix.
+        # Add self-loops to the adjacency matrix
+        # edge_index, _ = pyg_utils.add_self_loops(edge_index, num_nodes=x.size(0))
+
+        # Remove self-edges
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)
+        self_x = torch.flatten(self.conv_self(x), start_dim=1)
+        self_x = F.relu(self_x)
+        self_x = self.lin_self(self_x)
 
-        # Transform node feature matrix.
-        self_x = self.lin_self(x)
-        #x = self.lin(x)
+        # For self edges (see tutorial on gnn pyg)
+        x_neighbors = torch.flatten(self.conv(x), start_dim=1)
+        x_neighbors = F.relu(x_neighbors)
+        x_neighbors = self.lin(x_neighbors)
 
-        return self_x + self.propagate(edge_index, size=(x.size(0), x.size(0)), x=self.lin(x))
+        # For removed self-edges
+        return self_x + self.propagate(edge_index, x=x_neighbors) # TODO is everything ok without size arg? size=(x.size(0), x.size(0))
 
-    def message(self, x_i, x_j, edge_index, size):
+        # For self edges
+        # return self.propagate(edge_index, size=(x.size(0),x.size(0)),x=x)
+
+    def message(self, x_j, edge_index, size):
         # Compute messages
         # x_j has shape [E, out_channels]
 
@@ -108,7 +132,7 @@ class CustomConv(pyg_nn.MessagePassing):
         deg_inv_sqrt = deg.pow(-0.5)
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
 
-        return x_j
+        return norm.view(-1,1) * x_j
 
     def update(self, aggr_out):
         # aggr_out has shape [N, out_channels]
@@ -136,7 +160,8 @@ def train(dataset, task, writer):
             opt.zero_grad()
             embedding, pred = model(batch)
             label = batch.y
-
+            # if any(torch.isnan(label).flatten()) or any(torch.isnan(pred).flatten()):
+            #     pdb.set_trace()
             if task == 'node':
                 pred = pred[batch.train_mask]
                 label = label[batch.train_mask]
@@ -150,6 +175,7 @@ def train(dataset, task, writer):
             loss.backward()
             opt.step()
             total_loss += loss.item() * batch.num_graphs
+
         total_loss /= len(loader.dataset)
         writer.add_scalar("loss", total_loss, epoch)
 
@@ -206,7 +232,7 @@ def visualize():
 writer = SummaryWriter("./log/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
 
-dataset = MyOwnDataset(root='./map_data_small/')
+dataset = MyOwnDataset(root='./map_data_big2d_new/')
 dataset = dataset.shuffle()
 task = 'node'
 
