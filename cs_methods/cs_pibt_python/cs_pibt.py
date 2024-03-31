@@ -13,7 +13,10 @@ import numpy as np
 import torch.optim as optim
 import sys
 
-import dataloader
+sys.path.insert(0, '/home/arthur/snap/snapd-desktop-integration/current/Documents/gnn-mapf/gnn/')
+from dataloader import *
+from trainer import *
+
 import matplotlib.pyplot as plt
 
 
@@ -46,10 +49,9 @@ def parse_map(mapfile):
 
 
 if __name__ == "__main__":
-  run_name = '20240330-144357'
-  model = torch.load('../gnn/'+run_name+'/max_double_test_acc.pt')
+  run_name = 'full_sum_aggr'
+  model = torch.load('../../gnn/model_log/'+run_name+'/max_double_test_acc.pt')
   model.eval()
-for name, param in model.named_parameters():
-  if param.requires_grad:
-      print(name, param.data)
+
+
 
