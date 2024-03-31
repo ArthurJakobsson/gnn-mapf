@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 
 import torch_geometric.nn as pyg_nn
 import torch_geometric.utils as pyg_utils
@@ -9,11 +10,10 @@ import time
 from datetime import datetime
 import pdb
 from tqdm import tqdm
+import os
 
 import networkx as nx
 import numpy as np
-import torch
-import torch.optim as optim
 
 from torch_geometric.datasets import TUDataset
 from dataloader import MyOwnDataset
@@ -25,6 +25,7 @@ import torch_geometric.transforms as T
 from tensorboardX import SummaryWriter
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
+import random
 
 class GNNStack(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, task='node'):
@@ -84,7 +85,7 @@ class GNNStack(nn.Module):
 
 class CustomConv(pyg_nn.MessagePassing):
     def __init__(self, in_channels, out_channels): # currently, both == 1
-        super(CustomConv, self).__init__(aggr='add')  # "Add" aggregation.
+        super(CustomConv, self).__init__(aggr='add')  # "sum" aggregation.
         linear_in = 98 # TODO calculate the number of output pixels, using a formula and not hardcoded
         self.lin = nn.Linear(linear_in, out_channels)
         self.lin_self = nn.Linear(linear_in, out_channels)
@@ -117,8 +118,10 @@ class CustomConv(pyg_nn.MessagePassing):
         x_neighbors = F.relu(x_neighbors)
         x_neighbors = self.lin(x_neighbors)
 
+        self_and_propogated = self_x + self.propagate(edge_index, x=x_neighbors)
+
         # For removed self-edges
-        return self_x + self.propagate(edge_index, x=x_neighbors) # TODO is everything ok without size arg? size=(x.size(0), x.size(0))
+        return  self_and_propogated# TODO is everything ok without size arg? size=(x.size(0), x.size(0))
 
         # For self edges
         # return self.propagate(edge_index, size=(x.size(0),x.size(0)),x=x)
@@ -126,17 +129,28 @@ class CustomConv(pyg_nn.MessagePassing):
     def message(self, x_j, edge_index, size):
         # Compute messages
         # x_j has shape [E, out_channels]
-
-        row, col = edge_index
-        deg = pyg_utils.degree(row, size[0], dtype=x_j.dtype)
-        deg_inv_sqrt = deg.pow(-0.5)
-        norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
-
-        return norm.view(-1,1) * x_j
+        # pdb.set_trace()
+        # row, col = edge_index
+        # deg = pyg_utils.degree(row, size[0], dtype=x_j.dtype)+1
+        # deg_inv_sqrt = deg.pow(-0.5)
+        # norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+        # # if any(torch.isnan(norm.view(-1,1) * x_j).flatten()):
+        #     # pdb.set_trace()
+        # old_norm = norm.view(-1,1) * x_j
+        # return old_norm
+        return x_j
 
     def update(self, aggr_out):
         # aggr_out has shape [N, out_channels]
         return aggr_out
+
+def save_models(model, total_loss,min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc):
+    if total_loss<min_loss:
+        torch.save(model, model_path+'/min_train_loss.pt')
+    if test_acc>max_test_acc:
+        torch.save(model, model_path+'/max_test_acc.pt')
+    if double_test_acc>max_double_test_acc:
+        torch.save(model, model_path+'/max_double_test_acc.pt')
 
 def train(dataset, task, writer):
     if task == 'graph':
@@ -150,6 +164,8 @@ def train(dataset, task, writer):
     # build model
     model = GNNStack(max(dataset.num_node_features, 1), 32, dataset.num_classes, task=task)
     opt = optim.Adam(model.parameters(), lr=0.01)
+    min_loss = float('inf')
+    max_test_acc = max_double_test_acc = float('-inf')
 
     # train
     for epoch in tqdm(range(200)):
@@ -160,8 +176,6 @@ def train(dataset, task, writer):
             opt.zero_grad()
             embedding, pred = model(batch)
             label = batch.y
-            # if any(torch.isnan(label).flatten()) or any(torch.isnan(pred).flatten()):
-            #     pdb.set_trace()
             if task == 'node':
                 pred = pred[batch.train_mask]
                 label = label[batch.train_mask]
@@ -170,7 +184,6 @@ def train(dataset, task, writer):
             for i in range(len(label)):
             #     lab_1_hot[i] = torch.argmax(pred[i])
                 label_maxes[i] = torch.argmax(label[i])
-            # pdb.set_trace()
             loss = model.loss(pred, label_maxes)
             loss.backward()
             opt.step()
@@ -179,11 +192,15 @@ def train(dataset, task, writer):
         total_loss /= len(loader.dataset)
         writer.add_scalar("loss", total_loss, epoch)
 
-        if epoch % 10 == 0:
-            test_acc = test(test_loader, model)
-            print("Epoch {}. Loss: {:.4f}. Test accuracy: {:.4f}".format(
-                epoch, total_loss, test_acc))
+        if epoch % 5 == 0:
+            test_acc, double_test_acc = test(test_loader, model)
+            print("Epoch {}. Loss: {:.4f}. Test accuracy: {:.4f}. Top2 Test accuracy: {:.4f}".format(
+                epoch, total_loss, test_acc, double_test_acc))
             writer.add_scalar("test accuracy", test_acc, epoch)
+            writer.add_scalar("top2 test accuracy", double_test_acc, epoch)
+
+            if epoch >= 50:
+                save_models(model, total_loss,min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc)
 
     return model
 
@@ -191,19 +208,28 @@ def test(loader, model, is_validation=False):
     model.eval()
 
     correct = 0
+    second_correct = 0
     for data in loader:
         with torch.no_grad():
             emb, pred = model(data)
-            pred = pred.argmax(dim=1)
+            #change top two using argsort
+            sorted_pred = torch.argsort(pred, axis=1)
+            first_choice = sorted_pred[:,-1]
+            second_choice = sorted_pred[:,-2]
+            validation_pred = pred.argmax(dim=1)
+            assert(torch.all(first_choice == validation_pred))
             label = data.y.argmax(dim=1)
 
         if model.task == 'node':
             mask = data.val_mask if is_validation else data.test_mask
             # node classification: only evaluate on nodes in test set
-            pred = pred[mask]
+            # pred = pred[mask]
+            first_choice = first_choice[mask]
+            second_choice = second_choice[mask]
             label = data.y[mask].argmax(dim=1)
 
-        correct += pred.eq(label).sum().item()
+        correct += first_choice.eq(label).sum().item() # number first correct
+        second_correct += second_choice.eq(label).sum().item() # number second correct
 
     if model.task == 'graph':
         total = len(loader.dataset)
@@ -211,7 +237,7 @@ def test(loader, model, is_validation=False):
         total = 0
         for data in loader.dataset:
             total += torch.sum(data.test_mask).item()
-    return correct / total
+    return correct / total, (correct+second_correct)/total
 
 def visualize():
   color_list = ["red", "orange", "green", "blue", "purple", "brown"]
@@ -229,11 +255,18 @@ def visualize():
   plt.scatter(xs, ys, color=colors)
 
 
-writer = SummaryWriter("./log/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
+if __name__ == "__main__":
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    writer = SummaryWriter("./log/" + current_time)
+    model_path = "./model_log/" + current_time
+    os.mkdir(model_path)
 
+    torch.manual_seed(0)
+    np.random.seed(0)
+    random.seed(0)
 
-dataset = MyOwnDataset(root='./map_data_big2d_new/')
-dataset = dataset.shuffle()
-task = 'node'
+    dataset = MyOwnDataset(root='./map_data_big2d_new/')
+    dataset = dataset.shuffle()
+    task = 'node'
 
-model = train(dataset, task, writer)
+    model = train(dataset, task, writer)

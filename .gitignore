@@ -1,12 +1,15 @@
 # Our files and data
-tutorial_data/
-log/
-map_data/
-map_data_small/
-map_data_big2d/
-map_data_old/
-map_data_big2d_new/
-test.py
+gnn/tutorial_data/
+gnn/log/
+gnn/map_data/
+gnn/map_data_small/
+gnn/map_data_big2d/
+gnn/map_data_old/
+gnn/map_data_big2d_new/
+gnn/test.py
+gnn/model_log/
+cs_methods/map_files
+cs_methods/scen_files
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
