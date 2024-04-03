@@ -22,6 +22,9 @@ sys.path.insert(0, '/home/arthur/snap/snapd-desktop-integration/current/Document
 from dataloader import *
 from trainer import *
 
+# tools
+from multiprocessing import Pool
+from itertools import repeat
 import matplotlib.pyplot as plt
 
 
@@ -71,10 +74,10 @@ def parse_scene(scen_path, scene_f):
             tokens = tokens[4:]  # Skip the first four elements
             col = int(tokens[0])
             row = int(tokens[1])
-            start_locations.append(np.array([row,col]))
+            start_locations.append((row,col))
             col = int(tokens[2])
             row = int(tokens[3])
-            goal_locations.append(np.array([row,col]))
+            goal_locations.append((row,col))
     return (np.array(start_locations), np.array(goal_locations))
 
 
@@ -82,18 +85,19 @@ def parse_scen_name(scen_name):
     index = scen_name.rindex('random')
     return scen_name[0:index-1]
 
-# def get_map_weights(map_arr):
-#     map_arr = map_arr.astype(float)
-#     map_arr[np.where(1==map_arr)]=float('inf')
-#     map_arr+=1
-#     return map_arr
-
+# def calculate_bds(goals, map_arr):
+#     bds = list()
+#     env = EnvironmentWrapper(map_arr)
+#     for goal in goals:
+#         heuristic = computeHeuristicMap(env, tuple(goal))
+#         bds.append(heuristic)
+#     return np.array(bds)
 def calculate_bds(goals, map_arr):
     bds = list()
     env = EnvironmentWrapper(map_arr)
-    for goal in goals:
-        heuristic = computeHeuristicMap(env, tuple(goal))
-        bds.append(heuristic)
+    with Pool() as pool:
+        for heuristic in pool.starmap(computeHeuristicMap, zip(repeat(env), goals)):
+            bds.append(heuristic)
     return np.array(bds)
 
 class Preprocess():
@@ -111,8 +115,6 @@ class Preprocess():
                 self.map_dict['scen'][scen_name]=collections.defaultdict(list)
             self.map_dict['scen'][scen_name]['agent_info'].append(parse_scene(scen_path, scen_f))
 
-            #TODO put append back because it should be for the same map that it's a list of scenes
-
     def get_map_dict(self):
         return self.map_dict
 
@@ -122,7 +124,9 @@ class Preprocess():
         pdb.set_trace()
         for scen_name in self.map_dict['scen'].keys():
             for start_loc, goal_loc in self.map_dict['scen'][scen_name]['agent_info']:
-                self.map_dict['scen'][scen_name]['bd'] = calculate_bds(goal_loc, self.map_dict['map'][scen_name])
+                self.map_dict['scen'][scen_name]['bd'].append(calculate_bds(goal_loc, self.map_dict['map'][scen_name]))
+
+        #save this to an npz
 
 if __name__ == "__main__":
     run_name = 'full_sum_aggr'

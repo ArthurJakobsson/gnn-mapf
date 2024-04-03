@@ -94,7 +94,7 @@ class GenericPlanner:
 
 def computeHeuristicMap(env: EnvironmentWrapper, goal_xy):
     """Precompute the heuristic for all states"""
-
+    goal_xy = tuple(goal_xy)
     assert(len(goal_xy) == 2)
     heuristic_map = np.zeros(env.grid_occupancy.shape)
 
@@ -126,7 +126,6 @@ def computeHeuristicMap(env: EnvironmentWrapper, goal_xy):
 
     gp = GenericPlanner(environment=env)
     goalFunc = lambda node: False
-    print(goal_xy)
     startNode = XYNode(goal_xy, None, 0)
     gp.findPlan(startNode, goalFunc)
     return heuristic_map
