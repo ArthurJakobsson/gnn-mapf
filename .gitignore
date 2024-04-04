@@ -11,6 +11,8 @@ gnn/model_log/
 cs_methods/map_files
 cs_methods/scen_files
 
+*.pickle
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

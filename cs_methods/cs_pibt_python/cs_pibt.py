@@ -26,6 +26,8 @@ from trainer import *
 from multiprocessing import Pool
 from itertools import repeat
 import matplotlib.pyplot as plt
+import pickle
+
 
 
 
@@ -101,32 +103,45 @@ def calculate_bds(goals, map_arr):
     return np.array(bds)
 
 class Preprocess():
-    def __init__(self, map_files, scen_files, map_path='../map_files/', scen_path = '../scen_files/'):
-        self.map_dict = dict()
-        self.map_dict['map'] = dict()
-        self.map_dict['scen'] = dict()
+    def __init__(self, map_files, scen_files, map_path='../map_files/', scen_path = '../scen_files/', first_time=False):
+        if not first_time:
+            with open('saved_map_dict.pickle', 'rb') as handle:
+                self.map_dict = pickle.load(handle)
+        else:
+            self.map_dict = collections.defaultdict(list)
+            self.map_dict['map'] = dict()
+            self.map_dict['scen'] = dict()
+
+        pdb.set_trace()
         for map_name in map_files:
-           just_map_name = map_name[0:-4]
-           print(just_map_name)
-           self.map_dict['map'][just_map_name] = parse_map(map_path, map_name)
+            if map_name in self.map_dict['loaded_maps']:
+                continue
+
+            self.map_dict['loaded_maps'].append(map_name)
+            just_map_name = map_name[0:-4]
+            print(just_map_name)
+            self.map_dict['map'][just_map_name] = parse_map(map_path, map_name)
         for scen_f in scen_files:
+            if scen_f in  self.map_dict['loaded_scenes']:
+                continue
+
+            self.map_dict['loaded_scenes'].append(scen_f)
             scen_name = parse_scen_name(scen_f)
             if not scen_name in self.map_dict['scen']:
                 self.map_dict['scen'][scen_name]=collections.defaultdict(list)
-            self.map_dict['scen'][scen_name]['agent_info'].append(parse_scene(scen_path, scen_f))
+            start_loc, goal_loc = parse_scene(scen_path, scen_f)
+            # add start and goal
+            self.map_dict['scen'][scen_name]['agent_info'].append((start_loc,goal_loc))
+            # calculate bds
+            self.map_dict['scen'][scen_name]['bd'].append(calculate_bds(goal_loc, self.map_dict['map'][scen_name]))
+        
+        
+        with open('saved_map_dict.pickle', 'wb') as handle:
+            pickle.dump(self.map_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def get_map_dict(self):
         return self.map_dict
 
-    def get_start_graph(self):
-        #get bds using https://judecapachietti.medium.com/dijkstras-algorithm-for-adjacency-matrix-in-python-a0966d7093e8
-        #for all agents in scene get their bd and then use dataloader functions.
-        pdb.set_trace()
-        for scen_name in self.map_dict['scen'].keys():
-            for start_loc, goal_loc in self.map_dict['scen'][scen_name]['agent_info']:
-                self.map_dict['scen'][scen_name]['bd'].append(calculate_bds(goal_loc, self.map_dict['map'][scen_name]))
-
-        #save this to an npz
 
 if __name__ == "__main__":
     run_name = 'full_sum_aggr'
@@ -134,11 +149,10 @@ if __name__ == "__main__":
     model.eval()
 
     map_files = ['warehouse-10-20-10-2-2.map']
-    scen_files = ['warehouse-10-20-10-2-2-random-1.scen','warehouse-10-20-10-2-2-random-2.scen']
+    scen_files = ['warehouse-10-20-10-2-2-random-1.scen','warehouse-10-20-10-2-2-random-2.scen', 'warehouse-10-20-10-2-2-random-3.scen']
 
-    startup = Preprocess(map_files, scen_files)
+    startup = Preprocess(map_files, scen_files, first_time=False)
     # print(startup.get_map_dict())
-    startup.get_start_graph()
 
 
 
