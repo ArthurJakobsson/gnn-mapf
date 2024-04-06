@@ -163,16 +163,18 @@ def train(dataset, task, writer):
 
     # build model
     model = GNNStack(max(dataset.num_node_features, 1), 32, dataset.num_classes, task=task)
+    model.to(device)
     opt = optim.Adam(model.parameters(), lr=0.01)
     min_loss = float('inf')
     max_test_acc = max_double_test_acc = float('-inf')
 
     # train
-    for epoch in tqdm(range(200)):
+    for epoch in tqdm(range(1000)):
         total_loss = 0
         model.train()
         for batch in loader:
             #print(batch.train_mask, '----')
+            batch = batch.to(device)
             opt.zero_grad()
             embedding, pred = model(batch)
             label = batch.y
@@ -180,7 +182,7 @@ def train(dataset, task, writer):
                 pred = pred[batch.train_mask]
                 label = label[batch.train_mask]
             # lab_1_hot = torch.zeros(pred.shape[0]).type(torch.LongTensor)
-            label_maxes = torch.zeros(label.shape[0]).type(torch.LongTensor)
+            label_maxes = torch.zeros(label.shape[0]).type(torch.LongTensor).to(device)
             for i in range(len(label)):
             #     lab_1_hot[i] = torch.argmax(pred[i])
                 label_maxes[i] = torch.argmax(label[i])
@@ -210,6 +212,7 @@ def test(loader, model, is_validation=False):
     correct = 0
     second_correct = 0
     for data in loader:
+        data = data.to(device)
         with torch.no_grad():
             emb, pred = model(data)
             #change top two using argsort
@@ -260,6 +263,9 @@ if __name__ == "__main__":
     writer = SummaryWriter("./log/" + current_time)
     model_path = "./model_log/" + current_time
     os.mkdir(model_path)
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print('Current cuda device: ',torch.cuda.get_device_name(0))
 
     torch.manual_seed(0)
     np.random.seed(0)
