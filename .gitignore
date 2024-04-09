@@ -167,6 +167,16 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# data collection stuff
+data_collection/eecbs/py/npzs/*
+data_collection/eecbs/logs/*
+data_collection/eecbs/archives/*
+data_collection/eecbs/build_debug/*
+data_collection/eecbs/build_release/*
+data_collection/eecbs/CMakeFiles/*
+data_collection/eecbs/data/*
+data_collection/eecbs/raw_data/*
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
