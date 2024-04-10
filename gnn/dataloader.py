@@ -81,7 +81,7 @@ def apply_edge_normalization(edge_weights):
     edge_weights = torch.exp(-edge_weights)
     return edge_weights
 
-def apply_bd_normalization(bd_grid, k):
+def apply_bd_normalization(bd_grid, k, device):
     # TODO have an otpion to choose method based on flags
     temp = bd_grid.clone()
 
@@ -93,20 +93,21 @@ def apply_bd_normalization(bd_grid, k):
 
     #normalize
     bd_grid[:, 1,:,:]/=k
-    bd_grid[:,1,:,:] = torch.maximum(bd_grid[:,1,:,:], torch.tensor([-10]))
-    bd_grid[:,1,:,:] = torch.minimum(bd_grid[:,1,:,:], torch.tensor([10]))
+    bd_grid[:,1,:,:] = torch.maximum(bd_grid[:,1,:,:], torch.tensor([-10]).to(device))
+    bd_grid[:,1,:,:] = torch.minimum(bd_grid[:,1,:,:], torch.tensor([10]).to(device))
     return bd_grid
 
 
 
 class MyOwnDataset(Dataset):
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root, device, transform=None, pre_transform=None, pre_filter=None):
         self.k = 4 # padding size
         self.m = 5 # number of agents considered close
         self.size = float('inf')
         self.max_agents = 500
         # self.data_dictionaries = []
         self.length = 0
+        self.device = device
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load_metadata()
 
@@ -169,11 +170,12 @@ class MyOwnDataset(Dataset):
 
     def get(self, idx):
         curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
+        curdata = curdata.to(self.device)
 
         # normalize bd, normalize edge attributes
         edge_weights, bd_and_grids = curdata.edge_attr, curdata.x
         curdata.edge_attr = apply_edge_normalization(edge_weights)
-        curdata.x = apply_bd_normalization(bd_and_grids, self.k)
+        curdata.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
 
 
         return curdata

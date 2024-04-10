@@ -265,13 +265,14 @@ if __name__ == "__main__":
     os.mkdir(model_path)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = "cpu"
     print('Current cuda device: ',torch.cuda.get_device_name(0))
 
     torch.manual_seed(0)
     np.random.seed(0)
     random.seed(0)
 
-    dataset = MyOwnDataset(root='./map_data_big2d_new/')
+    dataset = MyOwnDataset(root='./map_data_big2d_new/', device=device)
     dataset = dataset.shuffle()
     task = 'node'
 
