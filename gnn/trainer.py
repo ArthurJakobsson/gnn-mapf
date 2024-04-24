@@ -213,6 +213,7 @@ def test(loader, model, is_validation=False):
     second_correct = 0
     for data in loader:
         data = data.to(device)
+        pdb.set_trace()
         with torch.no_grad():
             emb, pred = model(data)
             #change top two using argsort

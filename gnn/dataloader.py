@@ -97,7 +97,19 @@ def apply_bd_normalization(bd_grid, k, device):
     bd_grid[:,1,:,:] = torch.minimum(bd_grid[:,1,:,:], torch.tensor([10]).to(device))
     return bd_grid
 
+def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
+    num_agents = len(pos_list)
+    x = [np.array([slice_maps(pos, grid, k), slice_maps(pos, bd, k)]) for (pos, bd) in zip(pos_list, bd_list)]
 
+    m_closest_nborsIdx_list = [get_neighbors(m, pos, pos_list, k) for pos in pos_list] # (m,n)
+    edge_index = convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
+    edge_attr = get_edge_attributes(edge_index, pos_list) # (num_edges,2 )
+
+    # Tensorify
+    x = torch.tensor(np.array(x), dtype=torch.float)
+    edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
+    labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
+    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
 class MyOwnDataset(Dataset):
     def __init__(self, root, device, transform=None, pre_transform=None, pre_filter=None):
@@ -143,21 +155,9 @@ class MyOwnDataset(Dataset):
                 # Graphify
                 if not time_instance: break #idk why but the last one is None
                 pos_list, labels, bd_list, grid = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
-                num_agents = len(pos_list)
-                x = [np.array([slice_maps(pos, grid, self.k), slice_maps(pos, bd, self.k)]) for (pos, bd) in zip(pos_list, bd_list)]
 
-                m_closest_nborsIdx_list = [get_neighbors(self.m, pos, pos_list, self.k) for pos in pos_list] # (m,n)
-                edge_index = convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
-                edge_attr = get_edge_attributes(edge_index, pos_list) # (num_edges,2 )
-
-
-                # Tensorify
-                x = torch.tensor(np.array(x), dtype=torch.float)
-                edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
-                labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
-
-                curdata = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
-                curdata = apply_masks(len(x), curdata)
+                curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
+                curdata = apply_masks(len(curdata.x), curdata)
                 torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
                 idx+=1
 
