@@ -28,7 +28,12 @@ from itertools import repeat
 import matplotlib.pyplot as plt
 import pickle
 
-
+up = np.array([-1, 0])
+down = np.array([1, 0])
+left = np.array([0, -1])
+right = np.array([0, 1])
+stop = np.array([0, 0])
+moves_ordered = np.array([up, left, down, right, stop])
 
 
 def parse_map(path, mapfile, k):
@@ -143,22 +148,71 @@ class RunModel():
         if preprocess==None or model==None:
             raise RuntimeError("No prerpocessing information or model provided")
         map_dict = preprocess.get_map_dict()
-        if cs_type=="PIBT":
-            cur_map = map_dict['map']['warehouse-10-20-10-2-2'] #TODO change this to iterate through all maps
-            cur_agent_locs = map_dict['scen']['warehouse-10-20-10-2-2']['agent_info'][0][0] #first zero is scen, #second is the start_locs
-            cur_bd = map_dict['scen']['warehouse-10-20-10-2-2']['bd'][0]
-            cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m)
-            
-            cur_data = cur_data.to(self.device)
-            # normalize bd, normalize edge attributes
-            edge_weights, bd_and_grids = cur_data.edge_attr, cur_data.x
-            cur_data.edge_attr = apply_edge_normalization(edge_weights)
-            cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
-            _, predictions = model(cur_data)
-            print(torch.argmax(predictions,dim=1))
 
-        else:
+
+        cur_map = map_dict['map']['warehouse-10-20-10-2-2'] #TODO change this to iterate through all maps
+        cur_agent_locs = map_dict['scen']['warehouse-10-20-10-2-2']['agent_info'][0][0] #first zero is scen, #second is the start_locs
+        cur_bd = map_dict['scen']['warehouse-10-20-10-2-2']['bd'][0]
+        cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m)
+        
+        cur_data = cur_data.to(self.device)
+        # normalize bd, normalize edge attributes
+        edge_weights, bd_and_grids = cur_data.edge_attr, cur_data.x
+        cur_data.edge_attr = apply_edge_normalization(edge_weights)
+        cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
+        _, predictions = model(cur_data)
+        # print(torch.argmax(predictions,dim=1))
+        logits = torch.exp(predictions)
+        # logits = logits / logits.sum()
+        
+        # Random action #TODO implement O_tie
+        action_preferences = torch.multinomial(logits, num_samples=5, replacement=False)
+
+        if cs_type=="PIBT":
             raise NotImplementedError
+        else:
+            self.cs_naive(cur_map, cur_agent_locs)
+
+    def cs_naive(self, cur_map, cur_agent_locs, action_preferences):
+        collisions = True
+        chosen_action = action_preferences[:,0]
+        modified_map = cur_map.copy()
+        while (collisions):
+            occupied_nodes = []
+            occupied_edges = []
+            planned_agents = []
+            for idx, act in enumerate(chosen_action):
+                cur_loc = cur_agent_locs[idx]
+                next_loc = cur_loc + moves_ordered[act]
+                
+                # Skip if would leave map bounds
+                if next_loc[0] < 0 or next_loc[0] >= modified_map.shape[0] or next_loc[1] < 0 or next_loc[1] >= modified_map.shape[1]:
+                    continue
+                # Skip if obstacle
+                if modified_map[next_loc[0], next_loc[1]]==1:
+                    continue
+                # Skip if vertex occupied by higher agent
+                # if tuple(next_loc) in occupied_nodes:
+                #     continue
+                # # Skip if reverse edge occupied by higher agent
+                # if tuple([*next_loc, *cur_loc]) in occupied_edges:
+                #     continue
+                pdb.set_trace()
+
+                occupied_nodes.append(tuple(next_loc))
+                occupied_edges.append(tuple([*cur_loc, *next_loc]))
+            for idx, loc, edge in enumerate(zip(occupied_nodes, occupied_edges)):
+                first_loc, second_loc = edge[0:2], edge[2:4]
+
+                if(occupied_nodes.count(loc)>1 or tuple([*second_loc, *first_loc])):
+                    modified_map[cur_loc[0], cur_loc[1]] = 1
+                
+
+
+
+        self.resolve_conflicts(cur_map, cur_agent_locs, action_preferences, chosen_action, occupied_nodes, occupied_edges, planned_agents)
+
+
 
 
 if __name__ == "__main__":
@@ -171,12 +225,14 @@ if __name__ == "__main__":
     map_files = ['warehouse-10-20-10-2-2.map']
     scen_files = ['warehouse-10-20-10-2-2-random-1.scen','warehouse-10-20-10-2-2-random-2.scen', 'warehouse-10-20-10-2-2-random-3.scen']
 
+    torch.manual_seed(1072)
+
     k = 4
     m = 5
     startup = Preprocess(map_files, scen_files, k=k, first_time=False)
     # print(startup.get_map_dict())
 
-    model_run = RunModel(device, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m)
+    model_run = RunModel(device, model=model, preprocess=startup, cs_type="Naive", k=k, m=m)
     
 
 

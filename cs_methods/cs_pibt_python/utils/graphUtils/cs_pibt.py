@@ -64,6 +64,7 @@ class multiRobotSimNew:
         self.left_keyValue = 1
         self.right_keyValue = 3
         self.stop_keyValue = 4
+        self.pibt_r = 0 # don't do O_tie
 
         # self.current_positions = None
         # self.start_positions = None
@@ -112,9 +113,104 @@ class multiRobotSimNew:
         # self.dir_sol = os.path.join(self.config.failCases_dir, "output_ECBS/")
 
         # self.shieldType = self.config.shieldType
-        # self.pibt_r = self.config.pibt_r
+        
         # self.shieldTime = 0
         # assert(self.shieldType in ["Default", "LaCAM"])
+
+
+    def pibt(self, agent_id, actionPreds, plannedAgents, moveMatrix, occupiedNodes, occupiedEdges, current_positions, num_agents, size_map, curmap):
+        '''
+        Runs PIBT for a single agent
+        Args:
+            agent_id: agent id
+            move_preferences: (N,5) up-down-left-right-wait
+        Returns:
+            isvalid: whether we can find a feasible solution
+        '''
+
+        def findAgentAtLocation(aLoc):
+            for a in range(num_agents):
+                if a == agent_id:
+                    continue
+                if tuple(current_positions[a]) == tuple(aLoc):
+                    return a
+            return -1
+
+        # Below matches __init__ action order
+        moves_ordered = np.array([self.up, self.left, self.down, self.right, self.stop])
+        curActionPreds = actionPreds[agent_id]
+        # actionPreferences = (-curActionPreds).argsort() # If strict ordering
+        logits = np.exp(curActionPreds)
+        logits = logits / logits.sum()
+
+        if self.pibt_r > 0: ### Incorporate BDs
+            BD_scores = []
+            for drow, dcol in moves_ordered:
+                neighbor_row = int(current_positions[agent_id][0] + drow)
+                neighbor_col = int(current_positions[agent_id][1] + dcol)
+                if neighbor_row < 0 or neighbor_col < 0 or neighbor_row >= size_map[0] or neighbor_col >= size_map[1]:
+                    BD_scores.append(9999)
+                    continue
+                neighbor_score = self.BDs[agent_id, neighbor_row, neighbor_col]
+                if neighbor_score == np.inf:
+                    BD_scores.append(9999)
+                    continue
+                BD_scores.append(neighbor_score)
+            # assert(self.BDs[agent_id, current_positions[agent_id][0], current_positions[agent_id][1]] < 1000
+            assert(BD_scores[-1] < 1000)
+            weighted_scores = BD_scores + self.pibt_r * (1 - logits) # TODO: tune this
+            # weighted_scores = weighted_scores / weighted_scores.sum()
+            # pdb.set_trace()
+            actionPreferences = weighted_scores.argsort() # If strict ordering, sorts min to max
+        else:
+            ### Randomly sort using logits
+            actionPreferences = np.random.choice(5, size=5, replace=False, p=logits)
+
+        moves_ordered = moves_ordered[actionPreferences]
+
+        current_pos = current_positions[agent_id]
+        for aMove in moves_ordered:
+            next_loc = current_pos + aMove
+            
+            # Skip if would leave map bounds
+            if next_loc[0] < 0 or next_loc[0] >= size_map[0] or next_loc[1] < 0 or next_loc[1] >= size_map[1]:
+                continue
+            # Skip if obstacle
+            if curmap[next_loc[0], next_loc[1]]==1:
+                continue
+            # Skip if vertex occupied by higher agent
+            if tuple(next_loc) in occupiedNodes:
+                continue
+            # Skip if reverse edge occupied by higher agent
+            if tuple([*next_loc, *current_pos]) in occupiedEdges:
+                continue
+            
+            ### Pretend we move there
+            moveMatrix[agent_id] = aMove
+            # pdb.set_trace()
+            plannedAgents.append(agent_id)
+            occupiedNodes.append(tuple(next_loc))
+            occupiedEdges.append(tuple([*current_pos, *next_loc]))
+            conflictingAgent = findAgentAtLocation(next_loc)
+            if conflictingAgent != -1 and conflictingAgent not in plannedAgents:
+                # Recurse
+                isvalid = self.pibt(conflictingAgent, actionPreds, plannedAgents,
+                                    moveMatrix, occupiedNodes, occupiedEdges, current_positions, num_agents, size_map, curmap)
+                if isvalid:
+                    return True
+                else:
+                    # pdb.set_trace()
+                    del plannedAgents[-1]
+                    del occupiedNodes[-1]
+                    del occupiedEdges[-1]
+                    continue
+            else:
+                # No conflict
+                return True
+            
+        # No valid move found
+        return False
+    
 
     # def setup(self, loadInput, loadTarget, case_config, tensor_map, ID_dataset, mode):
     #     '''
@@ -341,172 +437,60 @@ class multiRobotSimNew:
     #     self.store_attentionGSO.append(attentionGSO)
 
     # RVMod
-    def lacam_check_collision(self, actionPreds, current_positions, agent_priorities, num_agents, size_map, map):
-        '''
-        Runs LaCAM and PIBT instead of naive collision checking
-        Args:
-            actionPreds: (N,5) action preds
-        Returns:
-            new_move: valid move without collision
-            out_boundary: matrix of whether the agent in place goes out of boundary
-            move_to_wall: ids of moving to walls
-            collide_agents: ids of collided agents (earlier mover has advantages to move)
-            collide_in_move_agents: ids of face-to-face collision (both stop)
-        '''
+    # def lacam_check_collision(self, actionPreds, current_positions, agent_priorities, num_agents, size_map, map):
+    #     '''
+    #     Runs LaCAM and PIBT instead of naive collision checking
+    #     Args:
+    #         actionPreds: (N,5) action preds
+    #     Returns:
+    #         new_move: valid move without collision
+    #         out_boundary: matrix of whether the agent in place goes out of boundary
+    #         move_to_wall: ids of moving to walls
+    #         collide_agents: ids of collided agents (earlier mover has advantages to move)
+    #         collide_in_move_agents: ids of face-to-face collision (both stop)
+    #     '''
 
-        # agent_order = np.arange(self.config.num_agents)
-        ### Recompute priorities
-        # RVMod: Update self.agent_priorities if reached goal
-        # current_distance = np.sum(np.abs(current_positions - self.goal_positions), axis=1)
-        # self.agent_priorities = np.maximum(self.agent_priorities, current_distance) # Increase priority if further from goal
-        # self.agent_priorities[current_distance == 0] = 0 # Set priority to 0 if reached goal
-        agent_order = np.argsort(-agent_priorities) # Sort by priority, highest first
-        moveMatrix = np.zeros((num_agents, 2))
-        occupiedNodes = []
-        occupiedEdges = []
-        plannedAgents = []
+    #     # agent_order = np.arange(self.config.num_agents)
+    #     ### Recompute priorities
+    #     # RVMod: Update self.agent_priorities if reached goal
+    #     # current_distance = np.sum(np.abs(current_positions - self.goal_positions), axis=1)
+    #     # self.agent_priorities = np.maximum(self.agent_priorities, current_distance) # Increase priority if further from goal
+    #     # self.agent_priorities[current_distance == 0] = 0 # Set priority to 0 if reached goal
+    #     agent_order = np.argsort(-agent_priorities) # Sort by priority, highest first
+    #     moveMatrix = np.zeros((num_agents, 2))
+    #     occupiedNodes = []
+    #     occupiedEdges = []
+    #     plannedAgents = []
 
-        curLocations = set()
-        for agent_id in agent_order:
-            if tuple(current_positions[agent_id]) not in curLocations:
-                curLocations.add(tuple(current_positions[agent_id]))
-            else:
-                print("UH OH, MULTIPLE AGENTS AT SAME LOCATION!")
-                pdb.set_trace()
+    #     curLocations = set()
+    #     for agent_id in agent_order:
+    #         if tuple(current_positions[agent_id]) not in curLocations:
+    #             curLocations.add(tuple(current_positions[agent_id]))
+    #         else:
+    #             print("UH OH, MULTIPLE AGENTS AT SAME LOCATION!")
+    #             pdb.set_trace()
 
-        for agent_id in agent_order:
-            if agent_id in plannedAgents:
-                continue
-            # tmp1 = len(plannedAgents)
-            current_pos = current_positions[agent_id]
-            if tuple(current_pos) in occupiedNodes:
-                pdb.set_trace()
-            lacamWorked = self.pibt(agent_id, actionPreds, plannedAgents, moveMatrix, occupiedNodes, occupiedEdges, current_positions, num_agents, size_map)
-            # if len(plannedAgents) > tmp1+1:
-                # print("PIBT added {} agents to plannedAgents".format(len(plannedAgents)-tmp1))
-            if lacamWorked is False:
-                print("PIBT ERROR!")
-                raise RuntimeError('PIBT failed for agent {}. Single-step PIBT should never fail!', agent_id)
-                # lacamWorked = self.pibt(agent_id, actionPreferences, plannedAgents, moveMatrix, occupiedNodes, occupiedEdges)
-                ### Fall back to regular collision checking???
-        out_boundary = np.zeros(num_agents, dtype=bool)
-        move_to_wall = []
-        collide_agents = []
-        collide_in_move_agents = []
-        #  move, out_boundary == True, move_to_wall, collide_agents, collide_in_move_agents
-        return moveMatrix, out_boundary, move_to_wall, collide_agents, collide_in_move_agents
-
-    def pibt(self, agent_id, actionPreds, plannedAgents, moveMatrix, occupiedNodes, occupiedEdges, current_positions, num_agents, size_map, curmap):
-        '''
-        Runs PIBT for a single agent
-        Args:
-            agent_id: agent id
-            move_preferences: (N,5) up-down-left-right-wait
-        Returns:
-            isvalid: whether we can find a feasible solution
-        '''
-
-        def findAgentAtLocation(aLoc):
-            for a in range(num_agents):
-                if a == agent_id:
-                    continue
-                if tuple(current_positions[a]) == tuple(aLoc):
-                    return a
-            return -1
-
-        # Below matches __init__ action order
-        moves_ordered = np.array([self.up, self.left, self.down, self.right, self.stop])
-        curActionPreds = actionPreds[agent_id]
-        # actionPreferences = (-curActionPreds).argsort() # If strict ordering
-        logits = np.exp(curActionPreds)
-        logits = logits / logits.sum()
-
-        if self.pibt_r > 0: ### Incorporate BDs
-            BD_scores = []
-            for drow, dcol in moves_ordered:
-                neighbor_row = int(current_positions[agent_id][0] + drow)
-                neighbor_col = int(current_positions[agent_id][1] + dcol)
-                if neighbor_row < 0 or neighbor_col < 0 or neighbor_row >= size_map[0] or neighbor_col >= size_map[1]:
-                    BD_scores.append(9999)
-                    continue
-                neighbor_score = self.BDs[agent_id, neighbor_row, neighbor_col]
-                if neighbor_score == np.inf:
-                    BD_scores.append(9999)
-                    continue
-                BD_scores.append(neighbor_score)
-            # assert(self.BDs[agent_id, current_positions[agent_id][0], current_positions[agent_id][1]] < 1000
-            assert(BD_scores[-1] < 1000)
-            weighted_scores = BD_scores + self.pibt_r * (1 - logits) # TODO: tune this
-            # weighted_scores = weighted_scores / weighted_scores.sum()
-            # pdb.set_trace()
-            actionPreferences = weighted_scores.argsort() # If strict ordering, sorts min to max
-        else:
-            ### Randomly sort using logits
-            actionPreferences = np.random.choice(5, size=5, replace=False, p=logits)
-
-            ### Below is for sanity checking that PIBT with BDs works as expected (it does)
-            # BD_scores = []
-            # for drow, dcol in moves_ordered:
-            #     neighbor_row = int(current_positions[agent_id][0] + drow)
-            #     neighbor_col = int(current_positions[agent_id][1] + dcol)
-            #     if neighbor_row < 0 or neighbor_col < 0 or neighbor_row >= self.size_map[0] or neighbor_col >= self.size_map[1]:
-            #         BD_scores.append(9999)
-            #         continue
-            #     neighbor_score = self.BDs[agent_id, neighbor_row, neighbor_col]
-            #     if neighbor_score == np.inf:
-            #         BD_scores.append(9999)
-            #         continue
-            #     BD_scores.append(neighbor_score + np.random.uniform(0, 1))
-            # # assert(self.BDs[agent_id, current_positions[agent_id][0], current_positions[agent_id][1]] < 1000
-            # assert(BD_scores[-1] < 1000)
-            # # weighted_scores = BD_scores + self.pibt_r * (1 - logits) # TODO: tune this
-            # # weighted_scores = weighted_scores / weighted_scores.sum()
-            # # pdb.set_trace()
-            # actionPreferences = np.argsort(BD_scores) # If strict ordering, sorts min to max
-        moves_ordered = moves_ordered[actionPreferences]
-
-        current_pos = current_positions[agent_id]
-        for aMove in moves_ordered:
-            next_loc = current_pos + aMove
-            
-            # Skip if would leave map bounds
-            if next_loc[0] < 0 or next_loc[0] >= size_map[0] or next_loc[1] < 0 or next_loc[1] >= size_map[1]:
-                continue
-            # Skip if obstacle
-            if curmap[next_loc[0], next_loc[1]]==1:
-                continue
-            # Skip if vertex occupied by higher agent
-            if tuple(next_loc) in occupiedNodes:
-                continue
-            # Skip if reverse edge occupied by higher agent
-            if tuple([*next_loc, *current_pos]) in occupiedEdges:
-                continue
-            
-            ### Pretend we move there
-            moveMatrix[agent_id] = aMove
-            # pdb.set_trace()
-            plannedAgents.append(agent_id)
-            occupiedNodes.append(tuple(next_loc))
-            occupiedEdges.append(tuple([*current_pos, *next_loc]))
-            conflictingAgent = findAgentAtLocation(next_loc)
-            if conflictingAgent != -1 and conflictingAgent not in plannedAgents:
-                # Recurse
-                isvalid = self.pibt(conflictingAgent, actionPreds, plannedAgents,
-                                    moveMatrix, occupiedNodes, occupiedEdges, current_positions, num_agents, size_map, curmap)
-                if isvalid:
-                    return True
-                else:
-                    # pdb.set_trace()
-                    del plannedAgents[-1]
-                    del occupiedNodes[-1]
-                    del occupiedEdges[-1]
-                    continue
-            else:
-                # No conflict
-                return True
-            
-        # No valid move found
-        return False
+    #     for agent_id in agent_order:
+    #         if agent_id in plannedAgents:
+    #             continue
+    #         # tmp1 = len(plannedAgents)
+    #         current_pos = current_positions[agent_id]
+    #         if tuple(current_pos) in occupiedNodes:
+    #             pdb.set_trace()
+    #         lacamWorked = self.pibt(agent_id, actionPreds, plannedAgents, moveMatrix, occupiedNodes, occupiedEdges, current_positions, num_agents, size_map)
+    #         # if len(plannedAgents) > tmp1+1:
+    #             # print("PIBT added {} agents to plannedAgents".format(len(plannedAgents)-tmp1))
+    #         if lacamWorked is False:
+    #             print("PIBT ERROR!")
+    #             raise RuntimeError('PIBT failed for agent {}. Single-step PIBT should never fail!', agent_id)
+    #             # lacamWorked = self.pibt(agent_id, actionPreferences, plannedAgents, moveMatrix, occupiedNodes, occupiedEdges)
+    #             ### Fall back to regular collision checking???
+    #     out_boundary = np.zeros(num_agents, dtype=bool)
+    #     move_to_wall = []
+    #     collide_agents = []
+    #     collide_in_move_agents = []
+    #     #  move, out_boundary == True, move_to_wall, collide_agents, collide_in_move_agents
+    #     return moveMatrix, out_boundary, move_to_wall, collide_agents, collide_in_move_agents
 
     # def check_collision(self, current_pos, move):
     #     '''
@@ -1088,3 +1072,4 @@ class multiRobotSimNew:
     #     actionKey_predict = torch.multinomial(actionVec_current, 1)[0]
 
     #     return actionKey_predict
+
