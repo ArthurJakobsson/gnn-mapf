@@ -171,46 +171,53 @@ class RunModel():
         if cs_type=="PIBT":
             raise NotImplementedError
         else:
-            self.cs_naive(cur_map, cur_agent_locs)
+            new_agent_locs = self.cs_naive(cur_map, cur_agent_locs, action_preferences)
+            pdb.set_trace()
 
+    # CS_naive (pretty inefficient, never ends for large numbers of collisions)
     def cs_naive(self, cur_map, cur_agent_locs, action_preferences):
         collisions = True
         chosen_action = action_preferences[:,0]
         modified_map = cur_map.copy()
+        collision_count_iterations = 0 
+        pdb.set_trace()
         while (collisions):
+            collision_count_iterations += 1
             occupied_nodes = []
             occupied_edges = []
-            planned_agents = []
+            new_locations = []
             for idx, act in enumerate(chosen_action):
                 cur_loc = cur_agent_locs[idx]
                 next_loc = cur_loc + moves_ordered[act]
-                
                 # Skip if would leave map bounds
                 if next_loc[0] < 0 or next_loc[0] >= modified_map.shape[0] or next_loc[1] < 0 or next_loc[1] >= modified_map.shape[1]:
+                    new_locations.append(cur_loc) 
                     continue
+
                 # Skip if obstacle
                 if modified_map[next_loc[0], next_loc[1]]==1:
+                    new_locations.append(cur_loc)
                     continue
-                # Skip if vertex occupied by higher agent
-                # if tuple(next_loc) in occupied_nodes:
-                #     continue
-                # # Skip if reverse edge occupied by higher agent
-                # if tuple([*next_loc, *cur_loc]) in occupied_edges:
-                #     continue
-                pdb.set_trace()
-
+                    
+                new_locations.append(next_loc)
                 occupied_nodes.append(tuple(next_loc))
                 occupied_edges.append(tuple([*cur_loc, *next_loc]))
-            for idx, loc, edge in enumerate(zip(occupied_nodes, occupied_edges)):
+            any_collisions = False
+            for idx, (loc, edge) in enumerate(zip(occupied_nodes, occupied_edges)):
                 first_loc, second_loc = edge[0:2], edge[2:4]
+                cur_loc = cur_agent_locs[idx]
+                if(occupied_nodes.count(loc)>1 or tuple([*second_loc, *first_loc]) in occupied_edges):
+                    any_collisions = True
+                    modified_map[cur_loc[0], cur_loc[1]] = 1 #any agents that have a conflict get turned into an obstacle at current position
+                    chosen_action[idx] = 4 #any agent action that results in collision is changed to a stop
 
-                if(occupied_nodes.count(loc)>1 or tuple([*second_loc, *first_loc])):
-                    modified_map[cur_loc[0], cur_loc[1]] = 1
-                
+            if (not any_collisions):
+                print("end")
+                collisions = False # this line doesn't actually do anything
+                return new_locations
+            if (collision_count_iterations>100):
+                return cur_agent_locs
 
-
-
-        self.resolve_conflicts(cur_map, cur_agent_locs, action_preferences, chosen_action, occupied_nodes, occupied_edges, planned_agents)
 
 
 
