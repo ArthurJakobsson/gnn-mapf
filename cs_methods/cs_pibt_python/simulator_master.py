@@ -28,12 +28,12 @@ from itertools import repeat
 import matplotlib.pyplot as plt
 import pickle
 
-up = np.array([-1, 0])
-down = np.array([1, 0])
-left = np.array([0, -1])
-right = np.array([0, 1])
-stop = np.array([0, 0])
-moves_ordered = np.array([up, left, down, right, stop])
+up = [-1, 0]
+down = [1, 0]
+left = [0, -1]
+right = [0, 1]
+stop = [0, 0]
+possible_moves = torch.tensor([up, left, down, right, stop])
 
 
 def parse_map(path, mapfile, k):
@@ -166,21 +166,101 @@ class RunModel():
         # logits = logits / logits.sum()
         
         # Random action #TODO implement O_tie
-        action_preferences = torch.multinomial(logits, num_samples=5, replacement=False)
-
+        pdb.set_trace()
         if cs_type=="PIBT":
-            raise NotImplementedError
+            new_agents_locs = self.cs_pibt(device, cur_map, cur_agent_locs, logits)
         else:
-            new_agent_locs = self.cs_naive(cur_map, cur_agent_locs, action_preferences)
-            pdb.set_trace()
+            new_agent_locs = self.cs_naive(device, cur_map, cur_agent_locs, logits)
+
+        # create_scen_file(cur_agent_locs) --> #27	Berlin_1_256.map	256	256	142	67	211	124	111.94112549　map size,  start,  end, random shit
+        #TODO save as scen file with new_agent_locs
+        #TODO change agent_locs and call Run Model again
+        #TODO add end case when solve or more than x iterations
+
+    def cs_pibt(self,device, cur_map, cur_agent_locs, logits):
+        planned_agents = []
+        occupied_nodes = []
+        occupied_edges = []
+        action_preferences = torch.multinomial(logits, num_samples=5, replacement=False).cpu()
+        cur_agent_locs = torch.tensor(cur_agent_locs)
+        move_matrix = torch.zeros((cur_agent_locs.shape[0], 2))
+        #TODO potentially sort agent locations by distance to goal, right now: arbitrary
+        for agent_id in range(cur_agent_locs.shape[0]):
+            if agent_id not in planned_agents:
+                self.pibt(agent_id, action_preferences, planned_agents, move_matrix, occupied_nodes, occupied_edges, cur_agent_locs, cur_map)
+        pdb.set_trace()
+        return cur_agent_locs+move_matrix
+
+    def pibt(self, agent_id, action_preferences, planned_agents, move_matrix, occupied_nodes, occupied_edges, cur_agent_locs, cur_map):
+        '''
+        Runs PIBT for a single agent
+        Args:
+            agent_id: agent id
+            move_preferences: (N,5) up-down-left-right-wait
+        Returns:
+            isvalid: whether we can find a feasible solution
+        '''
+        num_agents = cur_agent_locs.shape[0]
+        def findAgentAtLocation(aLoc):
+            for a in range(num_agents):
+                if a == agent_id:
+                    continue
+                if tuple(cur_agent_locs[a]) == tuple(aLoc):
+                    return a
+            return -1
+        moves_ordered = possible_moves[action_preferences[agent_id]] # 0 index is first action to take 
+        cur_loc = cur_agent_locs[agent_id]
+
+        for move in moves_ordered:
+            next_loc = cur_loc + move
+
+            # Skip if would leave map bounds
+            if next_loc[0] < 0 or next_loc[0] >= cur_map.shape[0] or next_loc[1] < 0 or next_loc[1] >= cur_map.shape[1]:
+                continue
+            # Skip if obstacle
+            if cur_map[next_loc[0], next_loc[1]]==1:
+                continue
+
+            # Skip if vertex occupied by higher agent
+            if tuple(next_loc) in occupied_nodes:
+                continue
+            # Skip if reverse edge occupied by higher agent
+            if tuple([*next_loc, *cur_loc]) in occupied_edges:
+                continue
+            
+            move_matrix[agent_id] = move
+            planned_agents.append(agent_id)
+            occupied_nodes.append(tuple(next_loc))
+            occupied_edges.append(tuple([*cur_loc, *next_loc]))
+            conflicting_agent = findAgentAtLocation(next_loc)
+            if conflicting_agent != -1 and conflicting_agent not in planned_agents:   
+                is_valid = self.pibt(conflicting_agent, action_preferences, planned_agents, move_matrix, occupied_nodes, occupied_edges, cur_agent_locs, cur_map)
+                if is_valid:
+                    return True
+                else:
+                    del planned_agents[-1]
+                    del occupied_nodes[-1]
+                    del occupied_edges[-1]
+                    continue
+            else:
+                return True
+            
+        return False
+
+
+
+        
+        
+        
+
 
     # CS_naive (pretty inefficient, never ends for large numbers of collisions)
-    def cs_naive(self, cur_map, cur_agent_locs, action_preferences):
+    def cs_naive(self, cur_map, cur_agent_locs, logits):
+        action_preferences = torch.multinomial(logits, num_samples=5, replacement=False)
         collisions = True
         chosen_action = action_preferences[:,0]
         modified_map = cur_map.copy()
         collision_count_iterations = 0 
-        pdb.set_trace()
         while (collisions):
             collision_count_iterations += 1
             occupied_nodes = []
@@ -188,7 +268,7 @@ class RunModel():
             new_locations = []
             for idx, act in enumerate(chosen_action):
                 cur_loc = cur_agent_locs[idx]
-                next_loc = cur_loc + moves_ordered[act]
+                next_loc = cur_loc + possible_moves[act]
                 # Skip if would leave map bounds
                 if next_loc[0] < 0 or next_loc[0] >= modified_map.shape[0] or next_loc[1] < 0 or next_loc[1] >= modified_map.shape[1]:
                     new_locations.append(cur_loc) 
@@ -212,10 +292,10 @@ class RunModel():
                     chosen_action[idx] = 4 #any agent action that results in collision is changed to a stop
 
             if (not any_collisions):
-                print("end")
+                print("collision checking finished")
                 collisions = False # this line doesn't actually do anything
                 return new_locations
-            if (collision_count_iterations>100):
+            if (collision_count_iterations>500):
                 return cur_agent_locs
 
 
@@ -239,7 +319,7 @@ if __name__ == "__main__":
     startup = Preprocess(map_files, scen_files, k=k, first_time=False)
     # print(startup.get_map_dict())
 
-    model_run = RunModel(device, model=model, preprocess=startup, cs_type="Naive", k=k, m=m)
+    model_run = RunModel(device, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m)
     
 
 
