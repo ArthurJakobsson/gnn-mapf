@@ -161,7 +161,7 @@ class Preprocess():
     
 
 class RunModel():
-    def __init__(self, device, scen_folder, model=None, preprocess=None, cs_type="PIBT", m=5, k=4):
+    def __init__(self, device, scen_folder, model=None, preprocess=None, cs_type="PIBT", m=5, k=4, num_agents=100):
         self.m = m
         self.k = k
         self.device = device
@@ -170,6 +170,7 @@ class RunModel():
         self.model = model
         self.map_dict = preprocess.get_map_dict()
         self.cs_type = cs_type
+        self.num_agents = num_agents
 
         if preprocess==None or model==None:
             raise RuntimeError("No prerpocessing information or model provided")
@@ -186,6 +187,7 @@ class RunModel():
         cur_map = self.map_dict['map'][map_name] 
         cur_agent_locs = self.map_dict['scen'][map_name]['agent_info'][scen_idx][0] #first zero is scen, #second is the start_locs
         cur_agent_goals = self.map_dict['scen'][map_name]['agent_info'][scen_idx][1] #first zero is scen, #second is the start_locs
+        cur_agent_locs, cur_agent_goals = cur_agent_locs[0:self.num_agents], cur_agent_goals[0:self.num_agents] # prune agents
         cur_bd = self.map_dict['scen'][map_name]['bd'][scen_idx]
         iteration, solved = 0, False
         while (iteration < 200 and not solved):
@@ -349,10 +351,11 @@ if __name__ == "__main__":
 
     k = 4
     m = 5
+    num_agents = 100
     startup = Preprocess(map_files, scen_files, k=k, first_time=False)
     # print(startup.get_map_dict())
 
-    model_run = RunModel(device, scen_folder, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m)
+    model_run = RunModel(device, scen_folder, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m, num_agents=num_agents)
     
 
 
