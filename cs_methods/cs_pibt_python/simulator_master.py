@@ -166,53 +166,68 @@ class RunModel():
         self.k = k
         self.device = device
         self.scen_number = 0
+        self.scen_folder = scen_folder
+        self.model = model
+        self.map_dict = preprocess.get_map_dict()
+        self.cs_type = cs_type
 
         if preprocess==None or model==None:
             raise RuntimeError("No prerpocessing information or model provided")
-        map_dict = preprocess.get_map_dict()
 
-        map_name = 'warehouse-10-20-10-2-2'#TODO change this to iterate through all maps
-        cur_map = map_dict['map'][map_name] 
-        cur_agent_locs = map_dict['scen'][map_name]['agent_info'][0][0] #first zero is scen, #second is the start_locs
-        cur_agent_goals = map_dict['scen'][map_name]['agent_info'][0][1] #first zero is scen, #second is the start_locs
-        cur_bd = map_dict['scen'][map_name]['bd'][0]
-        cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m) 
-        
-        cur_data = cur_data.to(self.device)
-        # normalize bd, normalize edge attributes
-        edge_weights, bd_and_grids = cur_data.edge_attr, cur_data.x
-        cur_data.edge_attr = apply_edge_normalization(edge_weights)
-        cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
-        _, predictions = model(cur_data)
-        # print(torch.argmax(predictions,dim=1))
-        logits = torch.exp(predictions) #TODO change this to softmax
-        # logits = logits / logits.sum()
-        
-        # Random action #TODO implement O_tie - Rishi said we don't want this actually
-        if cs_type=="PIBT":
-            new_agent_locs = self.cs_pibt(device, cur_map, cur_agent_locs, logits)
-        else:
-            new_agent_locs = self.cs_naive(device, cur_map, cur_agent_locs, logits)
+        self.run_simulation()
 
-        # create_scen_file(cur_agent_locs) --> #27	Berlin_1_256.map	256	256	142	67	211	124	111.94112549　map size,  start,  end, random shit
-        #TODO save as scen file with new_agent_locs
-        pdb.set_trace()
-        save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, self.scen_number, scen_folder)
-        self.scen_number+=1
 
-        #TODO change agent_locs and call Run Model again
-        #TODO add end case when solve or more than 200 iterations
+    def run_simulation(self):
+        for map_name in self.map_dict['map'].keys():
+            with Pool() as pool:
+                pool.starmap(self.simulate_agent_iterations, enumerate(repeat(map_name)))
+            # for scen_idx in range(len(self.map_dict['scen'][map_name]['agent_info'])):
+            #     self.simulate_agent_iterations(scen_idx, map_name)
 
-    def cs_pibt(self,device, cur_map, cur_agent_locs, logits):
+    def simulate_agent_iterations(self, scen_idx, map_name):
+        print("Hi")
+        cur_map = self.map_dict['map'][map_name] 
+        cur_agent_locs = self.map_dict['scen'][map_name]['agent_info'][scen_idx][0] #first zero is scen, #second is the start_locs
+        cur_agent_goals = self.map_dict['scen'][map_name]['agent_info'][scen_idx][1] #first zero is scen, #second is the start_locs
+        cur_bd = self.map_dict['scen'][map_name]['bd'][0]
+        iteration, solved = 0, False
+        while (iteration < 10 and not solved):
+            print(iteration)
+            cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m) 
+            cur_data = cur_data.to(self.device)
+            
+            # normalize bd, normalize edge attributes
+            edge_weights, bd_and_grids = cur_data.edge_attr, cur_data.x
+            cur_data.edge_attr = apply_edge_normalization(edge_weights)
+            cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
+            _, predictions = model(cur_data)
+            probabilities = torch.exp(predictions) #TODO change this to softmax
+            
+            # Random action #TODO implement O_tie - Rishi said we don't want this actually
+            if self.cs_type=="PIBT":
+                new_agent_locs = self.cs_pibt(self.device, cur_map, cur_agent_locs, probabilities)
+            else:
+                new_agent_locs = self.cs_naive(self.device, cur_map, cur_agent_locs, probabilities)
+
+            save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, self.scen_number, self.scen_folder)
+            self.scen_number+=1
+
+            if (np.all(new_agent_locs==cur_agent_goals)):
+                solved = True
+                print("Solved")
+            cur_agent_locs = new_agent_locs
+            iteration+=1
+
+    def cs_pibt(self,device, cur_map, cur_agent_locs, probabilities):
         planned_agents, occupied_nodes, occupied_edges = [], [], []
-        action_preferences = torch.multinomial(logits, num_samples=5, replacement=False).cpu()
+        action_preferences = torch.multinomial(probabilities, num_samples=5, replacement=False).cpu()
         cur_agent_locs = torch.tensor(cur_agent_locs, dtype=torch.int16)
         move_matrix = torch.zeros((cur_agent_locs.shape[0], 2), dtype=torch.int16)
         #TODO potentially sort agent locations by distance to goal, right now: arbitrary
         for agent_id in range(cur_agent_locs.shape[0]):
             if agent_id not in planned_agents:
                 self.pibt(agent_id, action_preferences, planned_agents, move_matrix, occupied_nodes, occupied_edges, cur_agent_locs, cur_map)
-        return cur_agent_locs+move_matrix
+        return np.array(cur_agent_locs+move_matrix)
 
     def pibt(self, agent_id, action_preferences, planned_agents, move_matrix, occupied_nodes, occupied_edges, cur_agent_locs, cur_map):
         '''
@@ -274,8 +289,8 @@ class RunModel():
 
 
     # CS_naive (pretty inefficient, never ends for large numbers of collisions)
-    def cs_naive(self, cur_map, cur_agent_locs, logits):
-        action_preferences = torch.multinomial(logits, num_samples=5, replacement=False)
+    def cs_naive(self, cur_map, cur_agent_locs, probabilities):
+        action_preferences = torch.multinomial(probabilities, num_samples=5, replacement=False)
         collisions = True
         chosen_action = action_preferences[:,0]
         modified_map = cur_map.copy()
