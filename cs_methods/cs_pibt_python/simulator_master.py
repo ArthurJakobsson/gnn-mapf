@@ -85,7 +85,6 @@ def parse_scene(scen_path, scene_f):
             goal_locations.append((row,col))
     return (np.array(start_locations), np.array(goal_locations))
 
-
 def parse_scen_name(scen_name):
     index = scen_name.rindex('random')
     return scen_name[0:index-1]
@@ -97,6 +96,28 @@ def calculate_bds(goals, map_arr):
         for heuristic in pool.starmap(computeHeuristicMap, zip(repeat(env), goals)):
             bds.append(heuristic)
     return np.array(bds)
+
+def create_scen_folder(idx):
+    if not os.path.exists("created_scen_files_"+str(idx)):
+        os.makedirs("created_scen_files_"+str(idx))
+        return str("created_scen_files_"+str(idx))
+    else: 
+        return create_scen_folder(idx+1)
+
+def write_line(idx, start_loc, goal_loc, file, map_r, map_c, map_name):
+    out_str = str(idx)+"\t" + map_name + "\t" + str(map_r) + "\t" + str(map_c)+"\t"+ \
+                str(start_loc[0])+"\t"+str(start_loc[1])+"\t"+str(goal_loc[0])+"\t"+str(goal_loc[1])+"\t1072\n"
+    file.write(out_str)
+
+def save_scen(start_locs, goal_locs, map, map_name, idx, scen_folder):
+
+    map_r, map_c = map.shape[0], map.shape[1]
+    file = open(scen_folder+"/"+ map_name + "-custom-"+str(idx)+".scen", 'w')
+    file.write("version 1\n")
+    start_locs = np.array(start_locs)
+    for idx, package in enumerate(zip(start_locs, goal_locs, repeat(file), repeat(map_r), repeat(map_c), repeat(map_name))):
+        write_line(idx, *package)
+    file.close()
 
 class Preprocess():
     def __init__(self, map_files, scen_files, k=4, map_path='../map_files/', scen_path = '../scen_files/', first_time=False):
@@ -132,7 +153,7 @@ class Preprocess():
             self.map_dict['scen'][scen_name]['bd'].append(calculate_bds(goal_loc, self.map_dict['map'][scen_name]))
         
         
-        with open('saved_map_dict.pickle', 'wb') as handle:
+        with open('saved_map_dict.pickle', 'wb') as handle: # TODO make this scen dependent if there is too much data for pickle
             pickle.dump(self.map_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def get_map_dict(self):
@@ -140,20 +161,22 @@ class Preprocess():
     
 
 class RunModel():
-    def __init__(self, device, model=None, preprocess=None, cs_type="PIBT", m=5, k=4):
+    def __init__(self, device, scen_folder, model=None, preprocess=None, cs_type="PIBT", m=5, k=4):
         self.m = m
         self.k = k
         self.device = device
+        self.scen_number = 0
 
         if preprocess==None or model==None:
             raise RuntimeError("No prerpocessing information or model provided")
         map_dict = preprocess.get_map_dict()
 
-
-        cur_map = map_dict['map']['warehouse-10-20-10-2-2'] #TODO change this to iterate through all maps
-        cur_agent_locs = map_dict['scen']['warehouse-10-20-10-2-2']['agent_info'][0][0] #first zero is scen, #second is the start_locs
-        cur_bd = map_dict['scen']['warehouse-10-20-10-2-2']['bd'][0]
-        cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m)
+        map_name = 'warehouse-10-20-10-2-2'#TODO change this to iterate through all maps
+        cur_map = map_dict['map'][map_name] 
+        cur_agent_locs = map_dict['scen'][map_name]['agent_info'][0][0] #first zero is scen, #second is the start_locs
+        cur_agent_goals = map_dict['scen'][map_name]['agent_info'][0][1] #first zero is scen, #second is the start_locs
+        cur_bd = map_dict['scen'][map_name]['bd'][0]
+        cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m) 
         
         cur_data = cur_data.to(self.device)
         # normalize bd, normalize edge attributes
@@ -162,33 +185,33 @@ class RunModel():
         cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
         _, predictions = model(cur_data)
         # print(torch.argmax(predictions,dim=1))
-        logits = torch.exp(predictions)
+        logits = torch.exp(predictions) #TODO change this to softmax
         # logits = logits / logits.sum()
         
-        # Random action #TODO implement O_tie
-        pdb.set_trace()
+        # Random action #TODO implement O_tie - Rishi said we don't want this actually
         if cs_type=="PIBT":
-            new_agents_locs = self.cs_pibt(device, cur_map, cur_agent_locs, logits)
+            new_agent_locs = self.cs_pibt(device, cur_map, cur_agent_locs, logits)
         else:
             new_agent_locs = self.cs_naive(device, cur_map, cur_agent_locs, logits)
 
         # create_scen_file(cur_agent_locs) --> #27	Berlin_1_256.map	256	256	142	67	211	124	111.94112549　map size,  start,  end, random shit
         #TODO save as scen file with new_agent_locs
+        pdb.set_trace()
+        save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, self.scen_number, scen_folder)
+        self.scen_number+=1
+
         #TODO change agent_locs and call Run Model again
-        #TODO add end case when solve or more than x iterations
+        #TODO add end case when solve or more than 200 iterations
 
     def cs_pibt(self,device, cur_map, cur_agent_locs, logits):
-        planned_agents = []
-        occupied_nodes = []
-        occupied_edges = []
+        planned_agents, occupied_nodes, occupied_edges = [], [], []
         action_preferences = torch.multinomial(logits, num_samples=5, replacement=False).cpu()
-        cur_agent_locs = torch.tensor(cur_agent_locs)
-        move_matrix = torch.zeros((cur_agent_locs.shape[0], 2))
+        cur_agent_locs = torch.tensor(cur_agent_locs, dtype=torch.int16)
+        move_matrix = torch.zeros((cur_agent_locs.shape[0], 2), dtype=torch.int16)
         #TODO potentially sort agent locations by distance to goal, right now: arbitrary
         for agent_id in range(cur_agent_locs.shape[0]):
             if agent_id not in planned_agents:
                 self.pibt(agent_id, action_preferences, planned_agents, move_matrix, occupied_nodes, occupied_edges, cur_agent_locs, cur_map)
-        pdb.set_trace()
         return cur_agent_locs+move_matrix
 
     def pibt(self, agent_id, action_preferences, planned_agents, move_matrix, occupied_nodes, occupied_edges, cur_agent_locs, cur_map):
@@ -248,10 +271,6 @@ class RunModel():
         return False
 
 
-
-        
-        
-        
 
 
     # CS_naive (pretty inefficient, never ends for large numbers of collisions)
@@ -314,12 +333,14 @@ if __name__ == "__main__":
 
     torch.manual_seed(1072)
 
+    scen_folder = create_scen_folder(0)
+
     k = 4
     m = 5
     startup = Preprocess(map_files, scen_files, k=k, first_time=False)
     # print(startup.get_map_dict())
 
-    model_run = RunModel(device, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m)
+    model_run = RunModel(device, scen_folder, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m)
     
 
 
