@@ -98,9 +98,9 @@ def calculate_bds(goals, map_arr):
     return np.array(bds)
 
 def create_scen_folder(idx):
-    if not os.path.exists("created_scen_files_"+str(idx)):
-        os.makedirs("created_scen_files_"+str(idx))
-        return str("created_scen_files_"+str(idx))
+    if not os.path.exists("created_scens/created_scen_files_"+str(idx)):
+        os.makedirs("created_scens/created_scen_files_"+str(idx))
+        return str("created_scens/created_scen_files_"+str(idx))
     else: 
         return create_scen_folder(idx+1)
 
@@ -179,19 +179,16 @@ class RunModel():
 
     def run_simulation(self):
         for map_name in self.map_dict['map'].keys():
-            with Pool() as pool:
-                pool.starmap(self.simulate_agent_iterations, enumerate(repeat(map_name)))
-            # for scen_idx in range(len(self.map_dict['scen'][map_name]['agent_info'])):
-            #     self.simulate_agent_iterations(scen_idx, map_name)
+            for scen_idx in range(len(self.map_dict['scen'][map_name]['agent_info'])):
+                self.simulate_agent_iterations(map_name, scen_idx)
 
-    def simulate_agent_iterations(self, scen_idx, map_name):
-        print("Hi")
+    def simulate_agent_iterations(self, map_name, scen_idx):
         cur_map = self.map_dict['map'][map_name] 
         cur_agent_locs = self.map_dict['scen'][map_name]['agent_info'][scen_idx][0] #first zero is scen, #second is the start_locs
         cur_agent_goals = self.map_dict['scen'][map_name]['agent_info'][scen_idx][1] #first zero is scen, #second is the start_locs
-        cur_bd = self.map_dict['scen'][map_name]['bd'][0]
+        cur_bd = self.map_dict['scen'][map_name]['bd'][scen_idx]
         iteration, solved = 0, False
-        while (iteration < 10 and not solved):
+        while (iteration < 200 and not solved):
             print(iteration)
             cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m) 
             cur_data = cur_data.to(self.device)

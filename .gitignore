@@ -10,6 +10,7 @@ gnn/test.py
 gnn/model_log/
 cs_methods/map_files
 cs_methods/scen_files
+cs_methods/cs_pibt_python/created_scens
 
 *.pickle
 
