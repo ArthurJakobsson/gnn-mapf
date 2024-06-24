@@ -1,14 +1,16 @@
 import os
 import subprocess
 import argparse
-from distutils.util import strtobool
+import pdb
 
+def str2bool(v):
+  return v.lower() in ("yes", "true", "t", "1")
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("expnum", help="experiment number", type=int)
-    parser.add_argument('mini_test', dest='mini_test', type=lambda x: bool(strtobool(x)))
+    parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
     args = parser.parse_args()
     expnum, mini_test = args.expnum, args.mini_test
     print(args.expnum)
@@ -21,7 +23,10 @@ if __name__ == "__main__":
 
     LE = f"data_collection/data/logs/EXP{expnum}"
 
-    subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", "-inputFolder=../data/benchmark_data/scens", f"-outputFolder=../{LE}/labels/raw/"])
+    subprocess.run(["python3", "./data_collection/eecbs_batchrunner.py", "--inputFolder=../data/benchmark_data/scens", f"--outputFolder=../{LE}/labels/raw/"])
+
+    pdb.set_trace()
+    raise NotImplementedError
 
     first_iteration = True
 
@@ -31,10 +36,10 @@ if __name__ == "__main__":
             os.makedirs(f"./data_collection/data/logs/EXP{expnum}")
 
         # train the naive model
-        subprocess.run(["python", "./gnn/trainer.py", f"-folder=../{LE}/iter{iternum}", f"-experiment=exp{expnum}", f"-iternum={iternum}"])
+        subprocess.run(["python3", "./gnn/trainer.py", f"--folder=../{LE}/iter{iternum}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
 
         # run cs-pibt new maps to create new scenes
-        subprocess.run(["python", "./gnn/simulator.py", f"-folder=../{LE}/iter{iternum}", f"-firstIter={first_iteration}", f"-source_maps_scens={source_maps_scens}"])
+        subprocess.run(["python3", "./gnn/simulator.py", f"--folder=../{LE}/iter{iternum}", f"--firstIter={first_iteration}", f"--source_maps_scens={source_maps_scens}"])
         first_iteration = False
 
         # feed failures into eecbs

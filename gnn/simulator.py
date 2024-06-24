@@ -7,7 +7,7 @@ import torch_geometric.utils as pyg_utils
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 import argparse
-from distutils.util import strtobool
+
 
 
 import pdb
@@ -38,6 +38,8 @@ right = [0, 1]
 stop = [0, 0]
 possible_moves = torch.tensor([up, left, down, right, stop])
 
+def str2bool(v):
+  return v.lower() in ("yes", "true", "t", "1")
 
 def parse_map(path, mapfile, k):
     '''
