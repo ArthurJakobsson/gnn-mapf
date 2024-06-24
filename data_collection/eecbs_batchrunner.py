@@ -52,8 +52,8 @@ def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile):
     # if (eecbsArgs["useWeightedFocalSearch"]):
     #     command += " --r_weight={}".format(eecbsArgs["r_weight"])
     #     command += " --h_weight={}".format(eecbsArgs["h_weight"])
-
-    command = "./build_release/eecbs"
+    print(os.path.abspath(os.getcwd()))
+    command = f".{file_home}/eecbs/build_release/eecbs"
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
     command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
@@ -140,15 +140,15 @@ def eecbs_runner(args):
     # if not os.path.exists(os.path.dirname(totalOutputPath)):
     #     os.makedirs(os.path.dirname(totalOutputPath))
     mapsToScens = defaultdict(list)
-    for dir_path in os.listdir(args.input_folder):
+    for dir_path in os.listdir(scenInputFolder):
         mapFile = dir_path.split("-")[0]
         mapsToScens[mapFile].append(dir_path)
 
     for mapFile in mapsToScens:
         eecbsArgs = {
             # "mapFile": "{}/mapf-map/{}.map".format(args.dataPath, args.mapName),
-            "mapFile": f"./data/mini_benchmark_data/maps/{mapFile}",
-            # "output": totalOutputPath,
+            "mapFile": f"{mapsInputFolder}/{mapFile}",
+            "output": f".{file_home}/eecbs/raw_data/",
             "suboptimality": args.suboptimality,
             "cutoffTime": args.cutoffTime,
             # "useWeightedFocalSearch": False,
@@ -157,12 +157,12 @@ def eecbs_runner(args):
         # scens = helperCreateScens(args.num_scens, args.mapName, args.dataPath)
         scens = mapsToScens[mapFile]
 
-        if "benchmark" in args.input_folder: # pre-loop run
+        if "benchmark" in scenInputFolder: # pre-loop run
             increment = 100
             agentNumbers = list(range(increment, mapsToMaxNumAgents[mapFile]+1, increment))
 
             ### Run baseline EECBS
-            runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens)
+            runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens, scenInputFolder)
 
         else: # we are somewhere in the training loop
             agentNumbers = []
@@ -174,18 +174,18 @@ def eecbs_runner(args):
                         agentNumbers.append(int(line))
                         break
             # run eecbs
-            runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens)
+            runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens, scenInputFolder)
 
         # move the new eecbs output
-        os.mkdir("./eecbs/raw_data/" + mapFile)
-        shutil.move("./eecbs/raw_data/bd/", "./raw_data/" + mapFile)
-        shutil.move("./eecbs/raw_data/paths/", "./raw_data/" + mapFile)
+        os.mkdir(f".{file_home}/eecbs/raw_data/" + mapFile)
+        shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/raw_data/" + mapFile)
+        shutil.move(f".{file_home}/eecbs/raw_data/paths/", ".{file_home}/raw_data/" + mapFile)
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
-        subprocess.run(["python", "data_manipulator.py", f"pathsIn=./eecbs/raw_data/paths/{mapFile}", f"bdIn=./eecbs/raw_data/bd/{mapFile}", "mapIn=./data/mini_benchmark_data/maps", f"trainOut=./data/logs/EXP{args.exp}/labels/raw/train_{mapFile}_{args.iter}.npz", f"trainOut=./data/logs/EXP{args.exp}/labels/raw/val_{mapFile}_{args.iter}.npz"])
+        subprocess.run(["python", "data_manipulator.py", f"pathsIn=.{file_home}/eecbs/raw_data/paths/{mapFile}", f"bdIn=.{file_home}/eecbs/raw_data/bd/{mapFile}", f"mapIn={mapsInputFolder}", f"trainOut=.{file_home}/data/logs/EXP{args.exp}/labels/raw/train_{mapFile}_{args.iter}.npz", f"trainOut=.{file_home}/data/logs/EXP{args.exp}/labels/raw/val_{mapFile}_{args.iter}.npz"])
 
-        shutil.rmtree("./eecbs/raw_data/")
+        shutil.rmtree(".{file_home}/eecbs/raw_data/")
         ### Run W-EECBS
         # eecbsArgs["r_weight"] = args.r_weight
         # eecbsArgs["h_weight"] = args.h_weight
@@ -226,6 +226,9 @@ if __name__ == "__main__":
     parser.add_argument("--exp", help="experiment number", type=int, default=60)
     parser.add_argument("--iter", help="iteration number", type=float, default=2)
     args = parser.parse_args()
+    scenInputFolder = args.inputFolder + "/scens"
+    mapsInputFolder = args.inputFolder + "/maps"
+    file_home = "/data_collection"
 
     pdb.set_trace()
 
