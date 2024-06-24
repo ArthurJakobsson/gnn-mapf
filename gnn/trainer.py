@@ -265,12 +265,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("folder", help="experiment folder", type=str)
     parser.add_argument("experiment", help="experiment name", type=str)
-    parser.add_argument("iter", help="iteration name", type=str)
+    parser.add_argument("iternum", help="iteration name", type=int)
     args = parser.parse_args()
 
-    folder, expname, itername = args.folder, args.experiment, args.iter
+    folder, expname, iternum = args.folder, args.experiment, args.iternum
 
-    writer = SummaryWriter(f"../data/logs/train_logs"+expname+"_"+itername)
+    itername = "iter"+iternum
+
+    writer = SummaryWriter(f"../data_collection/data/logs/train_logs"+expname+"_"+itername)
     model_path = folder+"/models/"
     os.mkdir(model_path)
 
@@ -282,7 +284,7 @@ if __name__ == "__main__":
     np.random.seed(0)
     random.seed(0)
 
-    dataset = MyOwnDataset(root=f"{folder}/labels/", device=device)
+    dataset = MyOwnDataset(root=f"{folder}/labels/", device=device, iternum=iternum)
     dataset = dataset.shuffle()
     task = 'node'
 

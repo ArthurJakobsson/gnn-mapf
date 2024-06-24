@@ -6,9 +6,10 @@ import torch
 from torch_geometric.data import Dataset, download_url
 import numpy as np
 import pdb
-import data_manipulator2 as data_manipulator
+import data_collection.data_manipulator as data_manipulator
 from torch_geometric.data import Data
 from tqdm import tqdm
+import os
 
 def slice_maps(pos, curmap, k):
     """
@@ -126,29 +127,37 @@ class MyOwnDataset(Dataset):
     def load_metadata(self):
         if osp.isfile(osp.join(self.processed_dir, f"meta_data.pt")):
             self.length = torch.load(osp.join(self.processed_dir, f"meta_data.pt"))[0]
+        else:
+            self.length = 0 
+        return self.length()
 
     @property
     def raw_file_names(self):
         #TODO: Change this based on npz name structure
-        return [f"iterdata.npz"]
+        npz_paths = os.listdir()
+        return ["train.npz", "val.npz"]
 
     @property
     def processed_file_names(self):
         file_names = []
         for i in range(self.length):
             file_names.append(f"data_{i}.pt")
-        return  file_names # ["data_train.npz", "data_val.npz"]
+        return  file_names 
 
     def download():
         raise ImportError
 
 
     def process(self):
-        idx = 0
+        idx = self.load_metadata()
         for raw_path in self.raw_paths:
+            cur_path_iter = raw_path.split("_")[-1][:-4]
             print(raw_path)
-            if osp.isfile(osp.join(self.processed_dir, f"data_{idx}.pt")):
-                return
+            if not (int(cur_path_iter)==self.iternum):
+                continue
+            # "data/logs/EXP{expnum}/labels/raw/train_map_name_{iternum}.npz"
+            # if osp.isfile(osp.join(self.processed_dir, f"data_{idx}.pt")):
+            #     return
             # Read data from `raw_path`.
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             for time_instance in tqdm(cur_dataset):
@@ -176,7 +185,6 @@ class MyOwnDataset(Dataset):
         edge_weights, bd_and_grids = curdata.edge_attr, curdata.x
         curdata.edge_attr = apply_edge_normalization(edge_weights)
         curdata.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
-
 
         return curdata
 

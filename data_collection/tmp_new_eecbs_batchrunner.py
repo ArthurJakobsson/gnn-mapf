@@ -6,6 +6,7 @@ import pdb # For debugging
 import matplotlib.pyplot as plt  # For plotting
 import numpy as np  # For utils
 from collections import defaultdict
+import shutil
 
 ####### Set the font size of the plots
 SMALL_SIZE = 12
@@ -144,7 +145,7 @@ def eecbs_runner(args):
     for mapFile in mapsToScens:
         eecbsArgs = {
             # "mapFile": "{}/mapf-map/{}.map".format(args.dataPath, args.mapName),
-            "mapFile": mapFile, # TODO format properly, so it's an actual filepath
+            "mapFile": f"./data/mini_benchmark_data/maps/{mapFile}",
             # "output": totalOutputPath,
             "suboptimality": args.suboptimality,
             "cutoffTime": args.cutoffTime,
@@ -165,13 +166,24 @@ def eecbs_runner(args):
             agentNumbers = []
             for scen in mapsToScens[mapFile]:
                 # open the file
-                with open(f'{scen}', 'r') as fh: # TODO get the path to scene file right
+                with open(f'/{scen}', 'r') as fh: # TODO get the path to scene file right
                     for line in fh:
                         # count the lines, pass into agentnum
                         agentNumbers.append(int(line))
                         break
             # run eecbs
             runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens)
+
+        # move the new eecbs output
+        os.mkdir("./eecbs/raw_data/" + mapFile)
+        shutil.move("./eecbs/raw_data/bd/", "./raw_data/" + mapFile)
+        shutil.move("./eecbs/raw_data/paths/", "./raw_data/" + mapFile)
+
+        # make the npz files
+        # TODO don't hardcode exp, iter numbers
+        subprocess.run(["python", "data_manipulator.py", f"pathsIn=./eecbs/raw_data/paths/{mapFile}", f"bdIn=./eecbs/raw_data/bd/{mapFile}", "mapIn=./data/mini_benchmark_data/maps", f"trainOut=./data/logs/EXP{args.exp}/labels/raw/train_{mapFile}_{args.iter}.npz", f"trainOut=./data/logs/EXP{args.exp}/labels/raw/val_{mapFile}_{args.iter}.npz"])
+
+        shutil.rmtree("./eecbs/raw_data/")
         ### Run W-EECBS
         # eecbsArgs["r_weight"] = args.r_weight
         # eecbsArgs["h_weight"] = args.h_weight
@@ -209,7 +221,11 @@ if __name__ == "__main__":
     parser.add_argument("--outputFolder", help="place to output all eecbs output", type=str)
     parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
     parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
+    parser.add_argument("--exp", help="experiment number", type=int, default=60)
+    parser.add_argument("--iter", help="iteration number", type=float, default=2)
     args = parser.parse_args()
+
+    eecbs_runner(args)
 
     # parser.add_argument("mapName", help="map name without .map, needs to be in mapsToMaxNumAgents defined in the top", type=str) # Note: Positional is required
     # parser.add_argument("--dataPath", help="path to benchmark dataset, should contain mapf-map/ and mapf-scen-random/ folders",

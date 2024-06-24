@@ -46,12 +46,13 @@ class PipelineDataset(Dataset):
             naming convention: mapname + "," + bdname + "," + seed
         helper_bd_preprocess: method by which we center helper backward dijkstras. can be 'middle', 'current', or 'subtraction'.
         '''
+
         # read in the dataset, saving map, bd, and path info to class variables
         loaded = np.load(numpy_data_path)
         # pdb.set_trace()
         self.k = k
         self.size = size
-        self.parse_npz(loaded)
+        self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
         self.max_agents = max_agents
         self.helper_bd_preprocess = helper_bd_preprocess
 
@@ -65,25 +66,28 @@ class PipelineDataset(Dataset):
         '''
         INPUT: index (must be smaller than len(self))
         OUTPUT: map, bd, and direction
-            grid: (n, full)
-            bd: (n, full)
-            curloc: (n,2)
-            finallabel: (n,5)
+            map: (2k+1, 2k+1)
+            bd: (2k+1, 2k+1)
+            other agent bds: (4,2k+1,2k+1)
+            direction: (2)
+        centered version. when passing in the map and bd, return a (2k+1,2k+1) window centered at current location of agent.
         '''
-
         if idx >= self.__len__():
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
-        bd, grid, paths, timestep, t = self.find_instance(idx)
-        # pdb.set_trace()
-        labels = []
-        locs = []
-        num_agent = paths.shape[1]
-        # pdb.set_trace()
-        for agent in range(0,num_agent):
-            curloc = paths[timestep, agent]
-            nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
+
+        bd, grid, paths = self.find_instance(idx)
+        for agent in range(self.size):
+            curloc = paths[idx, :]
+            nextloc = paths[idx+1, agent] if idx < self.__len__() -1 else curloc
+            # prevloc = paths[timestep-1, agent] - paths[timestep, agent] if timestep > 0 else curloc # get previous step to avoid jitter
+
+            dijk = bd[agent]
+            # dijk = dijk - dijk[self.k,self.k] # TODO try normalizing wrt current agent position
+            dijk = np.where(np.abs(dijk) > 10000, 0, dijk)
+
             label = nextloc - curloc # get the label: where did the agent go next?
+
             # create one-hot vector
             index = None
             if label[0] == 0 and label[1] == 0: index = 0
@@ -93,10 +97,10 @@ class PipelineDataset(Dataset):
             else: index = 4
             finallabel = np.zeros(5)
             finallabel[index] = 1
-            labels.append(finallabel)
-            locs.append(curloc)
-        # pdb.set_trace()
-        return np.array(locs), np.array(labels), bd, grid
+
+        # pos_list, bd_list, labels, grid
+        return curloc, finallabel, dijk, grid
+        # return grid, dijk, relativeAgentLocs, finallabel, prevloc.flatten(), np.array([dijk[self.k+1, self.k+1] == 0])
 
     def process_helper_bds(self, bd, windowAgentLocs, windowAgents, curloc, dijk):
         '''
@@ -113,6 +117,21 @@ class PipelineDataset(Dataset):
         helper_bds = np.array(helper_bds)
         # for each helper bd, subtract out the middle TODO validate
         helper_bds = np.array([helper_bd - bd[inwindow[1]][loc[0]][loc[1]] for inwindow, loc, helper_bd in zip(windowAgents, windowAgentLocs, helper_bds)])
+
+        # helper_bds = np.where(helper_bds == 1073741823, 0, helper_bds)
+
+        # normalization logic
+        # if len(helper_bds) >= 1: pdb.set_trace()
+        # if self.helper_bd_preprocess == 'current':
+        #     # if len(helper_bds) >= 1: pdb.set_trace()
+        #     helper_bds = np.array([helper_bd - bd[inwindow[1]][loc[0]][loc[1]] for inwindow, loc, helper_bd in zip(windowAgents, windowAgentLocs, helper_bds)])
+        #     helper_bds = np.where(helper_bds > 1000000000, 0, helper_bds) # TODO np.where after subtraction (probably, turn anything smaller than -a million to filler val)
+        # elif self.helper_bd_preprocess == 'subtraction':
+        #     helper_bds = np.array([bd - dijk for bd in helper_bds])
+        #     # assert(np.all(abs(helper_bds) < 1073741823))
+        # else: # default to 'middle'
+        #     helper_bds = np.array([bd - bd[self.k,self.k] for bd in helper_bds])
+        #     helper_bds = np.where(helper_bds > 1000000000, 0, helper_bds) # TODO np.where after subtraction (probably, turn anything smaller than -a million to filler val)
 
         # pad empty entries with 0s
         n = len(helper_bds)
@@ -135,14 +154,18 @@ class PipelineDataset(Dataset):
         '''
         def translate_to_bd(bd):
             bd = bd.split("-random-")
+            # remove - "-custom-0"
+            if "-custom" in bd: # get rid of the suffix, if not a benchmark scen
+                bd = bd.split("-custom")[0]
             bd = bd[0] + "-random-" + bd[1][0] + str(self.max_agents) # TODO fix: adapt to be max number agents
             return bd
 
         items = list(self.tn2.items())
+
         tn2ind = 0
         tracker = 0
         while tracker + items[tn2ind][1][0] <= idx:
-            tracker += items[tn2ind][1][0] # adding number of timesteps *this* run of eecbs took
+            tracker += items[tn2ind][1][0] # add number of data in the (t,n,2) matrix
             tn2ind += 1
         # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
         mapname, bdname, seed = items[tn2ind][0].split(",")
@@ -156,12 +179,11 @@ class PipelineDataset(Dataset):
         newidx = idx - tracker # index within the matrix to get
         paths = items[tn2ind][1][1].copy() # (t,n,2) paths matrix
         paths += self.k # adjust for padding
-        # pdb.set_trace()
-        for agent in range(len(bd)):
-            bd[agent] *= (1-grid)
         t, n, _ = np.shape(paths)
-        timestep = newidx // n
-        return bd, grid, paths, timestep, t
+        timestep, agent = newidx // n, newidx % n
+        # if idx == 1: pdb.set_trace()
+        pdb.set_trace()
+        return bd, grid, paths, timestep, agent, t
 
     def parse_npz(self, loaded):
         loaded = {k:v for k, v in loaded.items()}
@@ -181,10 +203,12 @@ class PipelineDataset(Dataset):
             k += 1
         self.tn2 = dict(items[j:k]) # get all the paths in (t,n,2) form
         # since the # of data is simply number of agent locations, this is t*n, which we append to the dictionary for each path
+        maxT = 0
         for k, v in self.tn2.items():
             t, n, _ = np.shape(v)
-            self.tn2[k] = (t, v)
-        self.length = min(self.size, sum([value[0] for value in self.tn2.values()]))
+            self.tn2[k] = (t*n, v)
+            maxT = t if maxT<t else maxT
+        self.length = maxT
         # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form\
         npads = ((0,0),(self.k, self.k), (self.k, self.k))
         for key in self.bds:
@@ -242,6 +266,7 @@ def parse_path(pathfile):
                 if c == ',': timesteps += 1
             maxTimesteps = max(maxTimesteps, timesteps)
             linenum += 1
+
     # get path for each agent and update dictionary of maps accordingly
     with open(pathfile, 'r') as fd:
         linenum = 0
@@ -454,25 +479,25 @@ def main():
     valOut = args.valOut
 
     # instantiate global variables that will keep track of each map and bd that you've encountered
-    # maps = {} # maps mapname->np array containing the obstacles in map
-    # bds = {} # maps bdname->np array containing bd for each agent in the instance (NOTE: keep track of number agents in bdname)
-    # data = [] # contains all run instances, in the form of (map name, bd name)
+    maps = {} # maps mapname->np array containing the obstacles in map
+    bds = {} # maps bdname->np array containing bd for each agent in the instance (NOTE: keep track of number agents in bdname)
+    data = [] # contains all run instances, in the form of (map name, bd name)
 
-    # # parse each map, add to global dict
-    # maps = batch_map(mapIn)
-    # # print(maps)
+    # parse each map, add to global dict
+    maps = batch_map(mapIn)
+    # print(maps)
 
-    # # parse each bd, add to global dict
-    # bds = batch_bd(bdIn)
-    # # print(bds)
+    # parse each bd, add to global dict
+    bds = batch_bd(bdIn)
+    # print(bds)
 
-    # # parse each pah, add to global list
-    # data1train, data1val = batch_path(pathsIn)
-    # # pdb.set_trace()
+    # parse each pah, add to global list
+    data1train, data1val = batch_path(pathsIn)
+    # pdb.set_trace()
 
-    # # send each map, each bd, and each tuple representing a path + instance to npz
-    # np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
-    # np.savez_compressed(valOut, **maps, **bds, **data1val) # Note automatically stacks to numpy vectors
+    # send each map, each bd, and each tuple representing a path + instance to npz
+    np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
+    np.savez_compressed(valOut, **maps, **bds, **data1val) # Note automatically stacks to numpy vectors
 
     # DEBUGGING: test out the dataloader
     loader = PipelineDataset(trainOut + ".npz", 4, float('inf'), 300, 'current')

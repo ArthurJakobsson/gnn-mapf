@@ -7,6 +7,8 @@ import torch_geometric.utils as pyg_utils
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 import argparse
+from distutils.util import strtobool
+
 
 import pdb
 from tqdm import tqdm
@@ -19,7 +21,7 @@ import sys
 
 from bd_planner import *
 
-sys.path.insert(0, '/home/arthur/snap/snapd-desktop-integration/current/Documents/gnn-mapf/gnn/')
+# sys.path.insert(0, '/home/arthur/snap/snapd-desktop-integration/current/Documents/gnn-mapf/gnn/')
 from dataloader import *
 from trainer import *
 
@@ -108,12 +110,13 @@ def create_scen_folder(idx):
 def write_line(idx, start_loc, goal_loc, file, map_r, map_c, map_name):
     out_str = str(idx)+"\t" + map_name + "\t" + str(map_r) + "\t" + str(map_c)+"\t"+ \
                 str(start_loc[0])+"\t"+str(start_loc[1])+"\t"+str(goal_loc[0])+"\t"+str(goal_loc[1])+"\t1072\n"
+    
     file.write(out_str)
 
-def save_scen(start_locs, goal_locs, map, map_name, idx, scen_folder):
+def save_scen(start_locs, goal_locs, map, scen_name, idx, scen_folder):
 
     map_r, map_c = map.shape[0], map.shape[1]
-    file = open(scen_folder+"/"+ map_name + "-random-"+str(idx)+".scen", 'w')
+    file = open(scen_folder+"/"+ scen_name+"-custom-"+str(idx)+".scen", 'w')
     file.write(str(len(start_locs)))
     start_locs = np.array(start_locs)
     for idx, package in enumerate(zip(start_locs, goal_locs, repeat(file), repeat(map_r), repeat(map_c), repeat(map_name))):
@@ -121,7 +124,7 @@ def save_scen(start_locs, goal_locs, map, map_name, idx, scen_folder):
     file.close()
 
 class Preprocess():
-    def __init__(self, map_files, scen_files, k=4, map_path='../map_files/', scen_path = '../scen_files/', first_time=False):
+    def __init__(self, map_files, scen_files, k=4, map_path='../data_collection/data/benchmark_data/maps', scen_path = '../data_collection/data/benchmark_data/scens', first_time=False):
         self.k = 4
         if not first_time:
             with open('saved_map_dict.pickle', 'rb') as handle:
@@ -209,7 +212,8 @@ class RunModel():
             else:
                 new_agent_locs = self.cs_naive(self.device, cur_map, cur_agent_locs, probabilities)
 
-            save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, self.scen_number, self.scen_folder)
+            scen_name = map_name+"-random-"+scen_idx
+            save_scen(new_agent_locs, cur_agent_goals, cur_map, scen_name, self.scen_number, self.scen_folder)
             self.scen_number+=1
 
             if (np.all(new_agent_locs==cur_agent_goals)):
@@ -339,16 +343,18 @@ class RunModel():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("folder", help="experiment folder", type=str)
+    parser.add_argument('firstIter', dest='firstIter', type=lambda x: bool(strtobool(x)))
+    parser.add_argument("source_maps_scens", help="which map+scen folder", type=str)
     args = parser.parse_args()
-    folder = args.folder
+    folder, firstIter, source_maps_scens = args.folder, args.firstIter, args.source_maps_scens
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = torch.load(folder+"/models/"+'max_double_test_acc.pt')
     model.to(device)
     model.eval()
 
-    map_files = ['warehouse_10_20_10_2_2.map']
-    scen_files = ['warehouse_10_20_10_2_2-random-1.scen','warehouse_10_20_10_2_2-random-2.scen', 'warehouse_10_20_10_2_2-random-3.scen']
+    # map_files = ['warehouse_10_20_10_2_2.map']
+    # scen_files = ['warehouse_10_20_10_2_2-random-1.scen','warehouse_10_20_10_2_2-random-2.scen', 'warehouse_10_20_10_2_2-random-3.scen']
 
     torch.manual_seed(1072)
 
@@ -357,7 +363,12 @@ if __name__ == "__main__":
     k = 4
     m = 5
     num_agents = 100
-    startup = Preprocess(map_files, scen_files, k=k, first_time=False)
+    map_path_chosen = source_maps_scens+"/maps/"
+    scen_path_chosen = source_maps_scens + "/scens/"
+
+    map_files = os.listdir(map_path_chosen)
+    scen_files = os.listdir(scen_path_chosen)
+    startup = Preprocess(map_files, scen_files, k=k, map_path=map_path_chosen, scen_path=scen_path_chosen, first_time=firstIter)
     # print(startup.get_map_dict())
 
     model_run = RunModel(device, scen_folder, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m, num_agents=num_agents)

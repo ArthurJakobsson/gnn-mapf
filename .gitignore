@@ -177,6 +177,7 @@ data_collection/eecbs/build_release/*
 data_collection/eecbs/CMakeFiles/*
 data_collection/eecbs/data/*
 data_collection/eecbs/raw_data/*
+data_collection/data/*
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

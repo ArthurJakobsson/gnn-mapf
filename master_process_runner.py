@@ -1,29 +1,41 @@
 import os
 import subprocess
 import argparse
+from distutils.util import strtobool
+
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("expnum", help="experiment number", type=int)
+    parser.add_argument('mini_test', dest='mini_test', type=lambda x: bool(strtobool(x)))
     args = parser.parse_args()
-    expnum = args.expnum
+    expnum, mini_test = args.expnum, args.mini_test
     print(args.expnum)
 
     iternum = 0
+    if mini_test:
+        source_maps_scens = "./data_collection/data/mini_benchmark_data"
+    else: 
+        source_maps_scens = "./data_collection/data/benchmark_data"
 
-    LE = f"data/logs/EXP{expnum}"
+    LE = f"data_collection/data/logs/EXP{expnum}"
 
-    subprocess.run("python", "./data_collection/eecbs_batchrunner.py", "-inputFolder=../data/benchmark_data/scens", f"-outputFolder=../{LE}/iter{iternum}/labels/raw/")
+    subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", "-inputFolder=../data/benchmark_data/scens", f"-outputFolder=../{LE}/labels/raw/"])
 
-
+    first_iteration = True
 
     while True:
 
-        # train the naive model
-        subprocess.run("python", "./gnn/trainer.py", f"-folder=../{LE}/iter{iternum}", f"-experiment=exp{expnum}", f"-iter=iter{iternum}")
+        if not os.path.exists(f"./data_collection/data/logs/EXP{expnum}"):
+            os.makedirs(f"./data_collection/data/logs/EXP{expnum}")
 
-        # run on new maps
+        # train the naive model
+        subprocess.run(["python", "./gnn/trainer.py", f"-folder=../{LE}/iter{iternum}", f"-experiment=exp{expnum}", f"-iternum={iternum}"])
+
+        # run cs-pibt new maps to create new scenes
+        subprocess.run(["python", "./gnn/simulator.py", f"-folder=../{LE}/iter{iternum}", f"-firstIter={first_iteration}", f"-source_maps_scens={source_maps_scens}"])
+        first_iteration = False
 
         # feed failures into eecbs
         subprocess.run(["python3", "./data_collection/eecbs_batchrunner.py"]) # TODO figure out where eecbs is outputting files
