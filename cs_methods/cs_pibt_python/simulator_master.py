@@ -6,6 +6,7 @@ import torch_geometric.nn as pyg_nn
 import torch_geometric.utils as pyg_utils
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
+import argparse
 
 import pdb
 from tqdm import tqdm
@@ -112,8 +113,8 @@ def write_line(idx, start_loc, goal_loc, file, map_r, map_c, map_name):
 def save_scen(start_locs, goal_locs, map, map_name, idx, scen_folder):
 
     map_r, map_c = map.shape[0], map.shape[1]
-    file = open(scen_folder+"/"+ map_name + "-custom-"+str(idx)+".scen", 'w')
-    file.write("version 1\n")
+    file = open(scen_folder+"/"+ map_name + "-random-"+str(idx)+".scen", 'w')
+    file.write(str(len(start_locs)))
     start_locs = np.array(start_locs)
     for idx, package in enumerate(zip(start_locs, goal_locs, repeat(file), repeat(map_r), repeat(map_c), repeat(map_name))):
         write_line(idx, *package)
@@ -336,14 +337,18 @@ class RunModel():
 
 
 if __name__ == "__main__":
-    run_name = 'full_sum_aggr'
+    parser = argparse.ArgumentParser()
+    parser.add_argument("folder", help="experiment folder", type=str)
+    args = parser.parse_args()
+    folder = args.folder
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = torch.load('../../gnn/model_log/'+run_name+'/max_double_test_acc.pt')
+    model = torch.load(folder+"/models/"+'max_double_test_acc.pt')
     model.to(device)
     model.eval()
 
-    map_files = ['warehouse-10-20-10-2-2.map']
-    scen_files = ['warehouse-10-20-10-2-2-random-1.scen','warehouse-10-20-10-2-2-random-2.scen', 'warehouse-10-20-10-2-2-random-3.scen']
+    map_files = ['warehouse_10_20_10_2_2.map']
+    scen_files = ['warehouse_10_20_10_2_2-random-1.scen','warehouse_10_20_10_2_2-random-2.scen', 'warehouse_10_20_10_2_2-random-3.scen']
 
     torch.manual_seed(1072)
 

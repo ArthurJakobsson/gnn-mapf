@@ -1,5 +1,9 @@
 {
   "python.analysis.extraPaths": [
     "./gnn"
-  ]
+  ],
+  "files.associations": {
+    "vector": "cpp",
+    "istream": "cpp"
+  }
 }

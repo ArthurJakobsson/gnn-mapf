@@ -11,6 +11,7 @@ from datetime import datetime
 import pdb
 from tqdm import tqdm
 import os
+import argparse
 
 import networkx as nx
 import numpy as np
@@ -260,9 +261,17 @@ def visualize():
 
 
 if __name__ == "__main__":
-    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    writer = SummaryWriter("./log/" + current_time)
-    model_path = "./model_log/" + current_time
+    # current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("folder", help="experiment folder", type=str)
+    parser.add_argument("experiment", help="experiment name", type=str)
+    parser.add_argument("iter", help="iteration name", type=str)
+    args = parser.parse_args()
+
+    folder, expname, itername = args.folder, args.experiment, args.iter
+
+    writer = SummaryWriter(f"../data/logs/train_logs"+expname+"_"+itername)
+    model_path = folder+"/models/"
     os.mkdir(model_path)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -273,7 +282,7 @@ if __name__ == "__main__":
     np.random.seed(0)
     random.seed(0)
 
-    dataset = MyOwnDataset(root='./map_data_big2d_new/', device=device)
+    dataset = MyOwnDataset(root=f"{folder}/labels/", device=device)
     dataset = dataset.shuffle()
     task = 'node'
 

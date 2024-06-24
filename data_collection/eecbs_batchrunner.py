@@ -99,7 +99,7 @@ def main():
 
     args = parser.parse_args()
 
-    mapfolder = "data/mapf-map"
+    mapfolder = "data/mapf-map" # TODO change to reflect where they are in this repo
     scenfolder = "data/scen-random"
     curMap = args.map # E.g. "Paris_1_256"
     if curMap not in mapsToNumAgents.keys():

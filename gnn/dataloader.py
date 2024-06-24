@@ -129,7 +129,8 @@ class MyOwnDataset(Dataset):
 
     @property
     def raw_file_names(self):
-        return ["warehouse_10_20_10_2_2_train.npz", "warehouse_10_20_10_2_2_val.npz"]
+        #TODO: Change this based on npz name structure
+        return [f"iterdata.npz"]
 
     @property
     def processed_file_names(self):
@@ -139,7 +140,7 @@ class MyOwnDataset(Dataset):
         return  file_names # ["data_train.npz", "data_val.npz"]
 
     def download():
-        pass
+        raise ImportError
 
 
     def process(self):
@@ -150,7 +151,6 @@ class MyOwnDataset(Dataset):
                 return
             # Read data from `raw_path`.
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
-            count = 0
             for time_instance in tqdm(cur_dataset):
                 # Graphify
                 if not time_instance: break #idk why but the last one is None
