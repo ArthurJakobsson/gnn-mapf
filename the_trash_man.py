@@ -52,3 +52,4 @@ for item in eecbs_files:
 
 # clean logs
 shutil.rmtree("./data_collection/data/logs/")
+os.mkdir("./data_collection/data/logs/")

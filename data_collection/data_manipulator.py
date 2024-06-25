@@ -153,7 +153,7 @@ class PipelineDataset(Dataset):
         returns the backward dijkstra, map, and path arrays, and indices to get into the path array
         '''
         def translate_to_bd(bd):
-            pdb.set_trace()
+            
             bd = bd.split("-random-")
             # remove - "-custom-0"
             if "-custom" in bd: # get rid of the suffix, if not a benchmark scen
@@ -170,6 +170,7 @@ class PipelineDataset(Dataset):
             tn2ind += 1
         # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
         mapname, bdname, seed = items[tn2ind][0].split(",")
+        pdb.set_trace()
         bdname = translate_to_bd(bdname)
         bd = self.bds[bdname]
         grid = self.maps[mapname]
@@ -187,6 +188,7 @@ class PipelineDataset(Dataset):
         return bd, grid, paths, timestep, agent, t
 
     def parse_npz(self, loaded):
+        pdb.set_trace()
         loaded = {k:v for k, v in loaded.items()}
         items = list(loaded.items())
         # print(loaded["Paris_1_256.map,Paris_1_256-random-110,2"]) # testing
