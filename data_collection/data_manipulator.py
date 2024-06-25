@@ -153,10 +153,11 @@ class PipelineDataset(Dataset):
         returns the backward dijkstra, map, and path arrays, and indices to get into the path array
         '''
         def translate_to_bd(bd):
+            pdb.set_trace()
             bd = bd.split("-random-")
             # remove - "-custom-0"
             if "-custom" in bd: # get rid of the suffix, if not a benchmark scen
-                bd = bd.split("-custom")[0]
+                bd = bd.split("-custom-")[0]
             bd = bd[0] + "-random-" + bd[1][0] + str(self.max_agents) # TODO fix: adapt to be max number agents
             return bd
 
@@ -483,7 +484,6 @@ def main():
     # instantiate global variables that will keep track of each map and bd that you've encountered
     maps = {} # maps mapname->np array containing the obstacles in map
     bds = {} # maps bdname->np array containing bd for each agent in the instance (NOTE: keep track of number agents in bdname)
-    data = [] # contains all run instances, in the form of (map name, bd name)
 
     # parse each map, add to global dict
     
@@ -498,6 +498,7 @@ def main():
     data1train, data1val = batch_path(pathsIn)
     # pdb.set_trace()
 
+    pdb.set_trace()
     # send each map, each bd, and each tuple representing a path + instance to npz
     np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
     np.savez_compressed(valOut, **maps, **bds, **data1val) # Note automatically stacks to numpy vectors

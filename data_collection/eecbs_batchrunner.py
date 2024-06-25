@@ -24,8 +24,8 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 mapsToMaxNumAgents = {
     "Paris_1_256": 1000, # Verified
-    "random-32-32-20": 409, # Verified
-    "random-32-32-10": 461, # Verified
+    "random-32_32_20": 409, # Verified
+    "random_32_32_10": 461, # Verified
     "den520d": 1000, # Verified
     "den312d": 1000, # Verified
     "empty-32-32": 511, # Verified
@@ -56,8 +56,10 @@ def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile):
     command = f".{file_home}/eecbs/build_release/eecbs"
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
-    command += " --agentNum={} --seed={} --agents={}".format(numAgents, seed, scenfile)
-    # print(command)
+
+    tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenfile}{numAgents}.txt"
+    command += " --agentNum={} --seed={} --agents={} --outputPaths={}".format(numAgents, seed, scenfile, tempOutPath)
+    print(command)
     subprocess.run(command.split(" "), check=True) # True if want failure error
     
     
@@ -95,18 +97,23 @@ def detectExistingStatus(eecbsArgs, aNum, seed, scen): # TODO update
     #     return False, 0
 
 def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
+    print("Single Map")
     if "benchmark" in inputFolder:
         for aNum in agentNumbers:
             print("Starting to run {} agents on map {}".format(aNum, mapName))
             numSuccess = 0
+            status=0
             numToRunTotal = len(scens) * len(seeds)
             for scen in scens:
                 for seed in seeds:
-                    runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
+                    # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
+                    runBefore=False #TODO fix detectExisting
                     if not runBefore:
+                        print(scen)
                         runOnSingleInstance(eecbsArgs, aNum, seed, scen)
-                        runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
-                        assert(runBefore)
+                        # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
+                        # assert(runBefore)
+                        status+=1
                     numSuccess += status
 
             if numSuccess < numToRunTotal/2:
@@ -117,11 +124,12 @@ def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
         for aNum, scen in zip(agentNumbers, scens): # for each scen, run its agent number
             print("Starting to run {} agents on map {}".format(aNum, mapName))
             for seed in seeds:
-                runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
+                # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
+                runBefore=False #TODO fix detectExisting
                 if not runBefore:
                     runOnSingleInstance(eecbsArgs, aNum, seed, scen)
-                    runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
-                    assert(runBefore)
+                    # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
+                    # assert(runBefore)
 
 # def helperCreateScens(numScens, mapName, dataPath):
 #     scens = []
@@ -154,7 +162,7 @@ def eecbs_runner(args):
         eecbsArgs = {
             "map": f"{mapsInputFolder}/{mapFile}.map",
             "output": f".{file_home}/eecbs/raw_data/bd/stats.csv",
-            "outputPaths": f".{file_home}/eecbs/raw_data/paths/paths.txt",
+            # "outputPaths": f".{file_home}/eecbs/raw_data/paths/paths.txt",
             "suboptimality": args.suboptimality,
             "cutoffTime": args.cutoffTime
             # "useWeightedFocalSearch": False,
@@ -184,14 +192,14 @@ def eecbs_runner(args):
 
         # move the new eecbs output
         pdb.set_trace()
-        os.mkdir(f".{file_home}/eecbs/raw_data/" + mapFile)
+        os.makedirs(f".{file_home}/eecbs/raw_data/" + mapFile, exist_ok=False)
         shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/" + mapFile)
         shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/" + mapFile)
         
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
-        subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.exp}/labels/raw/train_{mapFile}_{args.iter}.npz", f"--trainOut=.{file_home}/data/logs/EXP{args.exp}/labels/raw/val_{mapFile}_{args.iter}.npz"])
+        subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
         
         os.mkdir(f".{file_home}/eecbs/raw_data/bd")
         os.mkdir(f".{file_home}/eecbs/raw_data/paths")
@@ -233,8 +241,8 @@ if __name__ == "__main__":
     parser.add_argument("--outputFolder", help="place to output all eecbs output", type=str)
     parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
     parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
-    parser.add_argument("--exp", help="experiment number", type=int, default=60)
-    parser.add_argument("--iter", help="iteration number", type=float, default=2)
+    parser.add_argument("--expnum", help="experiment number", type=int, default=0)
+    parser.add_argument("--iter", help="iteration number", type=int, default=0)
     args = parser.parse_args()
     scenInputFolder = args.inputFolder + "/scens"
     mapsInputFolder = args.inputFolder + "/maps"

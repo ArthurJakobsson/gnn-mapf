@@ -190,7 +190,7 @@ int main(int argc, char** argv)
 		// cout << ecbs.bds.size() << "\n";
 
 		ofstream file;
-		string scen = vm["agents"].as<string>().substr(17);
+		string scen = vm["agents"].as<string>();//.substr(17);
 		string vector_file = "./data_collection/eecbs/raw_data/bd/" + scen + std::to_string(vm["agentNum"].as<int>()) + ".txt";
 		cout << vector_file;
 		file.open(vector_file);

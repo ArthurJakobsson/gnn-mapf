@@ -22,8 +22,11 @@ if __name__ == "__main__":
         source_maps_scens = "./data_collection/data/benchmark_data"
 
     LE = f"data_collection/data/logs/EXP{expnum}"
+    os.makedirs(f"./{LE}", exist_ok=False)
+    os.makedirs(f"./{LE}/labels", exist_ok=False)
+    os.makedirs(f"./{LE}/labels/raw", exist_ok=False)
 
-    subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--inputFolder={source_maps_scens}", f"--outputFolder=../{LE}/labels/raw/"])
+    subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--inputFolder={source_maps_scens}", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}"])
 
     pdb.set_trace()
     raise NotImplementedError
