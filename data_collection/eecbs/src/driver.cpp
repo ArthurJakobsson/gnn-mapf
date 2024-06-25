@@ -191,7 +191,7 @@ int main(int argc, char** argv)
 
 		ofstream file;
 		string scen = vm["agents"].as<string>().substr(17);
-		string vector_file = "./raw_data/bd/" + scen + std::to_string(vm["agentNum"].as<int>()) + ".txt";
+		string vector_file = "./data_collection/eecbs/raw_data/bd/" + scen + std::to_string(vm["agentNum"].as<int>()) + ".txt";
 		cout << vector_file;
 		file.open(vector_file);
 		// write dimensions,
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
             ecbs.randomRoot = true;
             cout << "Failed to find solutions in Run " << i << endl;
         }
-        ecbs.runtime = runtime;
+        ecbs.runtime = runtime; 
         if (vm.count("output"))
             ecbs.saveResults(saveResultsPath, vm["agents"].as<string>(), vm["seed"].as<int>(), vm["suboptimality"].as<double>(), vm["agentNum"].as<int>());
         if (ecbs.solution_found && vm.count("outputPaths"))

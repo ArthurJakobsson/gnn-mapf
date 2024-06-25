@@ -52,12 +52,12 @@ def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile):
     # if (eecbsArgs["useWeightedFocalSearch"]):
     #     command += " --r_weight={}".format(eecbsArgs["r_weight"])
     #     command += " --h_weight={}".format(eecbsArgs["h_weight"])
-    print(os.path.abspath(os.getcwd()))
+    # print(os.path.abspath(os.getcwd()))
     command = f".{file_home}/eecbs/build_release/eecbs"
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
-    command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
-    print(command)
+    command += " --agentNum={} --seed={} --agents={}".format(numAgents, seed, scenfile)
+    # print(command)
     subprocess.run(command.split(" "), check=True) # True if want failure error
     
     
@@ -67,28 +67,32 @@ def detectExistingStatus(eecbsArgs, aNum, seed, scen): # TODO update
         If has been run before
         Success if run before
     """
-    if not os.path.exists(eecbsArgs["output"]):
+    if not os.path.exists(eecbsArgs["outputPaths"]):
+        print("here2")
         return False, 0
-    df = pd.read_csv(eecbsArgs["output"])
+    print('here3')
+    # TODO: fix broken logic... revolves around csv never being created
+    return True, 100
+    # df = pd.read_csv(eecbsArgs["outputPaths"])
 
-    ### Checks if the corresponding runs in the df have been completed already
-    for aKey, aValue in eecbsArgs.items():
-        ### If this is false, then we don't care about the r_weight and h_weight
-        if not eecbsArgs["useWeightedFocalSearch"]:
-            if aKey == "r_weight":
-                continue
-            if aKey == "h_weight":
-                continue
-        if aKey == "output":
-            continue
-        df = df[df[aKey] == aValue]  # Filter the dataframe to only include the runs with the same parameters
-    df = df[(df["agentsFile"] == scen) & (df["agentNum"] == aNum) & (df["seed"] == seed)]
-    if len(df) > 0:
-        assert(len(df) == 1)
-        success = (df["solution cost"] != -1).values[0]
-        return True, success
-    else:
-        return False, 0
+    # ### Checks if the corresponding runs in the df have been completed already
+    # for aKey, aValue in eecbsArgs.items():
+    #     ### If this is false, then we don't care about the r_weight and h_weight
+    #     if not eecbsArgs["useWeightedFocalSearch"]:
+    #         if aKey == "r_weight":
+    #             continue
+    #         if aKey == "h_weight":
+    #             continue
+    #     if aKey == "output":
+    #         continue
+    #     df = df[df[aKey] == aValue]  # Filter the dataframe to only include the runs with the same parameters
+    # df = df[(df["agentsFile"] == scen) & (df["agentNum"] == aNum) & (df["seed"] == seed)]
+    # if len(df) > 0:
+    #     assert(len(df) == 1)
+    #     success = (df["solution cost"] != -1).values[0]
+    #     return True, success
+    # else:
+    #     return False, 0
 
 def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
     if "benchmark" in inputFolder:
@@ -134,11 +138,13 @@ def eecbs_runner(args):
     #     raise KeyError("Map name {} not found in mapsToMaxNumAgents. Please add it to mapsToMaxNumAgents into the top of batch_script.py".format(args.mapName))
 
     ### Create the folder for the output file if it does not exist
-    # if args.outputCSV == "":
-    #     args.outputCSV = args.mapName + ".csv"
-    # totalOutputPath = "{}/{}".format(args.logPath, args.outputCSV)
+
+    # outputCSV = " bd_stats" + ".csv"
+    # totalOutputPath = f".{file_home}/eecbs/raw_data/bd/{outputCSV}"
     # if not os.path.exists(os.path.dirname(totalOutputPath)):
     #     os.makedirs(os.path.dirname(totalOutputPath))
+
+
     mapsToScens = defaultdict(list)
     for dir_path in os.listdir(scenInputFolder):
         mapFile = dir_path.split("-")[0]
@@ -146,11 +152,11 @@ def eecbs_runner(args):
 
     for mapFile in mapsToScens:
         eecbsArgs = {
-            # "mapFile": "{}/mapf-map/{}.map".format(args.dataPath, args.mapName),
-            "mapFile": f"{mapsInputFolder}/{mapFile}",
-            "output": f".{file_home}/eecbs/raw_data/",
+            "map": f"{mapsInputFolder}/{mapFile}.map",
+            "output": f".{file_home}/eecbs/raw_data/bd/stats.csv",
+            "outputPaths": f".{file_home}/eecbs/raw_data/paths/paths.txt",
             "suboptimality": args.suboptimality,
-            "cutoffTime": args.cutoffTime,
+            "cutoffTime": args.cutoffTime
             # "useWeightedFocalSearch": False,
         }
         seeds = list(range(1,2))
@@ -177,15 +183,19 @@ def eecbs_runner(args):
             runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens, scenInputFolder)
 
         # move the new eecbs output
+        pdb.set_trace()
         os.mkdir(f".{file_home}/eecbs/raw_data/" + mapFile)
-        shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/raw_data/" + mapFile)
-        shutil.move(f".{file_home}/eecbs/raw_data/paths/", ".{file_home}/raw_data/" + mapFile)
+        shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/" + mapFile)
+        shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/" + mapFile)
+        
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
-        subprocess.run(["python", "data_manipulator.py", f"pathsIn=.{file_home}/eecbs/raw_data/paths/{mapFile}", f"bdIn=.{file_home}/eecbs/raw_data/bd/{mapFile}", f"mapIn={mapsInputFolder}", f"trainOut=.{file_home}/data/logs/EXP{args.exp}/labels/raw/train_{mapFile}_{args.iter}.npz", f"trainOut=.{file_home}/data/logs/EXP{args.exp}/labels/raw/val_{mapFile}_{args.iter}.npz"])
-
-        shutil.rmtree(".{file_home}/eecbs/raw_data/")
+        subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.exp}/labels/raw/train_{mapFile}_{args.iter}.npz", f"--trainOut=.{file_home}/data/logs/EXP{args.exp}/labels/raw/val_{mapFile}_{args.iter}.npz"])
+        
+        os.mkdir(f".{file_home}/eecbs/raw_data/bd")
+        os.mkdir(f".{file_home}/eecbs/raw_data/paths")
+        # shutil.rmtree(".{file_home}/eecbs/raw_data/")
         ### Run W-EECBS
         # eecbsArgs["r_weight"] = args.r_weight
         # eecbsArgs["h_weight"] = args.h_weight

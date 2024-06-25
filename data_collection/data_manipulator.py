@@ -463,15 +463,17 @@ def batch_path(dir):
 def main():
     # cmdline argument parsing: take in dirs for paths, maps, and bds, and where you want the outputted npz
     parser = argparse.ArgumentParser()
-    parser.add_argument("pathsIn", help="directory containing txt files of agents and paths taken", type=str)
-    parser.add_argument("bdIn", help="directory containing txt files with backward djikstra output", type=str)
-    parser.add_argument("mapIn", help="directory containing txt files with obstacles", type=str)
+    parser.add_argument("--pathsIn", help="directory containing txt files of agents and paths taken", type=str)
+    parser.add_argument("--bdIn", help="directory containing txt files with backward djikstra output", type=str)
+    parser.add_argument("--mapIn", help="directory containing txt files with obstacles", type=str)
     npzMsg = "output file with maps, bds as name->array dicts, along with (mapname, bdname, path) triplets for each EECBS run"
-    parser.add_argument("trainOut", help=npzMsg, type=str)
-    parser.add_argument("valOut", help=npzMsg, type=str)
-
+    parser.add_argument("--trainOut", help=npzMsg, type=str)
+    parser.add_argument("--valOut", help=npzMsg, type=str)
+    
 
     args = parser.parse_args()
+    pdb.set_trace()
+
     pathsIn = args.pathsIn
     bdIn = args.bdIn
     mapIn = args.mapIn
@@ -484,6 +486,7 @@ def main():
     data = [] # contains all run instances, in the form of (map name, bd name)
 
     # parse each map, add to global dict
+    
     maps = batch_map(mapIn)
     # print(maps)
 

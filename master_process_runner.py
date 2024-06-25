@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     LE = f"data_collection/data/logs/EXP{expnum}"
 
-    subprocess.run(["python3", "./data_collection/eecbs_batchrunner.py", f"--inputFolder={source_maps_scens}", f"--outputFolder=../{LE}/labels/raw/"])
+    subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--inputFolder={source_maps_scens}", f"--outputFolder=../{LE}/labels/raw/"])
 
     pdb.set_trace()
     raise NotImplementedError

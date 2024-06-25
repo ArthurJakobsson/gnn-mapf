@@ -998,43 +998,43 @@ void CBS::saveResults(const string &fileName, const string &instanceName, int se
 
 void CBS::saveStats(const string &fileName, const string &instanceName)
 {
-	/*cout << "writing logs..." << endl;
-	ofstream stats(fileName+ ".txt", std::ios::app);
-	stats << instanceName << endl;
-	stats << "agent 1,agent 2,node id,#expanded nodes, h" << endl;
-	for (auto ins : heuristic_helper.sub_instances)
-	{
-			stats << get<0>(ins) << "," << get<1>(ins) << "," << get<2>(ins)->time_generated << "," << get<3>(ins) << "," << get<4>(ins) << endl;
-	}
-	stats.close();*/
-	/*if (solution_found)
-	{
-		std::ifstream infile(fileName + ".heuristic");
-		bool exist = infile.good();
-		infile.close();
-		if (!exist)
-		{
-			ofstream addHeads(fileName + ".heuristic");
-			addHeads << "h*,solution depth,WDG,greedy WDG,DG,MVC on all conflicts,#conflicts,#CT nodes" << endl;
-			addHeads.close();
-		}
-		ofstream out(fileName + ".heuristic", std::ios::app);
-		out << solution_cost - dummy_start->g_val << "," // h*
-			<< goal_node->depth << "," // depth
-			<< dummy_start->h_val << ","; // WDG
-		updatePaths(dummy_start);
-		findConflicts(*dummy_start);
-		classifyConflicts(*dummy_start);
-		// int greedy = heuristic_helper.greedyWDG(*dummy_start, time_limit);
-		int greedy = 0;
-		heuristic_helper.type = heuristics_type::DG;
-		int dg = heuristic_helper.computeInformedHeuristics(*dummy_start, time_limit);
-		// int mvc = heuristic_helper.MVConAllConflicts(*dummy_start);
-		int mvc = 0;
-		out << greedy << "," << dg << "," << mvc << "," << dummy_start->conflicts.size() << "," << 
-			dummy_start->distance_to_go << endl;
-		out.close();
-	}*/
+	// /*cout << "writing logs..." << endl;
+	// ofstream stats(fileName+ ".txt", std::ios::app);
+	// stats << instanceName << endl;
+	// stats << "agent 1,agent 2,node id,#expanded nodes, h" << endl;
+	// for (auto ins : heuristic_helper.sub_instances)
+	// {
+	// 		stats << get<0>(ins) << "," << get<1>(ins) << "," << get<2>(ins)->time_generated << "," << get<3>(ins) << "," << get<4>(ins) << endl;
+	// }
+	// stats.close();*/
+	// /*if (solution_found)
+	// {
+	// 	std::ifstream infile(fileName + ".heuristic");
+	// 	bool exist = infile.good();
+	// 	infile.close();
+	// 	if (!exist)
+	// 	{
+	// 		ofstream addHeads(fileName + ".heuristic");
+	// 		addHeads << "h*,solution depth,WDG,greedy WDG,DG,MVC on all conflicts,#conflicts,#CT nodes" << endl;
+	// 		addHeads.close();
+	// 	}
+	// 	ofstream out(fileName + ".heuristic", std::ios::app);
+	// 	out << solution_cost - dummy_start->g_val << "," // h*
+	// 		<< goal_node->depth << "," // depth
+	// 		<< dummy_start->h_val << ","; // WDG
+	// 	updatePaths(dummy_start);
+	// 	findConflicts(*dummy_start);
+	// 	classifyConflicts(*dummy_start);
+	// 	// int greedy = heuristic_helper.greedyWDG(*dummy_start, time_limit);
+	// 	int greedy = 0;
+	// 	heuristic_helper.type = heuristics_type::DG;
+	// 	int dg = heuristic_helper.computeInformedHeuristics(*dummy_start, time_limit);
+	// 	// int mvc = heuristic_helper.MVConAllConflicts(*dummy_start);
+	// 	int mvc = 0;
+	// 	out << greedy << "," << dg << "," << mvc << "," << dummy_start->conflicts.size() << "," << 
+	// 		dummy_start->distance_to_go << endl;
+	// 	out.close();
+	// }*/
 }
 
 void CBS::saveCT(const string &fileName) const // write the CT to a file

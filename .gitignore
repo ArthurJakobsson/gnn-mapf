@@ -8,9 +8,19 @@ gnn/map_data_old/
 gnn/map_data_big2d_new/
 gnn/test.py
 gnn/model_log/
-cs_methods/map_files
-cs_methods/scen_files
-cs_methods/cs_pibt_python/created_scens
+
+# data collection stuff
+data_collection/eecbs/py/npzs/*
+data_collection/eecbs/logs/*
+data_collection/eecbs/archives/*
+data_collection/eecbs/build_debug/*
+data_collection/eecbs/build_release/*
+data_collection/eecbs/CMakeFiles/*
+data_collection/eecbs/data/*
+data_collection/eecbs/raw_data/*
+data_collection/data/*
+*.scen
+
 
 *.pickle
 
@@ -168,16 +178,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# data collection stuff
-data_collection/eecbs/py/npzs/*
-data_collection/eecbs/logs/*
-data_collection/eecbs/archives/*
-data_collection/eecbs/build_debug/*
-data_collection/eecbs/build_release/*
-data_collection/eecbs/CMakeFiles/*
-data_collection/eecbs/data/*
-data_collection/eecbs/raw_data/*
-data_collection/data/*
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
