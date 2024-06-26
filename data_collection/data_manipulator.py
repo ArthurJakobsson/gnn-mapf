@@ -49,7 +49,6 @@ class PipelineDataset(Dataset):
 
         # read in the dataset, saving map, bd, and path info to class variables
         loaded = np.load(numpy_data_path)
-        # pdb.set_trace()
         self.k = k
         self.size = size
         self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
@@ -75,19 +74,14 @@ class PipelineDataset(Dataset):
         if idx >= self.__len__():
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
-
-        bd, grid, paths = self.find_instance(idx)
-        for agent in range(self.size):
-            curloc = paths[idx, :]
-            nextloc = paths[idx+1, agent] if idx < self.__len__() -1 else curloc
-            # prevloc = paths[timestep-1, agent] - paths[timestep, agent] if timestep > 0 else curloc # get previous step to avoid jitter
-
-            dijk = bd[agent]
-            # dijk = dijk - dijk[self.k,self.k] # TODO try normalizing wrt current agent position
-            dijk = np.where(np.abs(dijk) > 10000, 0, dijk)
-
+        bd, grid, paths, timestep, t = self.find_instance(idx)
+        labels = []
+        locs = []
+        num_agent = paths.shape[1]
+        for agent in range(0,num_agent):
+            curloc = paths[timestep, agent]
+            nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
             label = nextloc - curloc # get the label: where did the agent go next?
-
             # create one-hot vector
             index = None
             if label[0] == 0 and label[1] == 0: index = 0
@@ -97,10 +91,9 @@ class PipelineDataset(Dataset):
             else: index = 4
             finallabel = np.zeros(5)
             finallabel[index] = 1
-
-        # pos_list, bd_list, labels, grid
-        return curloc, finallabel, dijk, grid
-        # return grid, dijk, relativeAgentLocs, finallabel, prevloc.flatten(), np.array([dijk[self.k+1, self.k+1] == 0])
+            labels.append(finallabel)
+            locs.append(curloc)
+        return np.array(locs), np.array(labels), bd, grid
 
     def process_helper_bds(self, bd, windowAgentLocs, windowAgents, curloc, dijk):
         '''
@@ -140,11 +133,9 @@ class PipelineDataset(Dataset):
                 windowAgentLocs = np.array([[curloc[0], curloc[1]]]*4)
                 helper_bds = np.zeros((4-n, self.k*2+1,self.k*2+1))
             else:
-                # pdb.set_trace()
                 windowAgentLocs = np.concatenate([windowAgentLocs, np.array([[curloc[0], curloc[1]]]*(4-n))])
                 helper_bds = np.concatenate([helper_bds, np.zeros((4-n, self.k*2+1,self.k*2+1))])
 
-        # pdb.set_trace()
         return helper_bds, windowAgentLocs
 
 
@@ -154,11 +145,11 @@ class PipelineDataset(Dataset):
         '''
         def translate_to_bd(bd):
             
-            bd = bd.split("-random-")
+            # bd = bd.split("-random-")
             # remove - "-custom-0"
-            if "-custom" in bd: # get rid of the suffix, if not a benchmark scen
-                bd = bd.split("-custom-")[0]
-            bd = bd[0] + "-random-" + bd[1][0] + str(self.max_agents) # TODO fix: adapt to be max number agents
+            # if "-custom" in bd: # get rid of the suffix, if not a benchmark scen
+                # bd = bd.split("-custom-")[0]
+            # bd = bd[0] + "-random-" + bd[1][0] + str(self.max_agents) # TODO fix: adapt to be max number agents
             return bd
 
         items = list(self.tn2.items())
@@ -170,7 +161,6 @@ class PipelineDataset(Dataset):
             tn2ind += 1
         # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
         mapname, bdname, seed = items[tn2ind][0].split(",")
-        pdb.set_trace()
         bdname = translate_to_bd(bdname)
         bd = self.bds[bdname]
         grid = self.maps[mapname]
@@ -181,14 +171,13 @@ class PipelineDataset(Dataset):
         newidx = idx - tracker # index within the matrix to get
         paths = items[tn2ind][1][1].copy() # (t,n,2) paths matrix
         paths += self.k # adjust for padding
+        for agent in range(len(bd)):
+            bd[agent] *= (1-grid)
         t, n, _ = np.shape(paths)
-        timestep, agent = newidx // n, newidx % n
-        # if idx == 1: pdb.set_trace()
-        pdb.set_trace()
-        return bd, grid, paths, timestep, agent, t
+        timestep = newidx // n
+        return bd, grid, paths, timestep, t
 
     def parse_npz(self, loaded):
-        pdb.set_trace()
         loaded = {k:v for k, v in loaded.items()}
         items = list(loaded.items())
         # print(loaded["Paris_1_256.map,Paris_1_256-random-110,2"]) # testing
@@ -368,7 +357,6 @@ def parse_bd(bdfile):
     for i in range(len(timetobd)):
         res.append(timetobd[i])
     res = np.asarray(res)
-    # pdb.set_trace()
     return res
 
 def batch_map(dir):
@@ -432,8 +420,9 @@ def batch_path(dir):
             numFiles += 1
         else:
             raise RuntimeError("bad path dir")
-    valFiles = random.sample(range(0, numFiles), numFiles // 5) # take 20% of data for val
-    print(valFiles, numFiles)
+    # valFiles = random.sample(range(0, numFiles), numFiles // 5) # take 20% of data for val
+    # print(valFiles, numFiles)
+    valFiles = [] # No more validation dataset
 
     # iterate over files in directory, making a tuple for each
     idx = 0 # keep track of if we want to save to val set or train set
@@ -443,9 +432,10 @@ def batch_path(dir):
         if os.path.isfile(f):
             # parse the path file, index out its map name, seed, agent number, and bd that it was formed from based on file name,
             # and add the resulting triplet to a global dictionary (or some class variable dictionary)
-            raw = filename.split(".txt")[0] # remove .txt
+            raw = filename.split(".txt")[0].split(".scen") # remove .txt
+            raw = raw[0]+raw[1]
             seed = raw[-1]
-            raw = raw[:-1]
+            # raw = raw[:-1]
             mapname = raw.split("-")[0] + ".map"
             bdname = raw
             val = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
@@ -460,7 +450,6 @@ def batch_path(dir):
             idx += 1
         else:
             raise RuntimeError("bad path dir")
-    # pdb.set_trace()
     return res1, res2
 
 def main():
@@ -475,7 +464,6 @@ def main():
     
 
     args = parser.parse_args()
-    pdb.set_trace()
 
     pathsIn = args.pathsIn
     bdIn = args.bdIn
@@ -496,36 +484,27 @@ def main():
     bds = batch_bd(bdIn)
     # print(bds)
 
-    # parse each pah, add to global list
+    # parse each path, add to global list
     data1train, data1val = batch_path(pathsIn)
-    # pdb.set_trace()
 
-    pdb.set_trace()
     # send each map, each bd, and each tuple representing a path + instance to npz
     np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
-    np.savez_compressed(valOut, **maps, **bds, **data1val) # Note automatically stacks to numpy vectors
+    # np.savez_compressed(valOut, **maps, **bds, **data1val) # Note automatically stacks to numpy vectors
 
     # DEBUGGING: test out the dataloader
     loader = PipelineDataset(trainOut + ".npz", 4, float('inf'), 300, 'current')
     print(len(loader), " train size")
     for i in range(len(loader)):
-        grid, dijk, helper_bds, relativeAgentLocs, finallabel = loader[i]
-        assert(grid.shape == (9,9))
-        assert(dijk.shape == (9,9))
-        assert(helper_bds.shape == (4,9,9))
-        assert(relativeAgentLocs.shape == (8,))
-        assert(finallabel.shape == (5,))
-
-    loader = PipelineDataset(valOut + ".npz", 4, float('inf'), 300)
-    print(len(loader), " val size")
-    for i in range(len(loader)):
-        loader[i]
-        grid, dijk, helper_bds, relativeAgentLocs, finallabel = loader[i]
-        assert(grid.shape == (9,9))
-        assert(dijk.shape == (9,9))
-        assert(helper_bds.shape == (4,9,9))
-        assert(relativeAgentLocs.shape == (8,))
-        assert(finallabel.shape == (5,))
+        locs, labels, bd, grid = loader[i]
+        assert(labels.shape[1] == 5)
+        assert(locs.shape[1] == 2)
+        # grid/bd should be 9,9 for single agent but is full map for graph version
+    # loader = PipelineDataset(valOut + ".npz", 4, float('inf'), 300)
+    # print(len(loader), " val size")
+    # for i in range(len(loader)):
+    #     locs, labels, bd, grid = loader[i]
+    #     assert(labels.shape[1] == 5)
+    #     assert(locs.shape[1] == 2)
 
 
 if __name__ == "__main__":

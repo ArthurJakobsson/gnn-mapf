@@ -28,6 +28,7 @@ if __name__ == "__main__":
 
     subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--inputFolder={source_maps_scens}", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}"])
 
+    print("Done with first eecbs run")
     pdb.set_trace()
     raise NotImplementedError
 

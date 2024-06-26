@@ -191,7 +191,6 @@ def eecbs_runner(args):
             runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens, scenInputFolder)
 
         # move the new eecbs output
-        pdb.set_trace()
         os.makedirs(f".{file_home}/eecbs/raw_data/" + mapFile, exist_ok=False)
         shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/" + mapFile)
         shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/" + mapFile)
@@ -247,8 +246,6 @@ if __name__ == "__main__":
     scenInputFolder = args.inputFolder + "/scens"
     mapsInputFolder = args.inputFolder + "/maps"
     file_home = "/data_collection"
-
-    pdb.set_trace()
 
     eecbs_runner(args)
 
