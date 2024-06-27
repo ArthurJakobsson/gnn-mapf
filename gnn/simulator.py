@@ -345,7 +345,7 @@ class RunModel():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("folder", help="experiment folder", type=str)
-    parser.add_argument('firstIter', dest='firstIter', type=lambda x: bool(strtobool(x)))
+    parser.add_argument('firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
     parser.add_argument("source_maps_scens", help="which map+scen folder", type=str)
     args = parser.parse_args()
     folder, firstIter, source_maps_scens = args.folder, args.firstIter, args.source_maps_scens

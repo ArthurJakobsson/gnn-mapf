@@ -28,6 +28,7 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import random
 
+
 class GNNStack(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, task='node'):
         super(GNNStack, self).__init__()
@@ -202,7 +203,7 @@ def train(dataset, task, writer):
             writer.add_scalar("test accuracy", test_acc, epoch)
             writer.add_scalar("top2 test accuracy", double_test_acc, epoch)
 
-            if epoch >= 50:
+            if epoch >= 1: # TODO change this back to 50
                 save_models(model, total_loss,min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc)
 
     return model
@@ -214,7 +215,6 @@ def test(loader, model, is_validation=False):
     second_correct = 0
     for data in loader:
         data = data.to(device)
-        pdb.set_trace()
         with torch.no_grad():
             emb, pred = model(data)
             #change top two using argsort
@@ -263,17 +263,17 @@ def visualize():
 if __name__ == "__main__":
     # current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     parser = argparse.ArgumentParser()
-    parser.add_argument("folder", help="experiment folder", type=str)
-    parser.add_argument("experiment", help="experiment name", type=str)
-    parser.add_argument("iternum", help="iteration name", type=int)
+    parser.add_argument("--exp_folder", help="experiment folder", type=str)
+    parser.add_argument("--experiment", help="experiment name", type=str)
+    parser.add_argument("--iternum", help="iteration name", type=int)
     args = parser.parse_args()
 
-    folder, expname, iternum = args.folder, args.experiment, args.iternum
+    exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
 
-    itername = "iter"+iternum
+    itername = "iter"+str(iternum)
 
-    writer = SummaryWriter(f"../data_collection/data/logs/train_logs"+expname+"_"+itername)
-    model_path = folder+"/models/"
+    writer = SummaryWriter(f"../data_collection/data/logs/train_logs/"+expname+"_"+itername)
+    model_path = exp_folder+f"/{itername}"+"/models/"
     os.mkdir(model_path)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -284,7 +284,7 @@ if __name__ == "__main__":
     np.random.seed(0)
     random.seed(0)
 
-    dataset = MyOwnDataset(root=f"{folder}/labels/", device=device, iternum=iternum)
+    dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum)
     dataset = dataset.shuffle()
     task = 'node'
 

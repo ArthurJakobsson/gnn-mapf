@@ -6,10 +6,15 @@ import torch
 from torch_geometric.data import Dataset, download_url
 import numpy as np
 import pdb
-import data_collection.data_manipulator as data_manipulator
+
 from torch_geometric.data import Data
 from tqdm import tqdm
 import os
+import sys
+
+print(os.path.abspath(os.getcwd()))
+sys.path.insert(0, './data_collection/')
+import data_manipulator
 
 def slice_maps(pos, curmap, k):
     """
@@ -113,11 +118,13 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
 class MyOwnDataset(Dataset):
-    def __init__(self, root, device, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root, device, exp_folder, iternum, transform=None, pre_transform=None, pre_filter=None):
         self.k = 4 # padding size
         self.m = 5 # number of agents considered close
         self.size = float('inf')
         self.max_agents = 500
+        self.exp_folder = exp_folder
+        self.iternum = iternum
         # self.data_dictionaries = []
         self.length = 0
         self.device = device
@@ -129,13 +136,12 @@ class MyOwnDataset(Dataset):
             self.length = torch.load(osp.join(self.processed_dir, f"meta_data.pt"))[0]
         else:
             self.length = 0 
-        return self.length()
+        return self.length
 
     @property
     def raw_file_names(self):
-        #TODO: Change this based on npz name structure
-        npz_paths = os.listdir()
-        return ["train.npz", "val.npz"]
+        npz_paths = os.listdir(self.exp_folder+"/labels/raw/")
+        return npz_paths
 
     @property
     def processed_file_names(self):

@@ -30,24 +30,26 @@ if __name__ == "__main__":
 
     print("Done with first eecbs run")
     pdb.set_trace()
-    raise NotImplementedError
 
     first_iteration = True
 
     while True:
 
-        if not os.path.exists(f"./data_collection/data/logs/EXP{expnum}"):
-            os.makedirs(f"./data_collection/data/logs/EXP{expnum}")
+        if not os.path.exists(f"./data_collection/data/logs/EXP{expnum}/iter{iternum}"):
+            os.makedirs(f"./data_collection/data/logs/EXP{expnum}/iter{iternum}")
 
         # train the naive model
-        subprocess.run(["python3", "./gnn/trainer.py", f"--folder=../{LE}/iter{iternum}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
+        subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
+
+        pdb.set_trace()
+        raise NotImplementedError
 
         # run cs-pibt new maps to create new scenes
-        subprocess.run(["python3", "./gnn/simulator.py", f"--folder=../{LE}/iter{iternum}", f"--firstIter={first_iteration}", f"--source_maps_scens={source_maps_scens}"])
+        subprocess.run(["python", "./gnn/simulator.py", f"--folder=./{LE}/iter{iternum}", f"--firstIter={first_iteration}", f"--source_maps_scens={source_maps_scens}"])
         first_iteration = False
 
         # feed failures into eecbs
-        subprocess.run(["python3", "./data_collection/eecbs_batchrunner.py"]) # TODO figure out where eecbs is outputting files
+        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py"]) # TODO figure out where eecbs is outputting files
         iternum+=1
     '''
     LE = logs/EXPNAME/
