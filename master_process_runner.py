@@ -31,7 +31,7 @@ if __name__ == "__main__":
     print("Done with first eecbs run")
     pdb.set_trace()
 
-    first_iteration = True
+    first_iteration = "true"
 
     while True:
 
@@ -41,15 +41,14 @@ if __name__ == "__main__":
         # train the naive model
         subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
 
-        pdb.set_trace()
-        raise NotImplementedError
-
         # run cs-pibt new maps to create new scenes
-        subprocess.run(["python", "./gnn/simulator.py", f"--folder=./{LE}/iter{iternum}", f"--firstIter={first_iteration}", f"--source_maps_scens={source_maps_scens}"])
-        first_iteration = False
+        subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}"])
+        first_iteration = "false"
+
+        pdb.set_trace()
 
         # feed failures into eecbs
-        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py"]) # TODO figure out where eecbs is outputting files
+        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--inputFolder={source_maps_scens}", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}"]) # TODO figure out where eecbs is outputting files
         iternum+=1
     '''
     LE = logs/EXPNAME/

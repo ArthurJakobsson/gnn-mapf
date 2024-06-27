@@ -115,12 +115,13 @@ def write_line(idx, start_loc, goal_loc, file, map_r, map_c, map_name):
     
     file.write(out_str)
 
-def save_scen(start_locs, goal_locs, map, scen_name, idx, scen_folder):
+def save_scen(start_locs, goal_locs, map, map_name, scen_name, idx, scen_folder):
 
     map_r, map_c = map.shape[0], map.shape[1]
     file = open(scen_folder+"/"+ scen_name+"-custom-"+str(idx)+".scen", 'w')
     file.write(str(len(start_locs)))
     start_locs = np.array(start_locs)
+    # TODO pass map name
     for idx, package in enumerate(zip(start_locs, goal_locs, repeat(file), repeat(map_r), repeat(map_c), repeat(map_name))):
         write_line(idx, *package)
     file.close()
@@ -214,8 +215,8 @@ class RunModel():
             else:
                 new_agent_locs = self.cs_naive(self.device, cur_map, cur_agent_locs, probabilities)
 
-            scen_name = map_name+"-random-"+scen_idx
-            save_scen(new_agent_locs, cur_agent_goals, cur_map, scen_name, self.scen_number, self.scen_folder)
+            scen_name = map_name+"-random-"+str(scen_idx)
+            save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, scen_name, self.scen_number, self.scen_folder)
             self.scen_number+=1
 
             if (np.all(new_agent_locs==cur_agent_goals)):
@@ -344,23 +345,27 @@ class RunModel():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("folder", help="experiment folder", type=str)
-    parser.add_argument('firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
-    parser.add_argument("source_maps_scens", help="which map+scen folder", type=str)
+    parser.add_argument("--exp_folder", help="experiment folder", type=str)
+    parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
+    parser.add_argument("--source_maps_scens", help="which map+scen folder", type=str)
+    parser.add_argument("--iternum", help="iternum", type=int)
     args = parser.parse_args()
-    folder, firstIter, source_maps_scens = args.folder, args.firstIter, args.source_maps_scens
+    exp_folder, firstIter, source_maps_scens, iternum= args.exp_folder, args.firstIter, args.source_maps_scens, args.iternum
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = torch.load(folder+"/models/"+'max_double_test_acc.pt')
+    model = torch.load(exp_folder+f"/iter{iternum}/models/max_double_test_acc.pt")
     model.to(device)
     model.eval()
+
+    scen_folder = exp_folder+f"/iter{iternum}/encountered_scens/"
+    os.mkdir(scen_folder)
 
     # map_files = ['warehouse_10_20_10_2_2.map']
     # scen_files = ['warehouse_10_20_10_2_2-random-1.scen','warehouse_10_20_10_2_2-random-2.scen', 'warehouse_10_20_10_2_2-random-3.scen']
 
     torch.manual_seed(1072)
 
-    scen_folder = create_scen_folder(0)
+    # scen_folder = create_scen_folder(0)
 
     k = 4
     m = 5
