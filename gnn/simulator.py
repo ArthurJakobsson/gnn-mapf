@@ -119,7 +119,7 @@ def save_scen(start_locs, goal_locs, map, map_name, scen_name, idx, scen_folder)
 
     map_r, map_c = map.shape[0], map.shape[1]
     file = open(scen_folder+"/"+ scen_name+"-custom-"+str(idx)+".scen", 'w')
-    file.write(str(len(start_locs)))
+    file.write(str(len(start_locs))+"\n")
     start_locs = np.array(start_locs)
     # TODO pass map name
     for idx, package in enumerate(zip(start_locs, goal_locs, repeat(file), repeat(map_r), repeat(map_c), repeat(map_name))):
@@ -145,10 +145,10 @@ class Preprocess():
             just_map_name = map_name[0:-4]
             print(just_map_name)
             self.map_dict['map'][just_map_name] = parse_map(map_path, map_name, self.k)
-        for scen_f in scen_files:
+        for scen_f in scen_files: #TODO double check if bds get recalculated
             if scen_f in  self.map_dict['loaded_scenes']:
                 continue
-
+            pdb.set_trace()
             self.map_dict['loaded_scenes'].append(scen_f)
             scen_name = parse_scen_name(scen_f)
             if not scen_name in self.map_dict['scen']:
@@ -198,7 +198,6 @@ class RunModel():
         cur_bd = self.map_dict['scen'][map_name]['bd'][scen_idx]
         iteration, solved = 0, False
         while (iteration < 200 and not solved):
-            print(iteration)
             cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m) 
             cur_data = cur_data.to(self.device)
             
@@ -207,7 +206,7 @@ class RunModel():
             cur_data.edge_attr = apply_edge_normalization(edge_weights)
             cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
             _, predictions = model(cur_data)
-            probabilities = torch.exp(predictions) #TODO change this to softmax
+            probabilities = torch.softmax(predictions) 
             
             # Random action #TODO implement O_tie - Rishi said we don't want this actually
             if self.cs_type=="PIBT":
@@ -352,7 +351,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     exp_folder, firstIter, source_maps_scens, iternum= args.exp_folder, args.firstIter, args.source_maps_scens, args.iternum
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = "cpu"
     model = torch.load(exp_folder+f"/iter{iternum}/models/max_double_test_acc.pt")
     model.to(device)
     model.eval()

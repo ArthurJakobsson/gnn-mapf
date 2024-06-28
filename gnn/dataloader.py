@@ -156,7 +156,7 @@ class MyOwnDataset(Dataset):
 
     def process(self):
         idx = self.load_metadata()
-        for raw_path in self.raw_paths:
+        for raw_path in self.raw_paths: #TODO check if new npzs are read
             cur_path_iter = raw_path.split("_")[-1][:-4]
             print(raw_path)
             if not (int(cur_path_iter)==self.iternum):
@@ -173,7 +173,7 @@ class MyOwnDataset(Dataset):
 
                 curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
                 curdata = apply_masks(len(curdata.x), curdata)
-                torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+                torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt")) #TODO fix idx number
                 idx+=1
 
             self.length = idx

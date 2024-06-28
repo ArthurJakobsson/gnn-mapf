@@ -12,12 +12,17 @@
 # [ |_____| | .   . | |____________________________| | .   . | |__]
 #           | .   . |                                | .   . |
 #            \_____/                                  \_____/
-#  _                 _     
-# | |               | |    
-# | |_ _ __ __ _ ___| |__  
-# | __| '__/ _` / __| '_ \ 
-# | |_| | | (_| \__ \ | | |
-#  \__|_|  \__,_|___/_| |_|
+#    __     _                       __     __                              
+#   / /_   (_)   ____ ___          / /_   / /_   ___                       
+#  / __/  / /   / __ `__ \        / __/  / __ \ / _ \                      
+# / /_   / /   / / / / / /       / /_   / / / //  __/                      
+# \__/  /_/   /_/ /_/ /_/        \__/  /_/ /_/ \___/                       
+                                                                         
+#    __                             __                                     
+#   / /_   _____  ____ _   _____   / /_           ____ ___   ____ _   ____ 
+#  / __/  / ___/ / __ `/  / ___/  / __ \         / __ `__ \ / __ `/  / __ \
+# / /_   / /    / /_/ /  (__  )  / / / /        / / / / / // /_/ /  / / / /
+# \__/  /_/     \__,_/  /____/  /_/ /_/        /_/ /_/ /_/ \__,_/  /_/ /_/ 
 
 import os
 import shutil
@@ -33,22 +38,27 @@ for item in test:
 
 
 # clean raw_data
-
 dir_name = "./data_collection/eecbs/raw_data/bd"
-bd_files = os.listdir(dir_name)
-for item in bd_files:
-    os.remove(os.path.join(dir_name, item))
+if os.path.exists(dir_name):
+    bd_files = os.listdir(dir_name)
+    for item in bd_files:
+        os.remove(os.path.join(dir_name, item))
 
 dir_name = "./data_collection/eecbs/raw_data/paths"
-path_files = os.listdir(dir_name)
-for item in path_files:
-    os.remove(os.path.join(dir_name, item))
+if os.path.exists(dir_name):
+    path_files = os.listdir(dir_name)
+    for item in path_files:
+        os.remove(os.path.join(dir_name, item))
 
 dir_name = "./data_collection/eecbs/raw_data/"
-eecbs_files = os.listdir(dir_name)
-for item in eecbs_files:
-    if (item != "bd") and (item != "paths"):
-        shutil.rmtree(os.path.join(dir_name, item))
+if os.path.exists(dir_name):
+    eecbs_files = os.listdir(dir_name)
+    for item in eecbs_files:
+        if (item != "bd") and (item != "paths"):
+            shutil.rmtree(os.path.join(dir_name, item))
+
+os.makedirs(dir_name+"/bd", exist_ok=True)
+os.makedirs(dir_name+"/paths", exist_ok=True)
 
 # clean logs
 shutil.rmtree("./data_collection/data/logs/")

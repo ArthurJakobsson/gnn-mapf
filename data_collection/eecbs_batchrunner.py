@@ -35,6 +35,8 @@ mapsToMaxNumAgents = {
     "warehouse_20_40_10_2_2": 101
 }
 
+def str2bool(v):
+  return v.lower() in ("yes", "true", "t", "1")
 
 def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile):
     # ### Instance
@@ -180,28 +182,37 @@ def eecbs_runner(args):
 
         else: # we are somewhere in the training loop
             agentNumbers = []
-            for scen in mapsToScens[mapFile]:
+            scenlist = os.listdir(scenInputFolder)
+            for scen in scenlist:
                 # open the file
-                with open(f'/{scen}', 'r') as fh: # TODO get the path to scene file right
-                    for line in fh:
-                        # count the lines, pass into agentnum
-                        agentNumbers.append(int(line))
-                        break
+                with open(f'{scenInputFolder}/{scen}', 'r') as fh: # TODO get the path to scene file right
+                    line = fh.readline()
+                    agentNumbers.append(int(line))
             # run eecbs
             runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens, scenInputFolder)
 
         # move the new eecbs output
-        os.makedirs(f".{file_home}/eecbs/raw_data/" + mapFile, exist_ok=False)
-        shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/" + mapFile)
-        shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/" + mapFile)
+        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
+        os.makedirs(f".{file_home}/eecbs/raw_data/bd", exist_ok=True)
+        os.makedirs(f".{file_home}/eecbs/raw_data/paths", exist_ok=True)
+
+        bd_files = os.listdir(f".{file_home}/eecbs/raw_data/bd/")
+        path_files = os.listdir(f".{file_home}/eecbs/raw_data/paths/")
+        for file_name in bd_files:
+            shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd") 
+        for file_name in path_files:
+            shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths") 
+        
+        # shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/" + mapFile)
+        # shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/" + mapFile)
         
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
         subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
         
-        os.mkdir(f".{file_home}/eecbs/raw_data/bd")
-        os.mkdir(f".{file_home}/eecbs/raw_data/paths")
+        # os.mkdir(f".{file_home}/eecbs/raw_data/bd")
+        # os.mkdir(f".{file_home}/eecbs/raw_data/paths")
         # shutil.rmtree(".{file_home}/eecbs/raw_data/")
         ### Run W-EECBS
         # eecbsArgs["r_weight"] = args.r_weight
@@ -236,27 +247,18 @@ def eecbs_runner(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--inputFolder", help="contains all scens to run", type=str)
+    parser.add_argument("--mapFolder", help="contains all scens to run", type=str)
+    parser.add_argument("--scenFolder", help="contains all scens to run", type=str)
     parser.add_argument("--outputFolder", help="place to output all eecbs output", type=str)
     parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
     parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
     parser.add_argument("--expnum", help="experiment number", type=int, default=0)
     parser.add_argument("--iter", help="iteration number", type=int, default=0)
+    parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
     args = parser.parse_args()
-    scenInputFolder = args.inputFolder + "/scens"
-    mapsInputFolder = args.inputFolder + "/maps"
+    scenInputFolder = args.scenFolder
+    mapsInputFolder = args.mapFolder
+    firstIter = args.firstIter
     file_home = "/data_collection"
 
     eecbs_runner(args)
-
-    # parser.add_argument("mapName", help="map name without .map, needs to be in mapsToMaxNumAgents defined in the top", type=str) # Note: Positional is required
-    # parser.add_argument("--dataPath", help="path to benchmark dataset, should contain mapf-map/ and mapf-scen-random/ folders",
-    #                                   type=str, default="data")
-    # parser.add_argument("--logPath", help="path to log folder", type=str, default="data/logs/") 
-    # parser.add_argument("--outputCSV", help="outputCSV", type=str, default="") # Will be saved to logPath+outputCSV
-
-    # # parser.add_argument("--r_weight", help="r_weight", type=float, default=4)
-    # # parser.add_argument("--h_weight", help="h_weight", type=float, default=8)
-    # parser.add_argument("--num_scens", help="Number of scens to try [1,25]", type=int, default=10)
-
-    # eecbs_vs_weecsb(args)

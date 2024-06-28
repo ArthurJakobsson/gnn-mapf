@@ -78,7 +78,7 @@ class PipelineDataset(Dataset):
         labels = []
         locs = []
         num_agent = paths.shape[1]
-        for agent in range(0,num_agent):
+        for agent in range(0,num_agent): # TODO: numpyify this
             curloc = paths[timestep, agent]
             nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
             label = nextloc - curloc # get the label: where did the agent go next?
@@ -143,14 +143,6 @@ class PipelineDataset(Dataset):
         '''
         returns the backward dijkstra, map, and path arrays, and indices to get into the path array
         '''
-        def translate_to_bd(bd):
-            
-            # bd = bd.split("-random-")
-            # remove - "-custom-0"
-            # if "-custom" in bd: # get rid of the suffix, if not a benchmark scen
-                # bd = bd.split("-custom-")[0]
-            # bd = bd[0] + "-random-" + bd[1][0] + str(self.max_agents) # TODO fix: adapt to be max number agents
-            return bd
 
         items = list(self.tn2.items())
 
@@ -161,18 +153,15 @@ class PipelineDataset(Dataset):
             tn2ind += 1
         # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
         mapname, bdname, seed = items[tn2ind][0].split(",")
-        bdname = translate_to_bd(bdname)
-        bd = self.bds[bdname]
-        grid = self.maps[mapname]
+        bd = self.bds[bdname]      # (N, W, H)
+        grid = self.maps[mapname]  # (W, H)
         # pad bds (for all agents), grid (for all agents) with empty 0 window(s), k in all directions
-        # bd = np.pad(bd, npads, mode="constant", constant_values=1073741823)
-        # grid = np.pad(grid, self.k, mode="constant", constant_values=1)
+
         # get the location, dir to next location
         newidx = idx - tracker # index within the matrix to get
         paths = items[tn2ind][1][1].copy() # (t,n,2) paths matrix
         paths += self.k # adjust for padding
-        for agent in range(len(bd)):
-            bd[agent] *= (1-grid)
+        bd *= (1-grid) 
         t, n, _ = np.shape(paths)
         timestep = newidx // n
         return bd, grid, paths, timestep, t

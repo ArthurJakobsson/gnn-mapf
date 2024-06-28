@@ -131,13 +131,11 @@ class CustomConv(pyg_nn.MessagePassing):
     def message(self, x_j, edge_index, size):
         # Compute messages
         # x_j has shape [E, out_channels]
-        # pdb.set_trace()
         # row, col = edge_index
         # deg = pyg_utils.degree(row, size[0], dtype=x_j.dtype)+1
         # deg_inv_sqrt = deg.pow(-0.5)
         # norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
         # # if any(torch.isnan(norm.view(-1,1) * x_j).flatten()):
-        #     # pdb.set_trace()
         # old_norm = norm.view(-1,1) * x_j
         # return old_norm
         return x_j
@@ -161,7 +159,6 @@ def train(dataset, task, writer):
         test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True)
     else:
         test_loader = loader = DataLoader(dataset, batch_size=64, shuffle=True)
-        # pdb.set_trace()
 
     # build model
     model = GNNStack(max(dataset.num_node_features, 1), 32, dataset.num_classes, task=task)
@@ -275,11 +272,10 @@ if __name__ == "__main__":
     writer = SummaryWriter(f"../data_collection/data/logs/train_logs/"+expname+"_"+itername)
     model_path = exp_folder+f"/{itername}"+"/models/"
     os.mkdir(model_path)
-    pdb.set_trace()
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(device)
-    # device = "cpu"
-    print('Current cuda device: ',torch.cuda.get_device_name(0))
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # print(device)
+    device = "cpu"
+    # print('Current cuda device: ',torch.cuda.get_device_name(0))
 
     torch.manual_seed(0)
     np.random.seed(0)
