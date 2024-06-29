@@ -168,7 +168,7 @@ def train(dataset, task, writer):
     max_test_acc = max_double_test_acc = float('-inf')
 
     # train
-    for epoch in tqdm(range(10)):
+    for epoch in tqdm(range(40)):
         total_loss = 0
         model.train()
         for batch in loader:
@@ -272,9 +272,9 @@ if __name__ == "__main__":
     writer = SummaryWriter(f"../data_collection/data/logs/train_logs/"+expname+"_"+itername)
     model_path = exp_folder+f"/{itername}"+"/models/"
     os.mkdir(model_path)
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # print(device)
-    device = "cpu"
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
+    # device = "cpu"
     # print('Current cuda device: ',torch.cuda.get_device_name(0))
 
     torch.manual_seed(0)

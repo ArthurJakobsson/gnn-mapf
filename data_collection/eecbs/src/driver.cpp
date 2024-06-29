@@ -39,6 +39,7 @@ int main(int argc, char** argv)
 		// params for the input instance and experiment settings
 		("map,m", po::value<string>()->required(), "input file for map")
 		("agents,a", po::value<string>()->required(), "input file for agents")
+		("scenname", po::value<string>()->required(), "input scenname for agents")
 		("output,o", po::value<string>(), "output file for statistics")
 		("outputPaths", po::value<string>(), "output file for paths")
 		("agentNum,k", po::value<int>()->default_value(0), "number of agents")
@@ -194,7 +195,7 @@ int main(int argc, char** argv)
 		if(vm["firstIter"].as<bool>())
 		{
 			ofstream file;
-			string scen = vm["agents"].as<string>();//.substr(17);
+			string scen = vm["scenname"].as<string>();//.substr(17);
 			string vector_file = "./data_collection/eecbs/raw_data/bd/" + scen + std::to_string(vm["agentNum"].as<int>()) + ".txt";
 			cout << vector_file;
 			file.open(vector_file);
@@ -227,14 +228,14 @@ int main(int argc, char** argv)
         }
         ecbs.runtime = runtime; 
         if (vm.count("output"))
-            ecbs.saveResults(saveResultsPath, vm["agents"].as<string>(), vm["seed"].as<int>(), vm["suboptimality"].as<double>(), vm["agentNum"].as<int>());
+            ecbs.saveResults(saveResultsPath, vm["scenname"].as<string>(), vm["seed"].as<int>(), vm["suboptimality"].as<double>(), vm["agentNum"].as<int>());
         if (ecbs.solution_found && vm.count("outputPaths"))
             ecbs.savePaths(vm["outputPaths"].as<string>(), instance.num_of_rows, instance.num_of_cols);
         /*size_t pos = vm["output"].as<string>().rfind('.');      // position of the file extension
         string output_name = vm["output"].as<string>().substr(0, pos);     // get the name without extension
         cbs.saveCT(output_name); // for debug*/
         if (vm["stats"].as<bool>())
-            ecbs.saveStats(vm["output"].as<string>(), vm["agents"].as<string>());
+            ecbs.saveStats(vm["output"].as<string>(), vm["scenname"].as<string>());
         ecbs.clearSearchEngines();
     }
     else
@@ -269,11 +270,11 @@ int main(int argc, char** argv)
         }
         cbs.runtime = runtime;
         if (vm.count("output"))
-            cbs.saveResults(saveResultsPath, vm["agents"].as<string>(), vm["seed"].as<int>(), vm["suboptimality"].as<double>(), vm["agentNum"].as<int>());
+            cbs.saveResults(saveResultsPath, vm["scenname"].as<string>(), vm["seed"].as<int>(), vm["suboptimality"].as<double>(), vm["agentNum"].as<int>());
         if (cbs.solution_found && vm.count("outputPaths"))
             cbs.savePaths(vm["outputPaths"].as<string>(), instance.num_of_rows, instance.num_of_cols);
         if (vm["stats"].as<bool>())
-            cbs.saveStats(vm["output"].as<string>(), vm["agents"].as<string>());
+            cbs.saveStats(vm["output"].as<string>(), vm["scenname"].as<string>());
         cbs.clearSearchEngines();
     }
 	return 0;

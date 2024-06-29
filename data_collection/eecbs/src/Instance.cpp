@@ -32,6 +32,7 @@ Instance::Instance(const string& map_fname, const string& agent_fname,
 	{
 		if (num_of_agents > 0)
 		{
+			// TODO: it seems like we are going in here
 			generateRandomAgents(warehouse_width);
 			saveAgents();
 		}

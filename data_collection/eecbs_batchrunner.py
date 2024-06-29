@@ -22,23 +22,70 @@ plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
+# mapsToMaxNumAgents = {
+#     "Berlin_1_256": 100, # TODO: unverified
+#     "Boston_0_256": 100, # TODO: unverified
+#     "Paris_1_256": 1000, # Verified
+#     "random_32_32_20": 409, # Verified
+#     "random_32_32_10": 461, # Verified
+#     "den520d": 1000, # Verified
+#     "den312d": 1000, # Verified
+#     "empty_32_32": 511, # Verified
+#     "empty_48_48": 1000, # Verified
+#     "ht_chantry": 1000, # Verified
+#     "warehouse_10_20_10_2_2": 101,
+#     "warehouse_20_40_10_2_2": 101
+# }
 mapsToMaxNumAgents = {
-    "Paris_1_256": 1000, # Verified
-    "random-32_32_20": 409, # Verified
-    "random_32_32_10": 461, # Verified
-    "den520d": 1000, # Verified
-    "den312d": 1000, # Verified
-    "empty-32-32": 511, # Verified
-    "empty-48-48": 1000, # Verified
-    "ht_chantry": 1000, # Verified
+    "Berlin_1_256": 101,
+    "lt_gallowstemplar_n": 101, 
+    "final_test9": 101,
+    "empty_8_8": 101,
+    "den312d": 500, 
+    "final_test2": 101,
+    "final_test6": 101,
+    "random_32_32_10": 461,
+    "brc202d": 101,
+    "room_64_64_8": 101,
+    "maze_128_128_1": 101,
+    "warehouse_20_40_10_2_2": 101,
+    "final_test3": 101,
+    "Paris_1_256": 500,
+    "final_test8": 101,
+    "maze_128_128_10": 101, 
+    "w_woundedcoast": 101,
+    "maze_32_32_4": 101,
+    "maze_32_32_2": 101,
+    "ht_chantry": 500,
+    "final_test1": 101,
+    "empty_48_48": 500,
+    "random_64_64_20": 101,
+    "room_64_64_16": 101,
+    "final_test4": 101,
+    "empty_32_32": 511,
+    "final_test7": 101,
+    "Boston_0_256": 101,
+    "random_64_64_10": 101,
+    "empty_16_16": 101,
     "warehouse_10_20_10_2_2": 101,
-    "warehouse_20_40_10_2_2": 101
+    "room_32_32_4": 101,
+    "final_test5": 101,
+    "warehouse_10_20_10_2_1": 101,
+    "warehouse_20_40_10_2_1": 101, 
+    "ht_mansion_n": 101, 
+    "maze_128_128_2": 101,
+    "ost003d": 101,
+    "orz900d": 101,
+    "final_test0": 101,
+    "random_32_32_20": 409,
+    "lak303d": 101,
+    "den520d": 500
 }
 
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
-def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile):
+def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile, scenname):
     # ### Instance
     # command = "./build_release/eecbs -m {} -a {}".format(mapfile, scenfile)
     # command += " --seed={} -k {}".format(seed, numAgents)
@@ -58,9 +105,8 @@ def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile):
     command = f".{file_home}/eecbs/build_release/eecbs"
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
-
-    tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenfile}{numAgents}.txt"
-    command += " --agentNum={} --seed={} --agents={} --outputPaths={} --firstIter={}".format(numAgents, seed, scenfile, tempOutPath, firstIter)
+    tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenname}{numAgents}.txt"
+    command += " --agentNum={} --seed={} --agents={} --outputPaths={} --firstIter={} --scenname={}".format(numAgents, seed, scenfile, tempOutPath, firstIter, scenname)
     print(command)
     subprocess.run(command.split(" "), check=True) # True if want failure error
     
@@ -112,7 +158,8 @@ def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
                     runBefore=False #TODO fix detectExisting
                     if not runBefore:
                         print(scen)
-                        runOnSingleInstance(eecbsArgs, aNum, seed, scen)
+                        scenname = (scen.split("/")[-1])
+                        runOnSingleInstance(eecbsArgs, aNum, seed, scen, scenname)
                         # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
                         # assert(runBefore)
                         status+=1
@@ -129,16 +176,10 @@ def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
                 # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
                 runBefore=False #TODO fix detectExisting
                 if not runBefore:
-                    runOnSingleInstance(eecbsArgs, aNum, seed, scen)
+                    scenname = (scen.split("/")[-1])
+                    runOnSingleInstance(eecbsArgs, aNum, seed, scen, scenname)
                     # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
                     # assert(runBefore)
-
-# def helperCreateScens(numScens, mapName, dataPath):
-#     scens = []
-#     for i in range(1, numScens+1):
-#         scenPath = "{}/mapf-scen-random/{}-random-{}.scen".format(dataPath, mapName, i)
-#         scens.append(scenPath)
-#     return scens
 
 def eecbs_runner(args):
     """
@@ -158,7 +199,7 @@ def eecbs_runner(args):
     mapsToScens = defaultdict(list)
     for dir_path in os.listdir(scenInputFolder):
         mapFile = dir_path.split("-")[0]
-        mapsToScens[mapFile].append(dir_path)
+        mapsToScens[mapFile].append(scenInputFolder+"/"+dir_path)
 
     for mapFile in mapsToScens:
         eecbsArgs = {
@@ -210,7 +251,6 @@ def eecbs_runner(args):
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
-        pdb.set_trace()
         subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
         
 

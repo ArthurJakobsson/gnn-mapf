@@ -145,7 +145,7 @@ class Preprocess():
             just_map_name = map_name[0:-4]
             print(just_map_name)
             self.map_dict['map'][just_map_name] = parse_map(map_path, map_name, self.k)
-        for scen_f in scen_files: #TODO double check if bds get recalculated
+        for scen_f in scen_files:
             if scen_f in  self.map_dict['loaded_scenes']:
                 continue
             self.map_dict['loaded_scenes'].append(scen_f)
@@ -192,7 +192,7 @@ class RunModel():
 
     def simulate_agent_iterations(self, map_name, scen_idx):
         cur_map = self.map_dict['map'][map_name] 
-        scen_full_name = self.map_dict['scen'][map_name]['scen_full_name'][scen_idx] #TODO not working
+        scen_full_name = self.map_dict['scen'][map_name]['scen_full_name'][scen_idx]
         cur_agent_locs = self.map_dict['scen'][map_name]['agent_info'][scen_idx][0] #first zero is scen, #second is the start_locs
         cur_agent_goals = self.map_dict['scen'][map_name]['agent_info'][scen_idx][1] #first zero is scen, #second is the start_locs
         cur_agent_locs, cur_agent_goals = cur_agent_locs[0:self.num_agents], cur_agent_goals[0:self.num_agents] # prune agents
@@ -352,8 +352,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     exp_folder, firstIter, source_maps_scens, iternum= args.exp_folder, args.firstIter, args.source_maps_scens, args.iternum
 
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    device = "cpu"
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = "cpu"
     model = torch.load(exp_folder+f"/iter{iternum}/models/max_double_test_acc.pt")
     model.to(device)
     model.eval()

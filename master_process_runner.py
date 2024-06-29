@@ -7,14 +7,6 @@ import shutil
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
-def delete_extra_scens():
-    dir_name = "./"
-    test = os.listdir(dir_name)
-
-    for item in test:
-        if item.endswith(".scen"):
-            os.remove(os.path.join(dir_name, item))
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -42,8 +34,7 @@ if __name__ == "__main__":
 
     print("Done with first eecbs run")
 
-    while True:
-        delete_extra_scens()
+    while True:        
         if not os.path.exists(f"./{LE}/iter{iternum}"):
             os.makedirs(f"./{LE}/iter{iternum}")
 
@@ -53,12 +44,6 @@ if __name__ == "__main__":
         # run cs-pibt new maps to create new scenes
         subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}"])
         first_iteration = "false"
-
-        # TODO adjust source map scens
-        # shutil.rmtree("./data_collection/eecbs/raw_data/")
-        # os.mkdir("./data_collection/eecbs/raw_data/") # don't remove these
-        # os.mkdir("./data_collection/eecbs/raw_data/bd")
-        # os.mkdir("./data_collection/eecbs/raw_data/paths")
 
         # feed failures into eecbs
         iternum+=1
