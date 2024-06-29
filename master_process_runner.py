@@ -7,6 +7,14 @@ import shutil
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
+def delete_extra_scens():
+    dir_name = "./"
+    test = os.listdir(dir_name)
+
+    for item in test:
+        if item.endswith(".scen"):
+            os.remove(os.path.join(dir_name, item))
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -29,36 +37,33 @@ if __name__ == "__main__":
 
     first_iteration = "true"
 
-    subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}"])
+    subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"])
+    
 
     print("Done with first eecbs run")
-    pdb.set_trace()
-
 
     while True:
-
+        delete_extra_scens()
         if not os.path.exists(f"./{LE}/iter{iternum}"):
             os.makedirs(f"./{LE}/iter{iternum}")
 
         # train the naive model
         subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
-        pdb.set_trace()
 
         # run cs-pibt new maps to create new scenes
         subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}"])
         first_iteration = "false"
 
-        pdb.set_trace()
         # TODO adjust source map scens
-        shutil.rmtree("./data_collection/eecbs/raw_data/")
+        # shutil.rmtree("./data_collection/eecbs/raw_data/")
         # os.mkdir("./data_collection/eecbs/raw_data/") # don't remove these
-        os.mkdir("./data_collection/eecbs/raw_data/bd")
-        os.mkdir("./data_collection/eecbs/raw_data/paths")
+        # os.mkdir("./data_collection/eecbs/raw_data/bd")
+        # os.mkdir("./data_collection/eecbs/raw_data/paths")
 
         # feed failures into eecbs
-        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum}/encountered_scens/", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}"]) # TODO figure out where eecbs is outputting files
         iternum+=1
-        pdb.set_trace()
+        # Note: scen's should be taken from previous iteration but npz should be saved this next iteration number (since npzs have an extra)
+        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens/", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"]) # TODO figure out where eecbs is outputting files
     '''
     LE = logs/EXPNAME/
     Initial collection: eecbs_runner.py -inputFolder=benchmark_data/scens -outputFolder=LE/iter0/labels/

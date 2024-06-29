@@ -60,7 +60,7 @@ def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile):
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
 
     tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenfile}{numAgents}.txt"
-    command += " --agentNum={} --seed={} --agents={} --outputPaths={}".format(numAgents, seed, scenfile, tempOutPath)
+    command += " --agentNum={} --seed={} --agents={} --outputPaths={} --firstIter={}".format(numAgents, seed, scenfile, tempOutPath, firstIter)
     print(command)
     subprocess.run(command.split(" "), check=True) # True if want failure error
     
@@ -193,27 +193,31 @@ def eecbs_runner(args):
 
         # move the new eecbs output
         os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
-        os.makedirs(f".{file_home}/eecbs/raw_data/bd", exist_ok=True)
-        os.makedirs(f".{file_home}/eecbs/raw_data/paths", exist_ok=True)
+        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
+        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/paths/", exist_ok=True)
 
         bd_files = os.listdir(f".{file_home}/eecbs/raw_data/bd/")
         path_files = os.listdir(f".{file_home}/eecbs/raw_data/paths/")
         for file_name in bd_files:
-            shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd") 
+            shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
         for file_name in path_files:
-            shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths") 
+            shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths/{file_name}") 
         
         # shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/" + mapFile)
-        # shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/" + mapFile)
+        # shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/{mapFile}")
+        # os.mkdir(f".{file_home}/eecbs/raw_data/paths/")
         
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
+        pdb.set_trace()
         subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
         
+
         # os.mkdir(f".{file_home}/eecbs/raw_data/bd")
         # os.mkdir(f".{file_home}/eecbs/raw_data/paths")
-        # shutil.rmtree(".{file_home}/eecbs/raw_data/")
+        shutil.rmtree(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # clean path files once they have been recorded
+        os.mkdir(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # remake "path" folder
         ### Run W-EECBS
         # eecbsArgs["r_weight"] = args.r_weight
         # eecbsArgs["h_weight"] = args.h_weight
@@ -253,12 +257,12 @@ if __name__ == "__main__":
     parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
     parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
     parser.add_argument("--expnum", help="experiment number", type=int, default=0)
-    parser.add_argument("--iter", help="iteration number", type=int, default=0)
+    parser.add_argument("--iter", help="iteration number", type=int)
     parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
     args = parser.parse_args()
     scenInputFolder = args.scenFolder
     mapsInputFolder = args.mapFolder
     firstIter = args.firstIter
     file_home = "/data_collection"
-
+    print("iternum: " + str(args.iter))
     eecbs_runner(args)

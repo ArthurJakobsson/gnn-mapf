@@ -47,6 +47,7 @@ int main(int argc, char** argv)
 		("stats", po::value<bool>()->default_value(false), "write to files some detailed statistics")
 		("batchFolder", po::value<string>()->default_value(""), "Folder to save outputs") // NEW: batch output folder
 		("seed", po::value<int>()->default_value(5), "seed for tiebreaker low-level node selection") // NEW: seed
+		("firstIter", po::value<bool>()->default_value(false), "choose whether to output bds")
 
 		// params for CBS node selection strategies
 		("highLevelSolver", po::value<string>()->default_value("EES"), "the high-level solver (A*, A*eps, EES, NEW)")
@@ -189,23 +190,26 @@ int main(int argc, char** argv)
 		// print(ecbs.bds);
 		// cout << ecbs.bds.size() << "\n";
 
-		ofstream file;
-		string scen = vm["agents"].as<string>();//.substr(17);
-		string vector_file = "./data_collection/eecbs/raw_data/bd/" + scen + std::to_string(vm["agentNum"].as<int>()) + ".txt";
-		cout << vector_file;
-		file.open(vector_file);
-		// write dimensions,
-		file << instance.num_of_rows << "," << instance.num_of_cols << endl;
-		// then bd information to file uniquely defined by instance and agent number
-		for(int i=0;i<ecbs.bds.size();i++)
+		// Only make bd files if it is the first iteration
+		if(vm["firstIter"].as<bool>())
 		{
-			for(int j = 0; j < ecbs.bds.at(i).size(); j++) {
-				file << ecbs.bds.at(i).at(j) << ",";
+			ofstream file;
+			string scen = vm["agents"].as<string>();//.substr(17);
+			string vector_file = "./data_collection/eecbs/raw_data/bd/" + scen + std::to_string(vm["agentNum"].as<int>()) + ".txt";
+			cout << vector_file;
+			file.open(vector_file);
+			// write dimensions,
+			file << instance.num_of_rows << "," << instance.num_of_cols << endl;
+			// then bd information to file uniquely defined by instance and agent number
+			for(int i=0;i<ecbs.bds.size();i++)
+			{
+				for(int j = 0; j < ecbs.bds.at(i).size(); j++) {
+					file << ecbs.bds.at(i).at(j) << ",";
+				}
+				file << endl;
 			}
-			file << endl;
+			file.close();
 		}
-		file.close();
-
         //////////////////////////////////////////////////////////////////////
         // run
         double runtime = 0;

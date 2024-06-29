@@ -102,12 +102,12 @@ def calculate_bds(goals, map_arr):
             bds.append(heuristic)
     return np.array(bds)
 
-def create_scen_folder(idx):
-    if not os.path.exists("created_scens/created_scen_files_"+str(idx)):
-        os.makedirs("created_scens/created_scen_files_"+str(idx))
-        return str("created_scens/created_scen_files_"+str(idx))
-    else: 
-        return create_scen_folder(idx+1)
+# def create_scen_folder(idx):
+#     if not os.path.exists("created_scens/created_scen_files_"+str(idx)):
+#         os.makedirs("created_scens/created_scen_files_"+str(idx))
+#         return str("created_scens/created_scen_files_"+str(idx))
+#     else: 
+#         return create_scen_folder(idx+1)
 
 def write_line(idx, start_loc, goal_loc, file, map_r, map_c, map_name):
     out_str = str(idx)+"\t" + map_name + "\t" + str(map_r) + "\t" + str(map_c)+"\t"+ \
@@ -118,7 +118,7 @@ def write_line(idx, start_loc, goal_loc, file, map_r, map_c, map_name):
 def save_scen(start_locs, goal_locs, map, map_name, scen_name, idx, scen_folder):
 
     map_r, map_c = map.shape[0], map.shape[1]
-    file = open(scen_folder+"/"+ scen_name+"-custom-"+str(idx)+".scen", 'w')
+    file = open(scen_folder+"/"+ scen_name+"-custom-"+str(idx)+"-.scen", 'w')
     file.write(str(len(start_locs))+"\n")
     start_locs = np.array(start_locs)
     # TODO pass map name
@@ -148,13 +148,13 @@ class Preprocess():
         for scen_f in scen_files: #TODO double check if bds get recalculated
             if scen_f in  self.map_dict['loaded_scenes']:
                 continue
-            pdb.set_trace()
             self.map_dict['loaded_scenes'].append(scen_f)
             scen_name = parse_scen_name(scen_f)
             if not scen_name in self.map_dict['scen']:
                 self.map_dict['scen'][scen_name]=collections.defaultdict(list)
             start_loc, goal_loc = parse_scene(scen_path, scen_f)
             # add start and goal
+            self.map_dict['scen'][scen_name]['scen_full_name'].append(scen_f[:-5])
             self.map_dict['scen'][scen_name]['agent_info'].append((start_loc+self.k,goal_loc+self.k))
             # calculate bds
             self.map_dict['scen'][scen_name]['bd'].append(calculate_bds(goal_loc, self.map_dict['map'][scen_name]))
@@ -192,6 +192,7 @@ class RunModel():
 
     def simulate_agent_iterations(self, map_name, scen_idx):
         cur_map = self.map_dict['map'][map_name] 
+        scen_full_name = self.map_dict['scen'][map_name]['scen_full_name'][scen_idx] #TODO not working
         cur_agent_locs = self.map_dict['scen'][map_name]['agent_info'][scen_idx][0] #first zero is scen, #second is the start_locs
         cur_agent_goals = self.map_dict['scen'][map_name]['agent_info'][scen_idx][1] #first zero is scen, #second is the start_locs
         cur_agent_locs, cur_agent_goals = cur_agent_locs[0:self.num_agents], cur_agent_goals[0:self.num_agents] # prune agents
@@ -206,7 +207,7 @@ class RunModel():
             cur_data.edge_attr = apply_edge_normalization(edge_weights)
             cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
             _, predictions = model(cur_data)
-            probabilities = torch.softmax(predictions) 
+            probabilities = torch.softmax(predictions, dim=1) 
             
             # Random action #TODO implement O_tie - Rishi said we don't want this actually
             if self.cs_type=="PIBT":
@@ -214,8 +215,8 @@ class RunModel():
             else:
                 new_agent_locs = self.cs_naive(self.device, cur_map, cur_agent_locs, probabilities)
 
-            scen_name = map_name+"-random-"+str(scen_idx)
-            save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, scen_name, self.scen_number, self.scen_folder)
+            
+            save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, scen_full_name, self.scen_number, self.scen_folder)
             self.scen_number+=1
 
             if (np.all(new_agent_locs==cur_agent_goals)):

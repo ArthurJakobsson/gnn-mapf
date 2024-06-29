@@ -24,6 +24,7 @@ import random
 4. write tuples of (map name, bd name, paths np) to npz
 '''
 
+
 class PipelineDataset(Dataset):
     '''
     A dataset loader that allows you to store eecbs instances.
@@ -143,6 +144,13 @@ class PipelineDataset(Dataset):
         '''
         returns the backward dijkstra, map, and path arrays, and indices to get into the path array
         '''
+        def translate_bd_name(bdname):
+            if "-custom-" in bdname:
+                split_name = bdname.split("-custom-")
+                front = split_name[0] # scen name
+                back = (split_name[1].split("-"))[-1] # number of agents
+                bdname = front+back
+            return bdname
 
         items = list(self.tn2.items())
 
@@ -153,7 +161,8 @@ class PipelineDataset(Dataset):
             tn2ind += 1
         # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
         mapname, bdname, seed = items[tn2ind][0].split(",")
-        bd = self.bds[bdname]      # (N, W, H)
+        bdname = translate_bd_name(bdname)
+        bd = self.bds[bdname]      # (N, W, H) # TODO: need to chop of the "custom" part
         grid = self.maps[mapname]  # (W, H)
         # pad bds (for all agents), grid (for all agents) with empty 0 window(s), k in all directions
 
@@ -184,13 +193,13 @@ class PipelineDataset(Dataset):
             k += 1
         self.tn2 = dict(items[j:k]) # get all the paths in (t,n,2) form
         # since the # of data is simply number of agent locations, this is t*n, which we append to the dictionary for each path
-        maxT = 0
-        for k, v in self.tn2.items():
+        totalT = 0 
+        for ky, v in self.tn2.items():
             t, n, _ = np.shape(v)
-            self.tn2[k] = (t*n, v)
-            maxT = t if maxT<t else maxT
-        self.length = maxT
-        # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form\
+            self.tn2[ky] = (t*n, v)
+            totalT += t
+        self.length = totalT # number of paths = number of timesteps
+        # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form
         npads = ((0,0),(self.k, self.k), (self.k, self.k))
         for key in self.bds:
             self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
@@ -478,7 +487,6 @@ def main():
 
     # send each map, each bd, and each tuple representing a path + instance to npz
     np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
-    # np.savez_compressed(valOut, **maps, **bds, **data1val) # Note automatically stacks to numpy vectors
 
     # DEBUGGING: test out the dataloader
     loader = PipelineDataset(trainOut + ".npz", 4, float('inf'), 300, 'current')
@@ -488,12 +496,7 @@ def main():
         assert(labels.shape[1] == 5)
         assert(locs.shape[1] == 2)
         # grid/bd should be 9,9 for single agent but is full map for graph version
-    # loader = PipelineDataset(valOut + ".npz", 4, float('inf'), 300)
-    # print(len(loader), " val size")
-    # for i in range(len(loader)):
-    #     locs, labels, bd, grid = loader[i]
-    #     assert(labels.shape[1] == 5)
-    #     assert(locs.shape[1] == 2)
+
 
 
 if __name__ == "__main__":
