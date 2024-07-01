@@ -82,13 +82,14 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=labels)
 
 class MyOwnDataset(Dataset):
-    def __init__(self, root, device, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root, device, transform=None, pre_transform=None, pre_filter=None, time_input=1): #default time_input = 0 for only 1 time instance
         self.k = 4
         self.m = 5
         self.size = float('inf')
         self.max_agents = 500
         self.length = 0
         self.device = device
+        self.time_input = time_input  # Adding time_input as an attribute
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load_metadata()
 
@@ -118,14 +119,25 @@ class MyOwnDataset(Dataset):
             if osp.isfile(osp.join(self.processed_dir, f"data_{idx}.pt")):
                 return
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
+            
+            time_instances = []
             for time_instance in tqdm(cur_dataset):
                 if not time_instance:
                     break
-                pos_list, labels, bd_list, grid = time_instance
-                curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
-                curdata = apply_masks(len(curdata.x), curdata)
-                torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
-                idx += 1
+                time_instances.append(time_instance)
+                if len(time_instances) > self.time_input:
+                    pos_list, labels, bd_list, grid = time_instances[-1]
+                    for t in range(1, self.time_input + 1):
+                        prev_pos_list, prev_labels, prev_bd_list, prev_grid = time_instances[-t-1]
+                        pos_list = np.concatenate((pos_list, prev_pos_list))
+                        labels = np.concatenate((labels, prev_labels))
+                        bd_list = np.concatenate((bd_list, prev_bd_list))
+                        grid = np.concatenate((grid, prev_grid))
+
+                    curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
+                    curdata = apply_masks(len(curdata.x), curdata)
+                    torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+                    idx += 1
 
             self.length = idx
             meta = torch.tensor([self.length])
@@ -139,6 +151,3 @@ class MyOwnDataset(Dataset):
         curdata.edge_attr = apply_edge_normalization(curdata.edge_attr)
         curdata.x = apply_bd_normalization(curdata.x, self.k, self.device)
         return curdata
-
-# john = MyOwnDataset('map_data_big2d_new')
-# john.get(5)
