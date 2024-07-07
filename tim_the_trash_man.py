@@ -63,5 +63,6 @@ os.makedirs(dir_name+"/paths", exist_ok=True)
 # clean logs
 shutil.rmtree("./data_collection/data/logs/")
 os.mkdir("./data_collection/data/logs/")
+os.mkdir("./data_collection/data/logs/train_logs")
 
 print("Tim has collected your trash 😘")

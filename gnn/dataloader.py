@@ -158,13 +158,8 @@ class MyOwnDataset(Dataset):
         idx = self.load_metadata()
         for raw_path in self.raw_paths: #TODO check if new npzs are read
             cur_path_iter = raw_path.split("_")[-1][:-4]
-            # print(raw_path)
             if not (int(cur_path_iter)==self.iternum):
                 continue
-            # "data/logs/EXP{expnum}/labels/raw/train_map_name_{iternum}.npz"
-            # if osp.isfile(osp.join(self.processed_dir, f"data_{idx}.pt")):
-            #     return
-            # Read data from `raw_path`.
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             for time_instance in tqdm(cur_dataset):
                 # Graphify

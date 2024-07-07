@@ -168,7 +168,7 @@ class Preprocess():
     
 
 class RunModel():
-    def __init__(self, device, scen_folder, model=None, preprocess=None, cs_type="PIBT", m=5, k=4, num_agents=100):
+    def __init__(self, device, scen_folder, model=None, preprocess=None, cs_type="PIBT", m=5, k=4, num_agents=100): #TODO change to both 5, 50 and 100
         self.m = m
         self.k = k
         self.device = device

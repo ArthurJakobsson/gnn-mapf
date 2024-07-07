@@ -36,7 +36,7 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 #     "warehouse_10_20_10_2_2": 101,
 #     "warehouse_20_40_10_2_2": 101
 # }
-mapsToMaxNumAgents = {
+mapsToMaxNumAgents = { #TODO change this to 100 for all
     "Berlin_1_256": 101,
     "lt_gallowstemplar_n": 101, 
     "final_test9": 101,
