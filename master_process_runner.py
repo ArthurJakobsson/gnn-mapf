@@ -12,8 +12,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("expnum", help="experiment number", type=int)
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
+    parser.add_argument('generate_initial', type=lambda x: bool(str2bool(x)))
     args = parser.parse_args()
-    expnum, mini_test = args.expnum, args.mini_test
+    expnum, mini_test, generate_initial = args.expnum, args.mini_test, args.generate_initial
     print(args.expnum)
 
     iternum = 0
@@ -23,13 +24,17 @@ if __name__ == "__main__":
         source_maps_scens = "./data_collection/data/benchmark_data"
 
     LE = f"data_collection/data/logs/EXP{expnum}"
-    os.makedirs(f"./{LE}", exist_ok=False)
-    os.makedirs(f"./{LE}/labels", exist_ok=False)
-    os.makedirs(f"./{LE}/labels/raw", exist_ok=False)
+    
 
     first_iteration = "true"
 
-    subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"])
+    if generate_initial:
+        os.makedirs(f"./{LE}", exist_ok=False)
+        os.makedirs(f"./{LE}/labels", exist_ok=False)
+        os.makedirs(f"./{LE}/labels/raw", exist_ok=False)
+        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"])
+    else:
+        assert (os.path.exists(f"./{LE}/labels/raw/train_warehouse_10_20_10_2_2_0.npz"))
     
 
     print("Done with first eecbs run")
