@@ -125,7 +125,13 @@ class MyOwnDataset(Dataset):
                 if not time_instance:
                     break
                 time_instances.append(time_instance)
-                if len(time_instances) > self.time_input:
+                if self.time_input == 0:
+                    pos_list, labels, bd_list, grid = time_instance
+                    curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
+                    curdata = apply_masks(len(curdata.x), curdata)
+                    torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+                    idx += 1
+                elif len(time_instances) > self.time_input:
                     pos_list, labels, bd_list, grid = time_instances[-1]
                     for t in range(1, self.time_input + 1):
                         prev_pos_list, prev_labels, prev_bd_list, prev_grid = time_instances[-t-1]
