@@ -105,23 +105,23 @@ def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile, scenname):
     command = f".{file_home}/eecbs/build_release/eecbs"
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
-    tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenname}{numAgents}.txt"
+    tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenname}{numAgents}_{seed}.txt"
     command += " --agentNum={} --seed={} --agents={} --outputPaths={} --firstIter={} --scenname={}".format(numAgents, seed, scenfile, tempOutPath, firstIter, scenname)
     print(command)
     subprocess.run(command.split(" "), check=True) # True if want failure error
     
     
-def detectExistingStatus(eecbsArgs, aNum, seed, scen): # TODO update
+def detectExistingStatus(aNum, seed, scenname): # TODO update
     """
     Output:
         If has been run before
         Success if run before
     """
-    if not os.path.exists(eecbsArgs["outputPaths"]):
-        print("here2")
+    # this is the same output path made in runOnSingleInstance
+    tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenname}{aNum}{seed}.txt"
+
+    if not os.path.exists(tempOutPath):
         return False, 0
-    print('here3')
-    # TODO: fix broken logic... revolves around csv never being created
     return True, 100
     # df = pd.read_csv(eecbsArgs["outputPaths"])
 
@@ -154,14 +154,14 @@ def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
             numToRunTotal = len(scens) * len(seeds)
             for scen in scens:
                 for seed in seeds:
-                    # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
+                    runBefore, status = detectExistingStatus(aNum, seed, scen)
                     runBefore=False #TODO fix detectExisting
                     if not runBefore:
                         print(scen)
                         scenname = (scen.split("/")[-1])
                         runOnSingleInstance(eecbsArgs, aNum, seed, scen, scenname)
-                        # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
-                        # assert(runBefore)
+                        runBefore, status = detectExistingStatus(aNum, seed, scen)
+                        assert(runBefore)
                         status+=1
                     numSuccess += status
 
