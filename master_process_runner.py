@@ -33,7 +33,7 @@ if __name__ == "__main__":
         os.makedirs(f"./{LE}", exist_ok=False)
         os.makedirs(f"./{LE}/labels", exist_ok=False)
         os.makedirs(f"./{LE}/labels/raw", exist_ok=False)
-        subprocess.run(["python3", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"])
+        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"])
     else:
         assert (os.path.exists(f"./{LE}/labels/raw/train_warehouse_10_20_10_2_2_0.npz"))
     
@@ -45,10 +45,10 @@ if __name__ == "__main__":
             os.makedirs(f"./{LE}/iter{iternum}")
 
         # train the naive model
-        subprocess.run(["python3", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
+        subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
 
         # run cs-pibt new maps to create new scenes
-        subprocess.run(["python3", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}"])
+        subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}"])
         first_iteration = "false"
 
         # feed failures into eecbs
@@ -72,7 +72,7 @@ if __name__ == "__main__":
                     shutil.copyfile(scenFile, f"{scenFolder}/{map_file}")
 
             # save eecbs command
-            params.append(["python3", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder={scenFolder}/{map_file}/", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"]) # TODO figure out where eecbs is outputting files
+            params.append(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder={scenFolder}/{map_file}/", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"]) # TODO figure out where eecbs is outputting files
 
         # run eecbs in parallel
         with ProcessPoolExecutor() as pool:
