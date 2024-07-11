@@ -54,7 +54,7 @@ dir_name = "./data_collection/eecbs/raw_data/"
 if os.path.exists(dir_name):
     eecbs_files = os.listdir(dir_name)
     for item in eecbs_files:
-        if (item != "bd") and (item != "paths"):
+        if (item != "bd") and (item != "paths") and (item != ".DS_Store"):
             shutil.rmtree(os.path.join(dir_name, item))
 
 os.makedirs(dir_name+"/bd", exist_ok=True)

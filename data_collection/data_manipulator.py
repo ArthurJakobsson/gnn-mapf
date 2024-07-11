@@ -160,7 +160,7 @@ class PipelineDataset(Dataset):
             tracker += items[tn2ind][1][0] # add number of data in the (t,n,2) matrix
             tn2ind += 1
         # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
-        mapname, bdname, seed = items[tn2ind][0].split(",")
+        mapname, bdname = items[tn2ind][0].split(",")
         bdname = translate_bd_name(bdname)
         bd = self.bds[bdname]      # (N, W, H) # TODO: need to chop of the "custom" part
         grid = self.maps[mapname]  # (W, H)
@@ -432,7 +432,6 @@ def batch_path(dir):
             # and add the resulting triplet to a global dictionary (or some class variable dictionary)
             raw = filename.split(".txt")[0].split(".scen") # remove .txt
             raw = raw[0]+raw[1]
-            seed = raw[-1]
             # raw = raw[:-1]
             mapname = raw.split("-")[0] + ".map"
             bdname = raw
@@ -440,9 +439,9 @@ def batch_path(dir):
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             print("___________________________\n")
             if idx in valFiles:
-                res2[mapname + "," + bdname + "," + seed] = val
+                res2[mapname + "," + bdname] = val
             else:
-                res1[mapname + "," + bdname + "," + seed] = val
+                res1[mapname + "," + bdname] = val
             # res2[mapname + "," + bdname + "," + seed + ",twh"] = val2
             print(f)
             idx += 1
