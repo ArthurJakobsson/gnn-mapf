@@ -939,7 +939,8 @@ void CBS::printResults() const
     }*/
 }
 
-void CBS::saveResults(const string &fileName, const string &instanceName, int seed, double suboptimality, int agent_num) const // NEW: seed, suboptimality, agent num
+void CBS::saveResults(const string &fileName, const string &instanceName, 
+					const boost::program_options::variables_map& vm) const // NEW: seed, suboptimality, agent num
 {
 	std::ifstream infile(fileName);
 	bool exist = infile.good();
@@ -947,7 +948,9 @@ void CBS::saveResults(const string &fileName, const string &instanceName, int se
 	if (!exist)
 	{
 		ofstream addHeads(fileName);
-		addHeads << "runtime,seed,suboptimality,agent num,#high-level expanded,#high-level generated,#low-level expanded,#low-level generated," <<
+		addHeads << 
+			"map,agents,agentNum,cutoffTime,seed,suboptimality," <<
+			"runtime,#high-level expanded,#high-level generated,#low-level expanded,#low-level generated," <<
 			"solution cost,min f value,root g value, root f value," <<
 			"#adopt bypasses," <<
 			"cardinal conflicts," <<
@@ -964,7 +967,10 @@ void CBS::saveResults(const string &fileName, const string &instanceName, int se
 		addHeads.close();
 	}
 	ofstream stats(fileName, std::ios::app);
-	stats << runtime << "," << seed << "," << suboptimality << "," << agent_num << "," << // NEW: seed, suboptimality, agent num
+	stats <<
+		vm["map"].as<string>() << "," << vm["agents"].as<string>() << "," << vm["agentNum"].as<int>() << "," <<
+		vm["cutoffTime"].as<double>() << "," << vm["seed"].as<int>() << "," << vm["suboptimality"].as<double>() << "," <<
+	 	runtime << "," << 
 		num_HL_expanded << "," << num_HL_generated << "," <<
 		num_LL_expanded << "," << num_LL_generated << "," <<
 

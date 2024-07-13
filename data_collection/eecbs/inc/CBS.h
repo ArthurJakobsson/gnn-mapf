@@ -3,6 +3,7 @@
 #include "RectangleReasoning.h"
 #include "CorridorReasoning.h"
 #include "MutexReasoning.h"
+#include <boost/program_options.hpp>  // variables_map
 
 enum high_level_solver_type { ASTAR, ASTAREPS, NEW, EES };
 
@@ -86,7 +87,8 @@ public:
 	~CBS();
 
 	// Save results
-	void saveResults(const string &fileName, const string &instanceName, int seed, double suboptimality, int agent_num) const; // NEW seed, so, agent num
+	void saveResults(const string &fileName, const string &instanceName, 
+					const boost::program_options::variables_map& vm) const; // NEW seed, so, agent num
 	void saveStats(const string &fileName, const string &instanceName);
 	void saveCT(const string &fileName) const; // write the CT to a file
     void savePaths(const string &fileName, int rows, int cols) const; // write the paths to a file

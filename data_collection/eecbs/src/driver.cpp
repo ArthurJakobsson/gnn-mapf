@@ -39,14 +39,14 @@ int main(int argc, char** argv)
 		// params for the input instance and experiment settings
 		("map,m", po::value<string>()->required(), "input file for map")
 		("agents,a", po::value<string>()->required(), "input file for agents")
-		("scenname", po::value<string>()->required(), "input scenname for agents")
+		("scenname", po::value<string>()->required(), "input scenname for agents, used for saving bds")
 		("output,o", po::value<string>(), "output file for statistics")
 		("outputPaths", po::value<string>(), "output file for paths")
 		("agentNum,k", po::value<int>()->default_value(0), "number of agents")
 		("cutoffTime,t", po::value<double>()->default_value(7200), "cutoff time (seconds)")
 		("screen,s", po::value<int>()->default_value(1), "screen option (0: none; 1: results; 2:all)")
 		("stats", po::value<bool>()->default_value(false), "write to files some detailed statistics")
-		("batchFolder", po::value<string>()->default_value(""), "Folder to save outputs") // NEW: batch output folder
+		// ("batchFolder", po::value<string>()->default_value(""), "Folder to save outputs") // NEW: batch output folder
 		("seed", po::value<int>()->default_value(5), "seed for tiebreaker low-level node selection") // NEW: seed
 		("firstIter", po::value<bool>()->default_value(false), "choose whether to output bds")
 
@@ -150,15 +150,15 @@ int main(int argc, char** argv)
 	int t = vm["seed"].as<int>();
 	srand(t);
 
-	// NEW: prepare log writing under batchrunner system
-	std::string results_path = "logs/";
+	// // NEW: prepare log writing under batchrunner system
+	// std::string results_path = "logs/";
 
-	string all_logs_dir;
-	if (vm["batchFolder"].as<string>() != "") {
-		all_logs_dir = results_path + vm["batchFolder"].as<string>();
-		boost::filesystem::create_directories(all_logs_dir);
-	}
-	auto saveResultsPath = all_logs_dir + "/" + vm["output"].as<string>();
+	// string all_logs_dir;
+	// if (vm["batchFolder"].as<string>() != "") {
+	// 	all_logs_dir = results_path + vm["batchFolder"].as<string>();
+	// 	boost::filesystem::create_directories(all_logs_dir);
+	// }
+	// auto saveResultsPath = all_logs_dir + "/" + vm["output"].as<string>();
 
 	///////////////////////////////////////////////////////////////////////////
 	// load the instance
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
         }
         ecbs.runtime = runtime; 
         if (vm.count("output"))
-            ecbs.saveResults(saveResultsPath, vm["scenname"].as<string>(), vm["seed"].as<int>(), vm["suboptimality"].as<double>(), vm["agentNum"].as<int>());
+            ecbs.saveResults(vm["output"].as<string>(), vm["scenname"].as<string>(), vm);
         if (ecbs.solution_found && vm.count("outputPaths"))
             ecbs.savePaths(vm["outputPaths"].as<string>(), instance.num_of_rows, instance.num_of_cols);
         /*size_t pos = vm["output"].as<string>().rfind('.');      // position of the file extension
@@ -270,7 +270,7 @@ int main(int argc, char** argv)
         }
         cbs.runtime = runtime;
         if (vm.count("output"))
-            cbs.saveResults(saveResultsPath, vm["scenname"].as<string>(), vm["seed"].as<int>(), vm["suboptimality"].as<double>(), vm["agentNum"].as<int>());
+            cbs.saveResults(vm["output"].as<string>(), vm["scenname"].as<string>(), vm);
         if (cbs.solution_found && vm.count("outputPaths"))
             cbs.savePaths(vm["outputPaths"].as<string>(), instance.num_of_rows, instance.num_of_cols);
         if (vm["stats"].as<bool>())
