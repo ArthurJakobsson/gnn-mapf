@@ -207,7 +207,6 @@ def eecbs_runner(args):
             # "outputPaths": f".{file_home}/eecbs/raw_data/paths/paths.txt",
             "suboptimality": args.suboptimality,
             "cutoffTime": args.cutoffTime
-            # "useWeightedFocalSearch": False,
         }
         # scens = helperCreateScens(args.num_scens, args.mapName, args.dataPath)
         scens = mapsToScens[mapFile]
@@ -230,6 +229,7 @@ def eecbs_runner(args):
             # run eecbs
             runOnSingleMap(eecbsArgs, mapFile, agentNumbers, scens, scenInputFolder)
 
+        pdb.set_trace()
         # move the new eecbs output
         os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
         os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
@@ -249,40 +249,16 @@ def eecbs_runner(args):
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
-        subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
+        subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
+                        f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
+                        f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
+                        f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
         
 
         # os.mkdir(f".{file_home}/eecbs/raw_data/bd")
         # os.mkdir(f".{file_home}/eecbs/raw_data/paths")
         shutil.rmtree(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # clean path files once they have been recorded
         os.mkdir(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # remake "path" folder
-        ### Run W-EECBS
-        # eecbsArgs["r_weight"] = args.r_weight
-        # eecbsArgs["h_weight"] = args.h_weight
-        # eecbsArgs["useWeightedFocalSearch"] = True
-        # runOnSingleMap(eecbsArgs, args.mapName, agentNumbers, seeds, scens)
-
-    ### Load in the data
-    # df = pd.read_csv(totalOutputPath)
-    # # Select only those with the correct cutoff time and suboptimality
-    # df = df[(df["cutoffTime"] == args.cutoffTime) & (df["suboptimality"] == args.suboptimality)]
-
-    # dfRegEECBS = df[df["useWeightedFocalSearch"] == False]
-    # dfWEECBS = df[(df["useWeightedFocalSearch"] == True) & (df["r_weight"] == args.r_weight) & (df["h_weight"] == args.h_weight)]
-
-    # ### Compare the relative speed up when the num agents and seeds are the same
-    # df = pd.merge(dfRegEECBS, dfWEECBS, on=["agentNum", "seed", "agentsFile"], how="inner", suffixes=("_reg", "_w"))
-    # df = df[(df["solution cost_reg"] != -1) & (df["solution cost_w"] != -1)] # Only include the runs that were successful
-    # df["speedup"] = df["runtime_reg"] / df["runtime_w"]
-
-    # ### Plot speed up of W-EECBS over EECBS for each agent number
-    # df.boxplot(column="speedup", by="agentNum", grid=False) # create botplot for each agent number
-    # plt.axhline(y=1, color='k', linestyle='--', alpha=0.5) # Add a line at y=1
-    # plt.suptitle('')
-    # plt.title("W-EECBS w_so={} r={} w_h={} on {}".format(args.suboptimality, args.r_weight, args.h_weight, args.mapName))
-    # plt.xlabel("Number of agents")
-    # plt.ylabel("EECBS/W-EECBS Runtime Ratio")
-    # plt.savefig("{}/{}_weecbsSo{}R{}H{}_speedup.pdf".format(args.logPath, args.mapName, args.suboptimality, args.r_weight, args.h_weight))
 
 
 # python batch_runner.py den312d --logPath data/logs/test --cutoffTime 10 --suboptimality 2
@@ -297,6 +273,8 @@ if __name__ == "__main__":
     parser.add_argument("--expnum", help="experiment number", type=int, default=0)
     parser.add_argument("--iter", help="iteration number", type=int)
     parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
+    parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 
+                        type=int, default=1)
     args = parser.parse_args()
     scenInputFolder = args.scenFolder
     mapsInputFolder = args.mapFolder
