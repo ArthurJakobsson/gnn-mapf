@@ -229,7 +229,7 @@ def eecbs_runner(args):
             # run eecbs
             runOnSingleMap(eecbsArgs, mapFile, agentNumbers, scens, scenInputFolder)
 
-        pdb.set_trace()
+        # pdb.set_trace()
         # move the new eecbs output
         os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
         os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
@@ -238,6 +238,8 @@ def eecbs_runner(args):
         bd_files = os.listdir(f".{file_home}/eecbs/raw_data/bd/")
         path_files = os.listdir(f".{file_home}/eecbs/raw_data/paths/")
         for file_name in bd_files:
+            if file_name.endswith(".csv"):
+                continue
             shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
         for file_name in path_files:
             shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths/{file_name}") 

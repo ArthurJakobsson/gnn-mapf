@@ -87,7 +87,7 @@ public:
 	~CBS();
 
 	// Save results
-	void saveResults(const string &fileName, const string &instanceName, 
+	void saveResults(const string &fileName, 
 					const boost::program_options::variables_map& vm) const; // NEW seed, so, agent num
 	void saveStats(const string &fileName, const string &instanceName);
 	void saveCT(const string &fileName) const; // write the CT to a file

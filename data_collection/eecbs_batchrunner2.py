@@ -82,14 +82,19 @@ def str2bool(v):
 def runOnSingleInstance(eecbsArgs, outputfile, mapfile, numAgents, scenfile, 
                         runOrReturnCommand="run"):
     scenname = (scenfile.split("/")[-1])
+    mapname = mapfile.split("/")[-1].split(".")[0]
+    bd_path = f".{file_home}/eecbs/raw_data/{mapname}/bd/{scenname}"
+    # shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
     assert(runOrReturnCommand in ["run", "return"])
-    command = f".{file_home}/eecbs/build_release/eecbs"
+    command = f".{file_home}/eecbs/build_debug/eecbs"
 
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
-    tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenname}{numAgents}.txt"
-    command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --scenname={}".format(
-                numAgents, scenfile, tempOutPath, firstIter, scenname)
+    # tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenname}{numAgents}.txt"
+    tempOutPath = f".{file_home}/eecbs/raw_data/{mapname}/paths/{scenname}{numAgents}.txt"
+    # shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths/{file_name}") 
+    command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --bd_file={}".format(
+                numAgents, scenfile, tempOutPath, firstIter, bd_path)
     # command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
     command += " --output={} --map={}".format(outputfile, mapfile)
     # print(command.split("suboptimality=1")[1])
@@ -136,13 +141,15 @@ def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputCS
     workerOutputCSV = idToWorkerOutputCSV(worker_id, mapName)
     # combinedDf = workerOutputCSV
     # combined_filename = "data/logs/multiTest/{}_combined.csv".format(mapName)
-    combined_filename = f".{file_home}/eecbs/raw_data/bd/{mapName}_combined.csv"
+    # combined_filename = f".{file_home}/eecbs/raw_data/{mapName}/csvs/combined.csv"
+    combined_filename = idToWorkerOutputCSV(-1, mapName) # -1 denotes combined
     mapFile = static_dict[mapName]["map"]
     # eecbsArgs["output"] = workerOutputCSV
 
     runBefore, status = detectExistingStatus(eecbsArgs, mapFile, curAgentNum, scen, combined_filename) # check in combinedDf
     if not runBefore:
         command = runOnSingleInstance(eecbsArgs, workerOutputCSV, mapFile, curAgentNum, scen, runOrReturnCommand="return")
+        # print(command)
         runCommandWithTmux(worker_id, command)
         runBefore, status = detectExistingStatus(eecbsArgs, mapFile, curAgentNum, scen, workerOutputCSV)  # check in worker's df
         if not runBefore:
@@ -166,7 +173,8 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
         if os.path.exists(filename):
             combined_dfs.append(pd.read_csv(filename, index_col=False))
     # combined_filename = "data/logs/multiTest/{}_combined.csv".format(mapName)
-    combined_filename = f".{file_home}/eecbs/raw_data/bd/{mapName}_combined.csv"
+    # combined_filename = f".{file_home}/eecbs/raw_data/csvs/{mapName}_combined.csv"
+    combined_filename = idToWorkerOutputCSV(-1, mapName) # -1 denotes combined
     if os.path.exists(combined_filename):
         combined_dfs.append(pd.read_csv(combined_filename, index_col=False))
     combined_df = pd.concat(combined_dfs)
@@ -217,47 +225,6 @@ def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
         queue.task_done()
 
 
-
-
-
-def runOnSingleMap(eecbsArgs, mapName, agentNumbers, scens, inputFolder):
-    print("Single Map")
-    if "benchmark" in inputFolder:
-        for aNum in agentNumbers:
-            print("Starting to run {} agents on map {}".format(aNum, mapName))
-            numSuccess = 0
-            status=0
-            numToRunTotal = len(scens)
-            for scen in scens:
-                scenname = (scen.split("/")[-1])
-                runBefore, status = detectExistingStatus(aNum, scenname)
-                runBefore=False #TODO fix detectExisting
-                if not runBefore:
-                    print(scen)
-                    runOnSingleInstance(eecbsArgs, aNum, scen, scenname)
-                    runBefore, status = detectExistingStatus(aNum, scenname)
-                    assert(runBefore)
-                    status+=1
-                numSuccess += status
-
-            if numSuccess < numToRunTotal/2:
-                print("Early terminating as only succeeded {}/{} for {} agents on map {}".format(
-                                                numSuccess, numToRunTotal, aNum, mapName))
-                break
-    else:
-        for aNum, scen in zip(agentNumbers, scens): # for each scen, run its agent number
-            print("Starting to run {} agents on map {}".format(aNum, mapName))
-            scenname = (scen.split("/")[-1])
-            runBefore, status = detectExistingStatus(aNum, scenname)
-            runBefore=False #TODO fix detectExisting
-            if not runBefore:                
-                runOnSingleInstance(eecbsArgs, aNum, scen, scenname)
-                runBefore, status = detectExistingStatus(aNum, scenname)
-                assert(runBefore)
-
-
-
-
 def eecbs_runner(args):
     """
     Compare the runtime of EECBS and W-EECBS
@@ -265,7 +232,7 @@ def eecbs_runner(args):
     manager = multiprocessing.Manager()
     lock = manager.Lock()
     queue = multiprocessing.JoinableQueue()
-    num_workers = 3 #args.num_parallel_runs
+    num_workers = 2 #args.num_parallel_runs
     workers = []
 
     ### Collect scens for each map
@@ -278,13 +245,6 @@ def eecbs_runner(args):
     static_dict = dict()
     nameToNumRun = manager.dict()
     for mapFile in mapsToScens:
-        # eecbsArgs = {
-        #     "map": f"{mapsInputFolder}/{mapFile}.map",
-        #     "output": f".{file_home}/eecbs/raw_data/bd/stats.csv",
-        #     # "outputPaths": f".{file_home}/eecbs/raw_data/paths/paths.txt",
-        #     "suboptimality": args.suboptimality,
-        #     "cutoffTime": args.cutoffTime
-        # }
         static_dict[mapFile] = {
             "map": f"{mapsInputFolder}/{mapFile}.map",
             "scens": mapsToScens[mapFile],
@@ -312,8 +272,12 @@ def eecbs_runner(args):
         nameToNumRun[mapFile] = len(mapsToScens[mapFile])
 
 
+    os.makedirs(f".{file_home}/eecbs/raw_data/csvs/", exist_ok=True)
     def idToWorkerOutputCSV(worker_id, mapName):
-        return f".{file_home}/eecbs/raw_data/bd/{mapName}_worker_{worker_id}.csv"
+        assert(worker_id >= -1)
+        if worker_id == -1: # worker_id = -1 denotes combined csv
+            return f".{file_home}/eecbs/raw_data/{mapName}/csvs/combined.csv"
+        return f".{file_home}/eecbs/raw_data/{mapName}/csvs/worker_{worker_id}.csv"
 
     # Start worker processes with corresponding tmux session
     for worker_id in range(num_workers):
@@ -326,11 +290,17 @@ def eecbs_runner(args):
 
     eecbsArgs = {
         "suboptimality": args.suboptimality,
-        "cutoffTime": args.cutoffTime
+        "cutoffTime": args.cutoffTime,
+        # "firstIter": args.firstIter,
     }
+    # pdb.set_trace()
 
     ## Create initial jobs
     for mapFile in mapsToScens.keys():
+        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
+        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
+        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/paths/", exist_ok=True)
+        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/csvs/", exist_ok=True)
         for scen in static_dict[mapFile]["scens"]:
             queue.put(("runSingleInstanceMT", (eecbsArgs, mapFile, static_dict[mapFile]["agentNumbers"][0], scen)))
 
@@ -339,7 +309,7 @@ def eecbs_runner(args):
 
     # Stop worker processes
     for i in range(num_workers):
-        # killTmuxSession(i)
+        killTmuxSession(i)
         queue.put(None)
     for p in workers:
         p.join()
@@ -351,26 +321,25 @@ def eecbs_runner(args):
             if os.path.exists(filename):
                 os.remove(filename)
 
-    print("All tasks completed!")
+    # print("All tasks completed!")
 
-    pdb.set_trace()
+    # pdb.set_trace()
     for mapFile in mapsToScens:
         # move the new eecbs output
-        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
-        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
-        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/paths/", exist_ok=True)
+        # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
+        # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
+        # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/paths/", exist_ok=True)
 
-        bd_files = os.listdir(f".{file_home}/eecbs/raw_data/bd/")
-        path_files = os.listdir(f".{file_home}/eecbs/raw_data/paths/")
-        for file_name in bd_files:
-            shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
-        for file_name in path_files:
-            shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths/{file_name}") 
+        # bd_files = os.listdir(f".{file_home}/eecbs/raw_data/bd/")
+        # # path_files = os.listdir(f".{file_home}/eecbs/raw_data/paths/")
+        # for file_name in bd_files:
+        #     shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
+        # for file_name in path_files:
+        #     shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths/{file_name}") 
         
-        # shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/" + mapFile)
-        # shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/{mapFile}")
-        # os.mkdir(f".{file_home}/eecbs/raw_data/paths/")
-        
+        # shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/{mapFile}/bd/")
+        # shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/{mapFile}/paths/")
+        # os.makedirs(f".{file_home}/eecbs/raw_data/paths/", exist_ok=True)
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
@@ -385,7 +354,6 @@ def eecbs_runner(args):
         shutil.rmtree(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # clean path files once they have been recorded
         os.mkdir(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # remake "path" folder
 
-
 # python batch_runner.py den312d --logPath data/logs/test --cutoffTime 10 --suboptimality 2
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -393,7 +361,7 @@ if __name__ == "__main__":
     parser.add_argument("--mapFolder", help="contains all scens to run", type=str)
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str)
     parser.add_argument("--outputFolder", help="place to output all eecbs output", type=str)
-    parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
+    parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=20)
     parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
     parser.add_argument("--expnum", help="experiment number", type=int, default=0)
     parser.add_argument("--iter", help="iteration number", type=int)

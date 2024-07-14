@@ -39,7 +39,7 @@ int main(int argc, char** argv)
 		// params for the input instance and experiment settings
 		("map,m", po::value<string>()->required(), "input file for map")
 		("agents,a", po::value<string>()->required(), "input file for agents")
-		("scenname", po::value<string>()->required(), "input scenname for agents, used for saving bds")
+		// ("scenname", po::value<string>()->required(), "input scenname for agents, used for saving bds")
 		("output,o", po::value<string>(), "output file for statistics")
 		("outputPaths", po::value<string>(), "output file for paths")
 		("agentNum,k", po::value<int>()->default_value(0), "number of agents")
@@ -48,6 +48,7 @@ int main(int argc, char** argv)
 		("stats", po::value<bool>()->default_value(false), "write to files some detailed statistics")
 		// ("batchFolder", po::value<string>()->default_value(""), "Folder to save outputs") // NEW: batch output folder
 		("seed", po::value<int>()->default_value(5), "seed for tiebreaker low-level node selection") // NEW: seed
+		("bd_filename", po::value<string>(), "filepath for saving bds")
 		("firstIter", po::value<bool>()->default_value(false), "choose whether to output bds")
 
 		// params for CBS node selection strategies
@@ -195,15 +196,15 @@ int main(int argc, char** argv)
 		if(vm["firstIter"].as<bool>())
 		{
 			ofstream file;
-			string scen = vm["scenname"].as<string>();//.substr(17);
-			string vector_file = "./data_collection/eecbs/raw_data/bd/" + scen + std::to_string(vm["agentNum"].as<int>()) + ".txt";
-			cout << vector_file;
-			file.open(vector_file);
+			// string scen = vm["scenname"].as<string>();//.substr(17);
+			// string bd_file = "./data_collection/eecbs/raw_data/bd/" + scen + std::to_string(vm["agentNum"].as<int>()) + ".txt";
+			string bd_file = vm["bd_filename"].as<string>();
+			// cout << bd_file;
+			file.open(bd_file);
 			// write dimensions,
 			file << instance.num_of_rows << "," << instance.num_of_cols << endl;
 			// then bd information to file uniquely defined by instance and agent number
-			for(int i=0;i<ecbs.bds.size();i++)
-			{
+			for(int i=0;i<ecbs.bds.size();i++) {
 				for(int j = 0; j < ecbs.bds.at(i).size(); j++) {
 					file << ecbs.bds.at(i).at(j) << ",";
 				}
@@ -228,14 +229,14 @@ int main(int argc, char** argv)
         }
         ecbs.runtime = runtime; 
         if (vm.count("output"))
-            ecbs.saveResults(vm["output"].as<string>(), vm["scenname"].as<string>(), vm);
+            ecbs.saveResults(vm["output"].as<string>(), vm);
         if (ecbs.solution_found && vm.count("outputPaths"))
             ecbs.savePaths(vm["outputPaths"].as<string>(), instance.num_of_rows, instance.num_of_cols);
         /*size_t pos = vm["output"].as<string>().rfind('.');      // position of the file extension
         string output_name = vm["output"].as<string>().substr(0, pos);     // get the name without extension
         cbs.saveCT(output_name); // for debug*/
-        if (vm["stats"].as<bool>())
-            ecbs.saveStats(vm["output"].as<string>(), vm["scenname"].as<string>());
+        // if (vm["stats"].as<bool>())
+        //     ecbs.saveStats(vm["output"].as<string>(), vm["scenname"].as<string>());
         ecbs.clearSearchEngines();
     }
     else
@@ -270,11 +271,11 @@ int main(int argc, char** argv)
         }
         cbs.runtime = runtime;
         if (vm.count("output"))
-            cbs.saveResults(vm["output"].as<string>(), vm["scenname"].as<string>(), vm);
+            cbs.saveResults(vm["output"].as<string>(), vm);
         if (cbs.solution_found && vm.count("outputPaths"))
             cbs.savePaths(vm["outputPaths"].as<string>(), instance.num_of_rows, instance.num_of_cols);
-        if (vm["stats"].as<bool>())
-            cbs.saveStats(vm["output"].as<string>(), vm["scenname"].as<string>());
+        // if (vm["stats"].as<bool>())
+        //     cbs.saveStats(vm["output"].as<string>(), vm["scenname"].as<string>());
         cbs.clearSearchEngines();
     }
 	return 0;
