@@ -83,7 +83,7 @@ def runOnSingleInstance(eecbsArgs, outputfile, mapfile, numAgents, scenfile,
                         runOrReturnCommand="run"):
     scenname = (scenfile.split("/")[-1])
     mapname = mapfile.split("/")[-1].split(".")[0]
-    bd_path = f".{file_home}/eecbs/raw_data/{mapname}/bd/{scenname}"
+    bd_path = f".{file_home}/eecbs/raw_data/{mapname}/bd/{scenname}{numAgents}.txt"
     # shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
     assert(runOrReturnCommand in ["run", "return"])
     command = f".{file_home}/eecbs/build_debug/eecbs"
@@ -232,7 +232,7 @@ def eecbs_runner(args):
     manager = multiprocessing.Manager()
     lock = manager.Lock()
     queue = multiprocessing.JoinableQueue()
-    num_workers = 2 #args.num_parallel_runs
+    num_workers = args.num_parallel_runs
     workers = []
 
     ### Collect scens for each map
@@ -347,12 +347,17 @@ def eecbs_runner(args):
                         f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
                         f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
                         f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
-        
+        # pdb.set_trace()
+        # subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
+        #                 f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
+        #                 f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/eecbs/raw_data/train_{mapFile}_{args.iter}", 
+        #                 f"--valOut=.{file_home}/eecbs/raw_data/train_{mapFile}_{args.iter}"])
+        # pdb.set_trace()
 
         # os.mkdir(f".{file_home}/eecbs/raw_data/bd")
         # os.mkdir(f".{file_home}/eecbs/raw_data/paths")
-        shutil.rmtree(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # clean path files once they have been recorded
-        os.mkdir(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # remake "path" folder
+        # shutil.rmtree(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # clean path files once they have been recorded
+        # os.mkdir(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # remake "path" folder
 
 # python batch_runner.py den312d --logPath data/logs/test --cutoffTime 10 --suboptimality 2
 if __name__ == "__main__":
@@ -367,7 +372,7 @@ if __name__ == "__main__":
     parser.add_argument("--iter", help="iteration number", type=int)
     parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
     parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 
-                        type=int, default=1)
+                        type=int)
     args = parser.parse_args()
     scenInputFolder = args.scenFolder
     mapsInputFolder = args.mapFolder

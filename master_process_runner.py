@@ -14,6 +14,7 @@ if __name__ == "__main__":
     parser.add_argument("expnum", help="experiment number", type=int)
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
     parser.add_argument('generate_initial', type=lambda x: bool(str2bool(x)))
+    parser.add_argument('num_parallel', type=int)
     args = parser.parse_args()
     expnum, mini_test, generate_initial = args.expnum, args.mini_test, args.generate_initial
     print(args.expnum)
@@ -28,17 +29,26 @@ if __name__ == "__main__":
     
 
     first_iteration = "true"
+    print("Current Path:", os.getcwd())
 
     if generate_initial:
         os.makedirs(f"./{LE}", exist_ok=False)
         os.makedirs(f"./{LE}/labels", exist_ok=False)
         os.makedirs(f"./{LE}/labels/raw", exist_ok=False)
-        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"])
+        command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
+                            f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
+                            f"--num_parallel={args.num_parallel}"])
+        subprocess.run(command, shell=True, check=True)
+        # print(command)
+        # subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
+        #                 f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"], check=True)
+    
     else:
         assert (os.path.exists(f"./{LE}/labels/raw/train_warehouse_10_20_10_2_2_0.npz"))
     
 
     print("Done with first eecbs run")
+    pdb.set_trace()
 
     while True:        
         if not os.path.exists(f"./{LE}/iter{iternum}"):
