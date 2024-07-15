@@ -64,7 +64,7 @@ pair<Path, int> SpaceTimeAStar::findSuboptimalPath(const HLNode& node, const Con
     min_f_val = (int) start->getFVal();
     // lower_bound = int(w * min_f_val));
 
-    while (!open_list.empty())
+    while (!open_list.empty() && ((double)(clock() - start_time) / CLOCKS_PER_SEC <= time_limit))
     {
         updateFocalList(); // update FOCAL if min f-val increased
         auto* curr = popNode();

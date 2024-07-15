@@ -34,7 +34,7 @@ mapsToMaxNumAgents = { #TODO change this to 100 for all
     "Berlin_1_256": 101,
     "lt_gallowstemplar_n": 101, 
     "final_test9": 101,
-    "empty_8_8": 101,
+    "empty_8_8": 20,
     "den312d": 500, 
     "final_test2": 101,
     "final_test6": 101,
@@ -86,7 +86,7 @@ def runOnSingleInstance(eecbsArgs, outputfile, mapfile, numAgents, scenfile,
     bd_path = f".{file_home}/eecbs/raw_data/{mapname}/bd/{scenname}{numAgents}.txt"
     # shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
     assert(runOrReturnCommand in ["run", "return"])
-    command = f".{file_home}/eecbs/build_debug/eecbs"
+    command = f".{file_home}/eecbs/build_release2/eecbs"
 
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
@@ -153,6 +153,8 @@ def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputCS
         runCommandWithTmux(worker_id, command)
         runBefore, status = detectExistingStatus(eecbsArgs, mapFile, curAgentNum, scen, workerOutputCSV)  # check in worker's df
         if not runBefore:
+            # print(f"worker_id:{worker_id}")
+            print(f"mapFile:{mapFile}, curAgentNum:{curAgentNum}, scen:{scen}, workerOutputCSV:{workerOutputCSV}, worker_id:{worker_id}")
             raise RuntimeError("Fix detectExistingStatus; we ran an instance but cannot find it afterwards!")
 
     ## Update the number of runs. If we are the last one, then check if we should run the next agent number.
@@ -199,7 +201,7 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
     else:
         assert(curAgentNum in agentNumsToRun)
         if agentNumsToRun.index(curAgentNum) + 1 == len(agentNumsToRun):
-            print("Finished all agent numbers")
+            print("Finished all agent numbers for map: {}".format(mapName))
         else:
             nextAgentNum = agentNumsToRun[agentNumsToRun.index(curAgentNum) + 1]
             lock.acquire()
@@ -239,6 +241,8 @@ def eecbs_runner(args):
     mapsToScens = defaultdict(list)
     for dir_path in os.listdir(scenInputFolder):
         mapFile = dir_path.split("-")[0]
+        if mapFile == ".DS_Store":
+            continue 
         mapsToScens[mapFile].append(scenInputFolder+"/"+dir_path)
 
     ### For each map, get the static information
@@ -252,7 +256,7 @@ def eecbs_runner(args):
         }
 
         if "benchmark" in scenInputFolder: # pre-loop run
-            increment = 100
+            increment = min(100,  mapsToMaxNumAgents[mapFile]-1)
             agentNumbers = list(range(increment, mapsToMaxNumAgents[mapFile]+1, increment))
             static_dict[mapFile]["agentNumbers"] = agentNumbers
             ### Run baseline EECBS
@@ -366,7 +370,7 @@ if __name__ == "__main__":
     parser.add_argument("--mapFolder", help="contains all scens to run", type=str)
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str)
     parser.add_argument("--outputFolder", help="place to output all eecbs output", type=str)
-    parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=20)
+    parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
     parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
     parser.add_argument("--expnum", help="experiment number", type=int, default=0)
     parser.add_argument("--iter", help="iteration number", type=int)

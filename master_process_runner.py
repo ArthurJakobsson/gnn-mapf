@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser.add_argument("expnum", help="experiment number", type=int)
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
     parser.add_argument('generate_initial', type=lambda x: bool(str2bool(x)))
-    parser.add_argument('num_parallel', type=int)
+    parser.add_argument('--num_parallel', type=int)
     args = parser.parse_args()
     expnum, mini_test, generate_initial = args.expnum, args.mini_test, args.generate_initial
     print(args.expnum)
