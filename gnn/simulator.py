@@ -205,7 +205,7 @@ class RunModel():
         cur_agent_locs, cur_agent_goals = cur_agent_locs[0:self.num_agents], cur_agent_goals[0:self.num_agents] # prune agents
         cur_bd = self.map_dict['scen'][map_name]['bd'][scen_idx]
         iteration, solved = 0, False
-        while (iteration < 200 and not solved):
+        while (iteration < 20 and not solved):
             cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m) 
             cur_data = cur_data.to(self.device)
             

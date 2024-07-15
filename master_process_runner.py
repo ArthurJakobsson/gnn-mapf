@@ -31,13 +31,18 @@ if __name__ == "__main__":
     first_iteration = "true"
     print("Current Path:", os.getcwd())
 
+    # command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens", 
+    #                     f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
+    #                     f"--num_parallel={args.num_parallel}", "--cutoffTime=20"])
+    # print(command)
+
     if generate_initial:
         os.makedirs(f"./{LE}", exist_ok=False)
         os.makedirs(f"./{LE}/labels", exist_ok=False)
         os.makedirs(f"./{LE}/labels/raw", exist_ok=False)
         command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
                             f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
-                            f"--num_parallel={args.num_parallel}"])
+                            f"--num_parallel={args.num_parallel}", "--cutoffTime=20"])
         subprocess.run(command, shell=True, check=True)
         # print(command)
         # subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
@@ -48,7 +53,7 @@ if __name__ == "__main__":
     
 
     print("Done with first eecbs run")
-    pdb.set_trace()
+    # pdb.set_trace()
 
     while True:        
         if not os.path.exists(f"./{LE}/iter{iternum}"):
@@ -64,7 +69,14 @@ if __name__ == "__main__":
         # feed failures into eecbs
         iternum+=1
         # Note: scen's should be taken from previous iteration but npz should be saved this next iteration number (since npzs have an extra)
-        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"]) # TODO figure out where eecbs is outputting files
+        # subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens", 
+        #                 f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"]) # TODO figure out where eecbs is outputting files
+        # command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens", 
+        #                 f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
+        #                 f"--num_parallel={args.num_parallel}", "--cutoffTime=20"])
+        subprocess.run(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens", 
+                        f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
+                        f"--num_parallel={args.num_parallel}", "--cutoffTime=20"]) # TODO figure out where eecbs is outputting files
     '''
     LE = logs/EXPNAME/
     Initial collection: eecbs_runner.py -inputFolder=benchmark_data/scens -outputFolder=LE/iter0/labels/

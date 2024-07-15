@@ -84,15 +84,12 @@ def runOnSingleInstance(eecbsArgs, outputfile, mapfile, numAgents, scenfile,
     scenname = (scenfile.split("/")[-1])
     mapname = mapfile.split("/")[-1].split(".")[0]
     bd_path = f".{file_home}/eecbs/raw_data/{mapname}/bd/{scenname}{numAgents}.txt"
-    # shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
     assert(runOrReturnCommand in ["run", "return"])
     command = f".{file_home}/eecbs/build_release2/eecbs"
 
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
-    # tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenname}{numAgents}.txt"
     tempOutPath = f".{file_home}/eecbs/raw_data/{mapname}/paths/{scenname}{numAgents}.txt"
-    # shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths/{file_name}") 
     command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --bd_file={}".format(
                 numAgents, scenfile, tempOutPath, firstIter, bd_path)
     # command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
@@ -137,14 +134,10 @@ def detectExistingStatus(eecbsArgs, mapfile, aNum, scenfile, df): # TODO update
 ####### Multi test
 def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputCSV, static_dict, 
                         eecbsArgs, mapName, curAgentNum, scen):
-    # combinedDf = None
     workerOutputCSV = idToWorkerOutputCSV(worker_id, mapName)
-    # combinedDf = workerOutputCSV
-    # combined_filename = "data/logs/multiTest/{}_combined.csv".format(mapName)
-    # combined_filename = f".{file_home}/eecbs/raw_data/{mapName}/csvs/combined.csv"
     combined_filename = idToWorkerOutputCSV(-1, mapName) # -1 denotes combined
     mapFile = static_dict[mapName]["map"]
-    # eecbsArgs["output"] = workerOutputCSV
+
 
     runBefore, status = detectExistingStatus(eecbsArgs, mapFile, curAgentNum, scen, combined_filename) # check in combinedDf
     if not runBefore:
@@ -185,30 +178,36 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
     combined_df.to_csv(combined_filename, index=False)
     
     ## Check status on current runs
-    scens = static_dict[mapName]["scens"]
-    agentNumsToRun = static_dict[mapName]["agentNumbers"]
+    # scens = static_dict[mapName]["scens"]
+    # agentNumsToRun = static_dict[mapName]["agentNumbers"]
     mapFile = static_dict[mapName]["map"]
     numSuccess = 0
-    numToRunTotal = len(scens)
-    for scen in scens:
+    numToRunTotal = len(static_dict[mapName]["scens"])
+    for scen, agentNum in zip(static_dict[mapName]["scens"], static_dict[mapName]["agentsPerScen"]):
         runBefore, status = detectExistingStatus(eecbsArgs, mapFile, curAgentNum, scen, combined_df)
         assert(runBefore)
         numSuccess += status
 
-    if numSuccess < numToRunTotal/2:
-        print("Early terminating as only succeeded {}/{} for {} agents on map {}".format(
-                                        numSuccess, numToRunTotal, curAgentNum, mapName))
-    else:
-        assert(curAgentNum in agentNumsToRun)
-        if agentNumsToRun.index(curAgentNum) + 1 == len(agentNumsToRun):
-            print("Finished all agent numbers for map: {}".format(mapName))
+    if len(static_dict[mapName]["agentRange"]) > 0: # If we are running a range of agents, check the next one
+        if numSuccess < numToRunTotal/2:
+            print("Early terminating as only succeeded {}/{} for {} agents on map {}".format(
+                                            numSuccess, numToRunTotal, curAgentNum, mapName))
         else:
-            nextAgentNum = agentNumsToRun[agentNumsToRun.index(curAgentNum) + 1]
-            lock.acquire()
-            nameToNumRun[mapName] = len(scens)
-            lock.release()
-            for scen in scens:
-                queue.put(("runSingleInstanceMT", (eecbsArgs, mapName, nextAgentNum, scen)))
+            scens = static_dict[mapName]["scens"]
+            agentNumsToRun = static_dict[mapName]["agentRange"]
+            assert(curAgentNum in agentNumsToRun)
+            if agentNumsToRun.index(curAgentNum) + 1 == len(agentNumsToRun):
+                print("Finished all agent numbers for map: {}".format(mapName))
+            else:
+                nextAgentNum = agentNumsToRun[agentNumsToRun.index(curAgentNum) + 1]
+                lock.acquire()
+                nameToNumRun[mapName] = len(scens)
+                lock.release()
+                static_dict[mapName]["agentsPerScen"] = [nextAgentNum] * len(scens)
+                for scen, agentNum in zip(scens, static_dict[mapName]["agentsPerScen"]):
+                    queue.put(("runSingleInstanceMT", (eecbsArgs, mapName, agentNum, scen)))
+    else: # If not, we are done
+        print("Finished all agent numbers for map: {}, succeeded {}/{}".format(mapName, numSuccess, numToRunTotal))
 
 
 def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
@@ -252,28 +251,31 @@ def eecbs_runner(args):
         static_dict[mapFile] = {
             "map": f"{mapsInputFolder}/{mapFile}.map",
             "scens": mapsToScens[mapFile],
-            # "agentNumbers": list(range(100, mapsToMaxNumAgents[mapFile]+1, 100)),
+            "agentsPerScen": [], # This is used for when each scen has a specific number of agents already specified, e.g. for encountered scens
+            "agentRange": [], # This is used for when we want to run a range of agents, e.g. for benchmark scens
         }
 
         if "benchmark" in scenInputFolder: # pre-loop run
             increment = min(100,  mapsToMaxNumAgents[mapFile]-1)
             agentNumbers = list(range(increment, mapsToMaxNumAgents[mapFile]+1, increment))
-            static_dict[mapFile]["agentNumbers"] = agentNumbers
-            ### Run baseline EECBS
-            # runOnSingleMap(eecbsArgs, mapFile, agentNumbers, scens, scenInputFolder)
+            static_dict[mapFile]["agentRange"] = agentNumbers
+            # pdb.set_trace()
+            static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
         else: # we are somewhere in the training loop
             agentNumbers = []
             scenlist = os.listdir(scenInputFolder)
             for scen in scenlist:
                 # open the file
                 with open(f'{scenInputFolder}/{scen}', 'r') as fh: # TODO get the path to scene file right
-                    line = fh.readline()
-                    agentNumbers.append(int(line))
-            static_dict[mapFile]["agentNumbers"] = agentNumbers
-            # run eecbs
-            # runOnSingleMap(eecbsArgs, mapFile, agentNumbers, scens, scenInputFolder)
+                    firstLine = fh.readline()
+                    assert(firstLine.startswith("version "))
+                    num = firstLine.split(" ")[1]
+                    agentNumbers.append(int(num))
+            static_dict[mapFile]["agentsPerScen"] = agentNumbers
         
+        assert(len(static_dict[mapFile]["agentsPerScen"]) > 0)
         nameToNumRun[mapFile] = len(mapsToScens[mapFile])
+        print(f"Map: {mapFile} requires {nameToNumRun[mapFile]} runs")
 
 
     def idToWorkerOutputCSV(worker_id, mapName):
@@ -304,8 +306,8 @@ def eecbs_runner(args):
         os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
         os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/paths/", exist_ok=True)
         os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/csvs/", exist_ok=True)
-        for scen in static_dict[mapFile]["scens"]:
-            queue.put(("runSingleInstanceMT", (eecbsArgs, mapFile, static_dict[mapFile]["agentNumbers"][0], scen)))
+        for scen, agentNum in zip(static_dict[mapFile]["scens"], static_dict[mapFile]["agentsPerScen"]):
+            queue.put(("runSingleInstanceMT", (eecbsArgs, mapFile, agentNum, scen)))
 
     # Wait for all tasks to be processed
     queue.join()
