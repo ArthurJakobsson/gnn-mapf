@@ -185,8 +185,12 @@ class PipelineDataset(Dataset):
             i += 1
         self.maps = dict(items[:i]) # get all the maps
         j = i
-        while "," not in items[j][0]:
-            j += 1
+        try:
+            while "," not in items[j][0]:
+                j += 1
+        except: 
+            print(loaded.keys())
+            pdb.set_trace()
         self.bds = dict(items[i:j]) # get all the bds
         k = j
         while k < len(items) and "twh" not in items[k][0]:
@@ -368,7 +372,7 @@ def batch_map(dir):
     # iterate over files in directory, parsing each map
     for filename in os.listdir(dir):
         f = os.path.join(dir, filename)
-        print(f)
+        # print(f)
         # checking if it is a file
         if os.path.isfile(f):
             if ".DS_Store" in f: continue # deal with invisible ds_store file
@@ -395,7 +399,7 @@ def batch_bd(dir):
             val = parse_bd(f)
             bdname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. "Paris_1_256-random-110, where 1 is instance, 10 is agents"
             res[bdname + agents] = val # TODO make sure that filename doesn't have weird chars you don't want in the npz
-            print(f)
+            # print(f)
         else:
             raise RuntimeError("bad bd dir")
     return res
@@ -438,13 +442,13 @@ def batch_path(dir):
             bdname = raw
             val = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
-            print("___________________________\n")
+            # print("___________________________\n")
             if idx in valFiles:
                 res2[mapname + "," + bdname + "," + seed] = val
             else:
                 res1[mapname + "," + bdname + "," + seed] = val
             # res2[mapname + "," + bdname + "," + seed + ",twh"] = val2
-            print(f)
+            # print(f)
             idx += 1
         else:
             raise RuntimeError("bad path dir")

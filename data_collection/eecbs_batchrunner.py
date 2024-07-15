@@ -107,7 +107,7 @@ def runOnSingleInstance(eecbsArgs, numAgents, seed, scenfile, scenname):
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
     tempOutPath = f".{file_home}/eecbs/raw_data/paths/{scenname}{numAgents}.txt"
     command += " --agentNum={} --seed={} --agents={} --outputPaths={} --firstIter={} --scenname={}".format(numAgents, seed, scenfile, tempOutPath, firstIter, scenname)
-    print(command)
+    # print(command)
     subprocess.run(command.split(" "), check=True) # True if want failure error
     
     
@@ -148,7 +148,7 @@ def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
     print("Single Map")
     if "benchmark" in inputFolder:
         for aNum in agentNumbers:
-            print("Starting to run {} agents on map {}".format(aNum, mapName))
+            # print("Starting to run {} agents on map {}".format(aNum, mapName))
             numSuccess = 0
             status=0
             numToRunTotal = len(scens) * len(seeds)
@@ -157,7 +157,7 @@ def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
                     # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
                     runBefore=False #TODO fix detectExisting
                     if not runBefore:
-                        print(scen)
+                        # print(scen)
                         scenname = (scen.split("/")[-1])
                         runOnSingleInstance(eecbsArgs, aNum, seed, scen, scenname)
                         # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
@@ -171,7 +171,7 @@ def runOnSingleMap(eecbsArgs, mapName, agentNumbers, seeds, scens, inputFolder):
                 break
     else:
         for aNum, scen in zip(agentNumbers, scens): # for each scen, run its agent number
-            print("Starting to run {} agents on map {}".format(aNum, mapName))
+            # print("Starting to run {} agents on map {}".format(aNum, mapName))
             for seed in seeds:
                 # runBefore, status = detectExistingStatus(eecbsArgs, aNum, seed, scen)
                 runBefore=False #TODO fix detectExisting
@@ -228,7 +228,8 @@ def eecbs_runner(args):
                 # open the file
                 with open(f'{scenInputFolder}/{scen}', 'r') as fh: # TODO get the path to scene file right
                     line = fh.readline()
-                    agentNumbers.append(int(line))
+                    number = line.split(" ")[1]
+                    agentNumbers.append(int(number))
             # run eecbs
             runOnSingleMap(eecbsArgs, mapFile, agentNumbers, seeds, scens, scenInputFolder)
 

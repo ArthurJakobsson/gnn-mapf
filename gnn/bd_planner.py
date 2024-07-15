@@ -58,18 +58,18 @@ class GenericPlanner:
         while not open_pq.empty():
             current_node : AbstractNode = open_pq.get() # Note get pops the element as well
             if num_expansions > 5000000:
-                print("Exceeded Expansion Limit")
+                # print("Exceeded Expansion Limit")
                 break
             # print(f"Size: {open_pq.qsize()}")
 
             if current_node.getState() in closed_set:
                 continue
             closed_set.add(current_node.getState())
-            if num_expansions % 10000 == 0:
-                print(num_expansions, current_node)
+            # if num_expansions % 10000 == 0:
+                # print(num_expansions, current_node)
 
             if goalFunc(current_node):
-                print(f"Found path after {num_expansions} expansions")
+                # print(f"Found path after {num_expansions} expansions")
                 return self.reconstructPath(current_node)
 
             num_expansions += 1
@@ -77,8 +77,8 @@ class GenericPlanner:
             # for next_node in getSuccessors(current_node):
             for next_node in current_node.getSuccessors():
                 open_pq.put(next_node)
-        if open_pq.empty():
-            print(f"Emptied the queue after {num_expansions} expansions")
+        # if open_pq.empty():
+            # print(f"Emptied the queue after {num_expansions} expansions")
         return None
 
     def reconstructPath(self, node: AbstractNode):

@@ -20,6 +20,7 @@ data_collection/eecbs/data/*
 data_collection/eecbs/raw_data/*
 data_collection/data/*
 *.scen
+*.zip
 
 
 *.pickle
