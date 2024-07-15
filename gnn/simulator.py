@@ -175,7 +175,7 @@ class Preprocess():
     
 
 class RunModel():
-    def __init__(self, device, scen_folder, model=None, preprocess=None, cs_type="PIBT", m=5, k=4, num_agents=100): #TODO change to both 5, 50 and 100
+    def __init__(self, device, scen_folder, num_samples=20, max_samples=200, model=None, preprocess=None, cs_type="PIBT", m=5, k=4, num_agents=100): #TODO change to both 5, 50 and 100
         self.m = m
         self.k = k
         self.device = device
@@ -185,6 +185,8 @@ class RunModel():
         self.map_dict = preprocess.get_map_dict()
         self.cs_type = cs_type
         self.num_agents = num_agents
+        self.num_samples = num_samples
+        self.max_samples = max_samples
 
         if preprocess==None or model==None:
             raise RuntimeError("No prerpocessing information or model provided")
@@ -205,7 +207,14 @@ class RunModel():
         cur_agent_locs, cur_agent_goals = cur_agent_locs[0:self.num_agents], cur_agent_goals[0:self.num_agents] # prune agents
         cur_bd = self.map_dict['scen'][map_name]['bd'][scen_idx]
         iteration, solved = 0, False
-        while (iteration < 200 and not solved):
+        
+        #sample
+        indices = random.sample(list(range(0,self.max_samples)), self.num_samples)
+        chosen_indices = np.full((self.max_samples), False)
+        chosen_indices[indices] = True
+
+        
+        while (iteration < self.max_samples and not solved):
             cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m) 
             cur_data = cur_data.to(self.device)
             
@@ -222,9 +231,9 @@ class RunModel():
             else:
                 new_agent_locs = self.cs_naive(self.device, cur_map, cur_agent_locs, probabilities)
 
-            
-            save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, scen_full_name, self.scen_number, self.scen_folder, k)
-            self.scen_number+=1
+            if chosen_indices[iteration]:
+                save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, scen_full_name, self.scen_number, self.scen_folder, k)
+                self.scen_number+=1
 
             if (np.all(new_agent_locs==cur_agent_goals)):
                 solved = True
@@ -356,8 +365,10 @@ if __name__ == "__main__":
     parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
     parser.add_argument("--source_maps_scens", help="which map+scen folder", type=str)
     parser.add_argument("--iternum", help="iternum", type=int)
+    parser.add_argument("--num_samples", help="number of scens to make", type=int)
+    parser.add_argument("--max_samples", help="max number of scens to make", type=int)
     args = parser.parse_args()
-    exp_folder, firstIter, source_maps_scens, iternum= args.exp_folder, args.firstIter, args.source_maps_scens, args.iternum
+    exp_folder, firstIter, source_maps_scens, iternum, num_samples, max_samples= args.exp_folder, args.firstIter, args.source_maps_scens, args.iternum, args.num_samples, args.max_samples
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # device = "cpu"
@@ -386,7 +397,7 @@ if __name__ == "__main__":
     startup = Preprocess(map_files, scen_files, k=k, map_path=map_path_chosen, scen_path=scen_path_chosen, first_time=firstIter)
     # print(startup.get_map_dict())
 
-    model_run = RunModel(device, scen_folder, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m, num_agents=num_agents)
+    model_run = RunModel(device, scen_folder, num_samples,max_samples, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m, num_agents=num_agents)
     
 
 

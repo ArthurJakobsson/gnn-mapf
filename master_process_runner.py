@@ -3,6 +3,7 @@ import subprocess
 import argparse
 import pdb
 import shutil
+import multiprocessing
 
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
@@ -13,8 +14,10 @@ if __name__ == "__main__":
     parser.add_argument("expnum", help="experiment number", type=int)
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
     parser.add_argument('generate_initial', type=lambda x: bool(str2bool(x)))
+    parser.add_argument('num_samples', help="number of scens to simulate", type=int)
+    parser.add_argument('max_samples', help="max number of scens to simulate", type=int)
     args = parser.parse_args()
-    expnum, mini_test, generate_initial = args.expnum, args.mini_test, args.generate_initial
+    expnum, mini_test, generate_initial, num_samples, max_samples = args.expnum, args.mini_test, args.generate_initial, args.num_samples, args.max_samples
     print(args.expnum)
 
     iternum = 0
@@ -25,7 +28,7 @@ if __name__ == "__main__":
 
     LE = f"data_collection/data/logs/EXP{expnum}"
     
-
+    num_cores = multiprocessing.cpu_count()
     first_iteration = "true"
 
     if generate_initial:
@@ -44,10 +47,10 @@ if __name__ == "__main__":
             os.makedirs(f"./{LE}/iter{iternum}")
 
         # train the naive model
-        subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
+        subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}", f"--num_cores={num_cores}"])
 
         # run cs-pibt new maps to create new scenes
-        subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}"])
+        subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}"])
         first_iteration = "false"
 
         # feed failures into eecbs

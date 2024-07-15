@@ -41,28 +41,28 @@ mapsToMaxNumAgents = { #TODO change this to 100 for all
     "lt_gallowstemplar_n": 101, 
     "final_test9": 101,
     "empty_8_8": 101,
-    "den312d": 500, 
+    "den312d": 101, 
     "final_test2": 101,
     "final_test6": 101,
-    "random_32_32_10": 461,
+    "random_32_32_10": 101,
     "brc202d": 101,
     "room_64_64_8": 101,
     "maze_128_128_1": 101,
     "warehouse_20_40_10_2_2": 101,
     "final_test3": 101,
-    "Paris_1_256": 500,
+    "Paris_1_256": 101,
     "final_test8": 101,
     "maze_128_128_10": 101, 
     "w_woundedcoast": 101,
     "maze_32_32_4": 101,
     "maze_32_32_2": 101,
-    "ht_chantry": 500,
+    "ht_chantry": 101,
     "final_test1": 101,
-    "empty_48_48": 500,
+    "empty_48_48": 101,
     "random_64_64_20": 101,
     "room_64_64_16": 101,
     "final_test4": 101,
-    "empty_32_32": 511,
+    "empty_32_32": 101,
     "final_test7": 101,
     "Boston_0_256": 101,
     "random_64_64_10": 101,
@@ -77,9 +77,9 @@ mapsToMaxNumAgents = { #TODO change this to 100 for all
     "ost003d": 101,
     "orz900d": 101,
     "final_test0": 101,
-    "random_32_32_20": 409,
+    "random_32_32_20": 101,
     "lak303d": 101,
-    "den520d": 500
+    "den520d": 101
 }
 
 def str2bool(v):
@@ -295,7 +295,7 @@ if __name__ == "__main__":
     parser.add_argument("--mapFolder", help="contains all scens to run", type=str)
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str)
     parser.add_argument("--outputFolder", help="place to output all eecbs output", type=str)
-    parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
+    parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=20)
     parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
     parser.add_argument("--expnum", help="experiment number", type=int, default=0)
     parser.add_argument("--iter", help="iteration number", type=int)
