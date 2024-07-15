@@ -276,7 +276,6 @@ def eecbs_runner(args):
         nameToNumRun[mapFile] = len(mapsToScens[mapFile])
 
 
-    os.makedirs(f".{file_home}/eecbs/raw_data/csvs/", exist_ok=True)
     def idToWorkerOutputCSV(worker_id, mapName):
         assert(worker_id >= -1)
         if worker_id == -1: # worker_id = -1 denotes combined csv
