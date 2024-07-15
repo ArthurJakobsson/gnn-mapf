@@ -64,30 +64,7 @@ if __name__ == "__main__":
         # feed failures into eecbs
         iternum+=1
         # Note: scen's should be taken from previous iteration but npz should be saved this next iteration number (since npzs have an extra)
-        
-        # for each map, move the corresponding scens to an ephermeral folder that is deleted after the batchrunner runs
-        map_folder = f"{source_maps_scens}/maps"
-        maps = [f.split("/")[-1] for f in os.listdir(map_folder)]
-        params = []
-        for map_file in maps: # name of the map, without parent dir names
-
-            scenFolder = f"./{LE}/iter{iternum-1}/encountered_scens"
-
-            # make temp folder
-            os.makedirs(f"{scenFolder}/{map_file}")
-
-            # copy all relevant scen files to that directory
-            for scenFile in os.listdir(scenFolder):
-                if ".scen" in scenFile and map_file in scenFile:
-                    shutil.copyfile(scenFile, f"{scenFolder}/{map_file}")
-
-            # save eecbs command
-            params.append(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder={scenFolder}/{map_file}/", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"]) # TODO figure out where eecbs is outputting files
-
-        # run eecbs in parallel
-        with ProcessPoolExecutor() as pool:
-            pool.map(subprocess.run, params)
-
+        subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens", f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"]) # TODO figure out where eecbs is outputting files
     '''
     LE = logs/EXPNAME/
     Initial collection: eecbs_runner.py -inputFolder=benchmark_data/scens -outputFolder=LE/iter0/labels/

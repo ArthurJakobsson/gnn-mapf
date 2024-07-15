@@ -11,8 +11,9 @@ from torch_geometric.data import Data
 from tqdm import tqdm
 import os
 import sys
+from multiprocessing import Pool
 
-print(os.path.abspath(os.getcwd()))
+# print(os.path.abspath(os.getcwd()))
 sys.path.insert(0, './data_collection/')
 import data_manipulator
 
@@ -23,7 +24,7 @@ def slice_maps(pos, curmap, k):
     output: sliced bd
     """
     r,c = pos[0], pos[1]
-    return curmap[r-k:r+k+1,c-k:c+k+1] #TODO: adjust +1 or -1
+    return curmap[r-k:r+k+1,c-k:c+k+1] 
 
 def get_neighbors(m, pos, pos_list, k):
     """
@@ -88,19 +89,12 @@ def apply_edge_normalization(edge_weights):
     return edge_weights
 
 def apply_bd_normalization(bd_grid, k, device):
-    # TODO have an otpion to choose method based on flags
-    temp = bd_grid.clone()
+    center = bd_grid[:, 1, k, k].unsqueeze(1).unsqueeze(2)
+    bd_grid[:, 1, :, :] -= center
+    bd_grid[:, 1, :, :] *= (1 - bd_grid[:, 0, :, :])
+    bd_grid[:, 1, :, :] /= k
+    bd_grid[:, 1, :, :] = torch.clamp(bd_grid[:, 1, :, :], min=-10.0, max=10.0)
 
-    #centering
-    center = bd_grid[:,1,k,k].clone() # 1 is to get bd, 0 for grid
-    for i, cent in enumerate(center):
-        bd_grid[i,1,:,:] -= cent
-    bd_grid[:,1,:,:]*= (1-bd_grid[:,0,:,:]) # set obstacles as 0
-
-    #normalize
-    bd_grid[:, 1,:,:]/=k
-    bd_grid[:,1,:,:] = torch.maximum(bd_grid[:,1,:,:], torch.tensor([-10]).to(device))
-    bd_grid[:,1,:,:] = torch.minimum(bd_grid[:,1,:,:], torch.tensor([10]).to(device))
     return bd_grid
 
 def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
@@ -153,25 +147,34 @@ class MyOwnDataset(Dataset):
     def download():
         raise ImportError
 
+    def create_and_save_graph(self, idx, time_instance):
+        # Graphify
+        if not time_instance: 
+            return #idk why but the last one is None
+        pos_list, labels, bd_list, grid = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
+
+        curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
+        curdata = apply_masks(len(curdata.x), curdata)
+        torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
 
     def process(self):
         idx = self.load_metadata()
         for raw_path in self.raw_paths: #TODO check if new npzs are read
+            
             cur_path_iter = raw_path.split("_")[-1][:-4]
             if not (int(cur_path_iter)==self.iternum):
                 continue
+
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
-            for time_instance in tqdm(cur_dataset):
-                # Graphify
-                if not time_instance: break #idk why but the last one is None
-                pos_list, labels, bd_list, grid = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
+            print(f"Loading: {raw_path} of size {len(cur_dataset)}")
+            idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
-                curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
-                curdata = apply_masks(len(curdata.x), curdata)
-                torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
-                idx+=1
-
-            self.length = idx
+            with Pool(20) as p: #change number of workers later
+                p.starmap(self.create_and_save_graph, zip(idx_list, cur_dataset))
+            # for time_instance in tqdm(cur_dataset):
+                
+            self.length = len(cur_dataset)
+            idx+=self.length
             meta = torch.tensor([self.length])
             torch.save(meta, osp.join(self.processed_dir, f"meta_data.pt"))
 

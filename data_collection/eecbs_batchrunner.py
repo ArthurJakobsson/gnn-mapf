@@ -149,7 +149,7 @@ def runOnSingleMap(eecbsArgs, mapName, agentNumbers, scens, inputFolder):
     print("Single Map")
     if "benchmark" in inputFolder:
         for aNum in agentNumbers:
-            print("Starting to run {} agents on map {}".format(aNum, mapName))
+            # print("Starting to run {} agents on map {}".format(aNum, mapName))
             numSuccess = 0
             status=0
             numToRunTotal = len(scens)
@@ -225,7 +225,8 @@ def eecbs_runner(args):
                 # open the file
                 with open(f'{scenInputFolder}/{scen}', 'r') as fh: # TODO get the path to scene file right
                     line = fh.readline()
-                    agentNumbers.append(int(line))
+                    number = line.split(" ")[1]
+                    agentNumbers.append(int(number))
             # run eecbs
             runOnSingleMap(eecbsArgs, mapFile, agentNumbers, scens, scenInputFolder)
 

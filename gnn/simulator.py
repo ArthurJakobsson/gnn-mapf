@@ -115,12 +115,19 @@ def write_line(idx, start_loc, goal_loc, file, map_r, map_c, map_name):
     
     file.write(out_str)
 
-def save_scen(start_locs, goal_locs, map, map_name, scen_name, idx, scen_folder):
+def save_scen(start_locs, goal_locs, map, map_name, scen_name, idx, scen_folder, k):
 
-    map_r, map_c = map.shape[0], map.shape[1]
+    map_r, map_c = map.shape[0]-2*k, map.shape[1]-2*k
     file = open(scen_folder+"/"+ scen_name+"-custom-"+str(idx)+"-.scen", 'w')
-    file.write(str(len(start_locs))+"\n")
-    start_locs = np.array(start_locs)
+    file.write("version "+str(len(start_locs))+"\n")
+    start_locs = np.array(start_locs)-k # (n,2)
+    row, col = start_locs[:,0], start_locs[:,1]
+    start_locs = np.array([col, row]).T # (n,2)
+    
+    
+    goal_locs = goal_locs-k # (n,2)
+    row, col = goal_locs[:,0], goal_locs[:,1]
+    goal_locs = np.array([col, row]).T # (n,2)
     # TODO pass map name
     for idx, package in enumerate(zip(start_locs, goal_locs, repeat(file), repeat(map_r), repeat(map_c), repeat(map_name))):
         write_line(idx, *package)
@@ -216,7 +223,7 @@ class RunModel():
                 new_agent_locs = self.cs_naive(self.device, cur_map, cur_agent_locs, probabilities)
 
             
-            save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, scen_full_name, self.scen_number, self.scen_folder)
+            save_scen(new_agent_locs, cur_agent_goals, cur_map, map_name, scen_full_name, self.scen_number, self.scen_folder, k)
             self.scen_number+=1
 
             if (np.all(new_agent_locs==cur_agent_goals)):
