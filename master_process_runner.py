@@ -13,7 +13,7 @@ last_recorded_time = datetime.datetime.now()
 
 def log_time(event_name):
     cur_time = datetime.datetime.now()
-    with open("timing.txt", mode='a') as file:
+    with open(f"./{LE}/timing.txt", mode='a') as file:
         file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
 
 if __name__ == "__main__":
@@ -36,6 +36,7 @@ if __name__ == "__main__":
         source_maps_scens = "./data_collection/data/benchmark_data"
 
     LE = f"data_collection/data/logs/EXP{expnum}"
+    os.makedirs(LE, exist_ok=True)
     
     num_cores = multiprocessing.cpu_count()
     first_iteration = "true"
@@ -54,7 +55,6 @@ if __name__ == "__main__":
     log_time("begin")
     
     if generate_initial:
-        os.makedirs(f"./{LE}", exist_ok=False)
         os.makedirs(f"./{LE}/labels", exist_ok=False)
         os.makedirs(f"./{LE}/labels/raw", exist_ok=False)
         command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
