@@ -147,13 +147,16 @@ class Preprocess():
         for map_name in map_files:
             if map_name in self.map_dict['loaded_maps']:
                 continue
-
+            if "DS_Store" in map_name:
+                continue
             self.map_dict['loaded_maps'].append(map_name)
             just_map_name = map_name[0:-4]
             print(just_map_name)
             self.map_dict['map'][just_map_name] = parse_map(map_path, map_name, self.k)
         for scen_f in scen_files:
             if scen_f in  self.map_dict['loaded_scenes']:
+                continue
+            if "DS_Store" in scen_f:
                 continue
             self.map_dict['loaded_scenes'].append(scen_f)
             scen_name = parse_scen_name(scen_f)
