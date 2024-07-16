@@ -60,6 +60,7 @@ if __name__ == "__main__":
             os.makedirs(f"./{LE}/iter{iternum}")
 
         # train the naive model
+        # pdb.set_trace()
         subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
 
         # run cs-pibt new maps to create new scenes

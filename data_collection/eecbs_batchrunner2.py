@@ -9,6 +9,8 @@ from collections import defaultdict
 import shutil
 
 import multiprocessing
+from multiprocessing import Pool
+
 # from custom_utils.multirunner import createTmuxSession, runCommandWithTmux, killTmuxSession
 
 ###############################################################
@@ -35,28 +37,28 @@ mapsToMaxNumAgents = { #TODO change this to 100 for all
     "lt_gallowstemplar_n": 101, 
     "final_test9": 101,
     "empty_8_8": 20,
-    "den312d": 500, 
+    "den312d": 101, 
     "final_test2": 101,
     "final_test6": 101,
-    "random_32_32_10": 461,
+    "random_32_32_10": 101,
     "brc202d": 101,
     "room_64_64_8": 101,
     "maze_128_128_1": 101,
     "warehouse_20_40_10_2_2": 101,
     "final_test3": 101,
-    "Paris_1_256": 500,
+    "Paris_1_256": 101,
     "final_test8": 101,
     "maze_128_128_10": 101, 
     "w_woundedcoast": 101,
     "maze_32_32_4": 101,
     "maze_32_32_2": 101,
-    "ht_chantry": 500,
+    "ht_chantry": 101,
     "final_test1": 101,
-    "empty_48_48": 500,
+    "empty_48_48": 101,
     "random_64_64_20": 101,
     "room_64_64_16": 101,
     "final_test4": 101,
-    "empty_32_32": 511,
+    "empty_32_32": 101,
     "final_test7": 101,
     "Boston_0_256": 101,
     "random_64_64_10": 101,
@@ -71,9 +73,9 @@ mapsToMaxNumAgents = { #TODO change this to 100 for all
     "ost003d": 101,
     "orz900d": 101,
     "final_test0": 101,
-    "random_32_32_20": 409,
+    "random_32_32_20": 101,
     "lak303d": 101,
-    "den520d": 500
+    "den520d": 101
 }
 
 def str2bool(v):
@@ -225,6 +227,11 @@ def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
             raise ValueError("Unknown function")
         queue.task_done()
 
+def runNPZCreationInsance(mapFile):
+    subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
+                        f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
+                        f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
+                        f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
 
 def eecbs_runner(args):
     """
@@ -329,7 +336,9 @@ def eecbs_runner(args):
     # print("All tasks completed!")
 
     # pdb.set_trace()
-    for mapFile in mapsToScens:
+    with Pool(num_workers) as p:
+        p.map(runNPZCreationInsance, mapsToScens)
+    # for mapFile in mapsToScens:
         # move the new eecbs output
         # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
         # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
@@ -348,10 +357,10 @@ def eecbs_runner(args):
 
         # make the npz files
         # TODO don't hardcode exp, iter numbers
-        subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
-                        f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
-                        f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
-                        f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
+        # subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
+        #                 f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
+        #                 f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
+        #                 f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
         # pdb.set_trace()
         # subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
         #                 f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 

@@ -492,12 +492,12 @@ def main():
     np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
 
     # DEBUGGING: test out the dataloader
-    loader = PipelineDataset(trainOut + ".npz", 4, float('inf'), 300, 'current')
-    print(len(loader), " train size")
-    for i in range(len(loader)):
-        locs, labels, bd, grid = loader[i]
-        assert(labels.shape[1] == 5)
-        assert(locs.shape[1] == 2)
+    # loader = PipelineDataset(trainOut + ".npz", 4, float('inf'), 300, 'current')
+    # print(len(loader), " train size")
+    # for i in range(len(loader)):
+    #     locs, labels, bd, grid = loader[i]
+    #     assert(labels.shape[1] == 5)
+    #     assert(locs.shape[1] == 2)
         # grid/bd should be 9,9 for single agent but is full map for graph version
 
 
