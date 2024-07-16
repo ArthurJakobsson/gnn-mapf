@@ -112,7 +112,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
 class MyOwnDataset(Dataset):
-    def __init__(self, root, device, exp_folder, iternum, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root, device, exp_folder, iternum, num_cores=20, transform=None, pre_transform=None, pre_filter=None):
+        self.num_cores = num_cores
         self.k = 4 # padding size
         self.m = 5 # number of agents considered close
         self.size = float('inf')
@@ -169,7 +170,7 @@ class MyOwnDataset(Dataset):
             print(f"Loading: {raw_path} of size {len(cur_dataset)}")
             idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
-            with Pool(20) as p: #change number of workers later
+            with Pool(self.num_cores) as p: #change number of workers later
                 p.starmap(self.create_and_save_graph, zip(idx_list, cur_dataset))
             # for time_instance in tqdm(cur_dataset):
                 

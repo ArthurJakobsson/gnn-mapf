@@ -245,6 +245,7 @@ if __name__ == "__main__":
     parser.add_argument("--exp_folder", help="experiment folder", type=str)
     parser.add_argument("--experiment", help="experiment name", type=str)
     parser.add_argument("--iternum", help="iteration name", type=int)
+    parser.add_argument("--num_cores", help="num_cores", type=int)
     args = parser.parse_args()
     exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
     itername = "iter"+str(iternum)
@@ -264,7 +265,7 @@ if __name__ == "__main__":
 
     
 
-    dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum)
+    dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum, num_cores=args.num_cores)
     dataset = dataset.shuffle()
     task = 'node'
 

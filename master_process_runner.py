@@ -3,7 +3,7 @@ import subprocess
 import argparse
 import pdb
 import shutil
-from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
@@ -14,9 +14,11 @@ if __name__ == "__main__":
     parser.add_argument("expnum", help="experiment number", type=int)
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
     parser.add_argument('generate_initial', type=lambda x: bool(str2bool(x)))
+    parser.add_argument('num_samples', help="number of scens to simulate", type=int)
+    parser.add_argument('max_samples', help="max number of scens to simulate", type=int)
     parser.add_argument('--num_parallel', type=int)
     args = parser.parse_args()
-    expnum, mini_test, generate_initial = args.expnum, args.mini_test, args.generate_initial
+    expnum, mini_test, generate_initial, num_samples, max_samples = args.expnum, args.mini_test, args.generate_initial, args.num_samples, args.max_samples
     print(args.expnum)
 
     iternum = 0
@@ -27,7 +29,7 @@ if __name__ == "__main__":
 
     LE = f"data_collection/data/logs/EXP{expnum}"
     
-
+    num_cores = multiprocessing.cpu_count()
     first_iteration = "true"
     print("Current Path:", os.getcwd())
 
@@ -35,6 +37,11 @@ if __name__ == "__main__":
     #                     f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
     #                     f"--num_parallel={args.num_parallel}", "--cutoffTime=20"])
     # print(command)
+    command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
+                            f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
+                            f"--num_parallel={args.num_parallel}", "--cutoffTime=20"])
+    print(command)
+    pdb.set_trace()
 
     if generate_initial:
         os.makedirs(f"./{LE}", exist_ok=False)
@@ -43,6 +50,14 @@ if __name__ == "__main__":
         command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
                             f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
                             f"--num_parallel={args.num_parallel}", "--cutoffTime=20"])
+        ### Example command for minibenchmark
+        # python ./data_collection/eecbs_batchrunner2.py --mapFolder=./data_collection/data/mini_benchmark_data/maps 
+        #           --scenFolder=./data_collection/data/mini_benchmark_data/scens --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ 
+        #           --expnum=0 --firstIter=true --iter=0 --num_parallel=50 --cutoffTime=20
+        ### Example command for benchmark
+        # python ./data_collection/eecbs_batchrunner2.py --mapFolder=./data_collection/data/benchmark_data/maps 
+        #           --scenFolder=./data_collection/data/benchmark_data/scens --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ 
+        #           --expnum=0 --firstIter=true --iter=0 --num_parallel=50 --cutoffTime=20
         subprocess.run(command, shell=True, check=True)
         # print(command)
         # subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
@@ -53,17 +68,17 @@ if __name__ == "__main__":
     
 
     print("Done with first eecbs run")
-    # pdb.set_trace()
+    pdb.set_trace()
 
     while True:        
         if not os.path.exists(f"./{LE}/iter{iternum}"):
             os.makedirs(f"./{LE}/iter{iternum}")
 
         # train the naive model
-        subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}"])
+        subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}", f"--num_cores={num_cores}"])
 
         # run cs-pibt new maps to create new scenes
-        subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}"])
+        subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}"])
         first_iteration = "false"
 
         # feed failures into eecbs
