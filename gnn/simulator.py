@@ -167,7 +167,7 @@ class Preprocess():
             self.map_dict['scen'][scen_name]['bd'].append(calculate_bds(goal_loc, self.map_dict['map'][scen_name]))
         
         
-        with open('saved_map_dict.pickle', 'wb') as handle: # TODO make this scen dependent if there is too much data for pickle
+        with open('saved_map_dict.pickle', 'wb') as handle: 
             pickle.dump(self.map_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def get_map_dict(self):

@@ -180,6 +180,8 @@ class PipelineDataset(Dataset):
         items = list(loaded.items())
         # print(loaded["Paris_1_256.map,Paris_1_256-random-110,2"]) # testing
         # index -> tuple mapping, finding maps, then bds, then paths
+        # if not any("," in content_names for content_names in loaded.keys()):
+        #     print("All instances of map failed, quitting")
         i = 0
         while "-random-" not in items[i][0]:
             i += 1
@@ -425,7 +427,6 @@ def batch_path(dir):
     # valFiles = random.sample(range(0, numFiles), numFiles // 5) # take 20% of data for val
     # print(valFiles, numFiles)
     valFiles = [] # No more validation dataset
-
     # iterate over files in directory, making a tuple for each
     idx = 0 # keep track of if we want to save to val set or train set
     for filename in os.listdir(dir):
@@ -442,15 +443,16 @@ def batch_path(dir):
             val = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             # print("___________________________\n")
-            if idx in valFiles:
-                res2[mapname + "," + bdname] = val
-            else:
-                res1[mapname + "," + bdname] = val
+            # if idx in valFiles:
+            #     res2[mapname + "," + bdname] = val
+            # else:
+            res1[mapname + "," + bdname] = val
             # res2[mapname + "," + bdname + "," + seed + ",twh"] = val2
             # print(f)
             idx += 1
         else:
             raise RuntimeError("bad path dir")
+    
     return res1, res2
 
 def main():
@@ -489,7 +491,12 @@ def main():
     data1train, data1val = batch_path(pathsIn)
 
     # send each map, each bd, and each tuple representing a path + instance to npz
-    np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
+    # pdb.set_trace()
+    if(len(data1train.keys())>0):
+        np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
+        print(f"Generating {trainOut}")
+    else:
+        print(f"{trainOut} had no successful eecbs runs")
 
     # DEBUGGING: test out the dataloader
     # loader = PipelineDataset(trainOut + ".npz", 4, float('inf'), 300, 'current')

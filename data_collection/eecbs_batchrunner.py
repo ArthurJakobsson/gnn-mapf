@@ -40,7 +40,7 @@ mapsToMaxNumAgents = { #TODO change this to 100 for all
     "Berlin_1_256": 101,
     "lt_gallowstemplar_n": 101, 
     "final_test9": 101,
-    "empty_8_8": 101,
+    "empty_8_8": 20,
     "den312d": 101, 
     "final_test2": 101,
     "final_test6": 101,
