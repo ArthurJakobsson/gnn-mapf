@@ -47,12 +47,14 @@ class PipelineDataset(Dataset):
             naming convention: mapname + "," + bdname + "," + seed
         helper_bd_preprocess: method by which we center helper backward dijkstras. can be 'middle', 'current', or 'subtraction'.
         '''
-
+        raw_folder = numpy_data_path.split("train_")[0]
+        loaded_maps = np.load(raw_folder+"maps.npz")
+        loaded_bds = np.load(numpy_data_path.split(".npz")[0]+"_bds.npz")
         # read in the dataset, saving map, bd, and path info to class variables
-        loaded = np.load(numpy_data_path)
+        loaded_paths = np.load(numpy_data_path)
         self.k = k
         self.size = size
-        self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
+        self.parse_npz(loaded_paths, loaded_maps, loaded_bds) # TODO change len(dataloader) = max_timesteps
         self.max_agents = max_agents
         self.helper_bd_preprocess = helper_bd_preprocess
 
@@ -175,30 +177,31 @@ class PipelineDataset(Dataset):
         timestep = newidx // n
         return bd, grid, paths, timestep, t
 
-    def parse_npz(self, loaded):
-        loaded = {k:v for k, v in loaded.items()}
-        items = list(loaded.items())
+    def parse_npz(self, loaded_paths, loaded_maps, loaded_bds):
+        self.tn2 = {k:v for k, v in loaded_paths.items()}
+        self.maps = {k:v for k, v in loaded_maps.items()}
+        self.bds = {k:v for k, v in loaded_bds.items()}
+        # path_items = list(loaded_paths.items())
+        # bd_items = list(loaded_bds.items())
+        # map_items = list(loaded_maps.items())
         # print(loaded["Paris_1_256.map,Paris_1_256-random-110,2"]) # testing
         # index -> tuple mapping, finding maps, then bds, then paths
         # if not any("," in content_names for content_names in loaded.keys()):
         #     print("All instances of map failed, quitting")
-        i = 0
-        while "-random-" not in items[i][0]:
-            i += 1
-        self.maps = dict(items[:i]) # get all the maps
-        j = i
-        try:
-            while "," not in items[j][0]:
-                j += 1
-        except: 
-            print(loaded.keys())
-            pdb.set_trace()
-        self.bds = dict(items[i:j]) # get all the bds
-        k = j
-        while k < len(items) and "twh" not in items[k][0]:
-            k += 1
-        self.tn2 = dict(items[j:k]) # get all the paths in (t,n,2) form
+        # i = 0
+        # while "-random-" not in items[i][0]:
+        #     i += 1
+        # self.maps = dict(map_items) # get all the maps
+        # j = i
+        # while "," not in items[j][0]:
+        #     j += 1
+        # self.bds = dict(items[i:j]) # get all the bds
+        # k = j
+        # while k < len(items) and "twh" not in items[k][0]:
+        #     k += 1
+        # self.tn2 = dict(items[j:k]) # get all the paths in (t,n,2) form
         # since the # of data is simply number of agent locations, this is t*n, which we append to the dictionary for each path
+        
         totalT = 0 
         for ky, v in self.tn2.items():
             t, n, _ = np.shape(v)
@@ -455,15 +458,20 @@ def batch_path(dir):
     
     return res1, res2
 
+
+
 def main():
     # cmdline argument parsing: take in dirs for paths, maps, and bds, and where you want the outputted npz
     parser = argparse.ArgumentParser()
     parser.add_argument("--pathsIn", help="directory containing txt files of agents and paths taken", type=str)
     parser.add_argument("--bdIn", help="directory containing txt files with backward djikstra output", type=str)
     parser.add_argument("--mapIn", help="directory containing txt files with obstacles", type=str)
+    parser.add_argument("--iter", help="iteration number", type=int)
     npzMsg = "output file with maps, bds as name->array dicts, along with (mapname, bdname, path) triplets for each EECBS run"
     parser.add_argument("--trainOut", help=npzMsg, type=str)
     parser.add_argument("--valOut", help=npzMsg, type=str)
+    parser.add_argument("--mapFile", help="current map", type=str)
+    parser.add_argument("--npz_location", help="where npzs are stored", type=str)
     
 
     args = parser.parse_args()
@@ -471,21 +479,30 @@ def main():
     pathsIn = args.pathsIn
     bdIn = args.bdIn
     mapIn = args.mapIn
-    trainOut = args.trainOut
+    trainOut = args.npz_location+ args.trainOut
+    npz_location = args.npz_location
     valOut = args.valOut
-
+    
     # instantiate global variables that will keep track of each map and bd that you've encountered
     maps = {} # maps mapname->np array containing the obstacles in map
     bds = {} # maps bdname->np array containing bd for each agent in the instance (NOTE: keep track of number agents in bdname)
 
-    # parse each map, add to global dict
-    
-    maps = batch_map(mapIn)
-    # print(maps)
+    if args.iter == 0:
+        # parse each map, add to global dict
+        maps = batch_map(mapIn)
+        np.savez_compressed(args.npz_location+"maps", **maps)
+        # print(maps)
 
-    # parse each bd, add to global dict
-    bds = batch_bd(bdIn)
-    # print(bds)
+        # parse each bd, add to global dict
+        bds = batch_bd(bdIn)
+        np.savez_compressed(trainOut+"_bds", **bds)
+        
+        # print(bds)
+    else:
+        maps = np.load(args.npz_location+"maps.npz")
+        maps = {k:v for k, v in maps.items()}
+        bds = np.load(trainOut+"_bds.npz")
+        bds = {k:v for k, v in bds.items()}
 
     # parse each path, add to global list
     data1train, data1val = batch_path(pathsIn)
@@ -493,10 +510,11 @@ def main():
     # send each map, each bd, and each tuple representing a path + instance to npz
     # pdb.set_trace()
     if(len(data1train.keys())>0):
-        np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
+        np.savez_compressed(trainOut, **data1train) # Note automatically stacks to numpy vectors
         print(f"Generating {trainOut}")
     else:
         print(f"{trainOut} had no successful eecbs runs")
+        
 
     # DEBUGGING: test out the dataloader
     # loader = PipelineDataset(trainOut + ".npz", 4, float('inf'), 300, 'current')

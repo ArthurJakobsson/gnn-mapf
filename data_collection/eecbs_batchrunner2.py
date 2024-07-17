@@ -230,8 +230,11 @@ def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
 def runNPZCreationInsance(mapFile):
     subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
                         f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
-                        f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
-                        f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
+                        f"--mapIn={mapsInputFolder}", f"--trainOut=train_{mapFile}_{args.iter}", 
+                        f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}", 
+                        f"--iter={args.iter}",
+                        f"--mapFile={mapFile}",
+                        f"--npz_location=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/"])
 
 def eecbs_runner(args):
     """

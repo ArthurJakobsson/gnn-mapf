@@ -164,7 +164,8 @@ class MyOwnDataset(Dataset):
             return #if pt's are made already skip the first iteration of pt making
         idx = self.load_metadata()
         for raw_path in self.raw_paths: #TODO check if new npzs are read
-            
+            if "maps" in raw_path or "bds" in raw_path:
+                continue
             cur_path_iter = raw_path.split("_")[-1][:-4]
             if not (int(cur_path_iter)==self.iternum):
                 continue
