@@ -238,6 +238,8 @@ def visualize():
   xs, ys = zip(*TSNE().fit_transform(embs.detach().numpy()))
   plt.scatter(xs, ys, color=colors)
 
+def str2bool(v):
+  return v.lower() in ("yes", "true", "t", "1")
 
 if __name__ == "__main__":
     # current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -246,6 +248,7 @@ if __name__ == "__main__":
     parser.add_argument("--experiment", help="experiment name", type=str)
     parser.add_argument("--iternum", help="iteration name", type=int)
     parser.add_argument("--num_cores", help="num_cores", type=int)
+    parser.add_argument('--generate_initial', type=lambda x: bool(str2bool(x)))
     args = parser.parse_args()
     exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
     itername = "iter"+str(iternum)
@@ -265,7 +268,7 @@ if __name__ == "__main__":
 
     
 
-    dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum, num_cores=args.num_cores)
+    dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum, num_cores=args.num_cores, generate_initial=args.generate_initial)
     dataset = dataset.shuffle()
     task = 'node'
 

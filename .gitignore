@@ -9,6 +9,7 @@ gnn/map_data_big2d_new/
 gnn/test.py
 gnn/model_log/
 gnn/data/
+.DS_Store
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*

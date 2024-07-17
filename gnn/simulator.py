@@ -94,13 +94,18 @@ def parse_scen_name(scen_name):
     index = scen_name.rindex('random')
     return scen_name[0:index-1]
 
-def calculate_bds(goals, map_arr):
-    bds = list()
-    env = EnvironmentWrapper(map_arr)
-    with Pool() as pool:
-        for heuristic in pool.starmap(computeHeuristicMap, zip(repeat(env), goals)):
-            bds.append(heuristic)
-    return np.array(bds)
+# def calculate_bds(goals, map_arr):
+#     bds = list()
+#     env = EnvironmentWrapper(map_arr)
+#     with Pool() as pool:
+#         for heuristic in pool.starmap(computeHeuristicMap, zip(repeat(env), goals)):
+#             bds.append(heuristic)
+#     return np.array(bds)
+
+def get_bds(scen_name):
+    map_name = scen_name.split("-random-")[0]
+    loaded = np.load(raw_folder+f"/train_{map_name}.npz")
+    
 
 # def create_scen_folder(idx):
 #     if not os.path.exists("created_scens/created_scen_files_"+str(idx)):
@@ -147,13 +152,16 @@ class Preprocess():
         for map_name in map_files:
             if map_name in self.map_dict['loaded_maps']:
                 continue
-
+            if "DS_Store" in map_name:
+                continue
             self.map_dict['loaded_maps'].append(map_name)
             just_map_name = map_name[0:-4]
-            print(just_map_name)
+            # print(just_map_name)
             self.map_dict['map'][just_map_name] = parse_map(map_path, map_name, self.k)
         for scen_f in scen_files:
             if scen_f in  self.map_dict['loaded_scenes']:
+                continue
+            if "DS_Store" in scen_f:
                 continue
             self.map_dict['loaded_scenes'].append(scen_f)
             scen_name = parse_scen_name(scen_f)
@@ -165,9 +173,10 @@ class Preprocess():
             self.map_dict['scen'][scen_name]['agent_info'].append((start_loc+self.k,goal_loc+self.k))
             # calculate bds
             self.map_dict['scen'][scen_name]['bd'].append(calculate_bds(goal_loc, self.map_dict['map'][scen_name]))
+            
         
         
-        with open('saved_map_dict.pickle', 'wb') as handle: # TODO make this scen dependent if there is too much data for pickle
+        with open('saved_map_dict.pickle', 'wb') as handle: 
             pickle.dump(self.map_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def get_map_dict(self):
@@ -376,6 +385,7 @@ if __name__ == "__main__":
     model.to(device)
     model.eval()
 
+    raw_folder = exp_folder+"labels/raw"
     scen_folder = exp_folder+f"/iter{iternum}/encountered_scens/"
     os.mkdir(scen_folder)
 

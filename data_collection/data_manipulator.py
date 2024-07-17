@@ -47,7 +47,9 @@ class PipelineDataset(Dataset):
             naming convention: mapname + "," + bdname + "," + seed
         helper_bd_preprocess: method by which we center helper backward dijkstras. can be 'middle', 'current', or 'subtraction'.
         '''
-
+        # raw_folder = numpy_data_path.split("train_")[0]
+        # loaded_maps = np.load(raw_folder+"maps.npz")
+        # loaded_bds = np.load(numpy_data_path.split(".npz")[0]+"_bds.npz")
         # read in the dataset, saving map, bd, and path info to class variables
         # loaded = np.load(numpy_data_path)
         # self.numpy_data_path = numpy_data_path
@@ -181,30 +183,31 @@ class PipelineDataset(Dataset):
         timestep = newidx // n
         return bd, grid, paths, timestep, t
 
-    def parse_npz(self, loaded):
-        loaded = {k:v for k, v in loaded.items()}
-        items = list(loaded.items())
+    def parse_npz(self, loaded_paths, loaded_maps, loaded_bds):
+        self.tn2 = {k:v for k, v in loaded_paths.items()}
+        self.maps = {k:v for k, v in loaded_maps.items()}
+        self.bds = {k:v for k, v in loaded_bds.items()}
+        # path_items = list(loaded_paths.items())
+        # bd_items = list(loaded_bds.items())
+        # map_items = list(loaded_maps.items())
         # print(loaded["Paris_1_256.map,Paris_1_256-random-110,2"]) # testing
         # index -> tuple mapping, finding maps, then bds, then paths
-        i = 0
-        while "-random-" not in items[i][0]:
-            i += 1
-        self.maps = dict(items[:i]) # get all the maps
-        j = i
-        try:
-            while "," not in items[j][0]:
-                j += 1
-        except: 
-            print(loaded.keys())
-            print(self.numpy_data_path)
-            # pdb.set_trace()
-            raise RuntimeError("SHOULDNT BE HERE")
-        self.bds = dict(items[i:j]) # get all the bds
-        k = j
-        while k < len(items) and "twh" not in items[k][0]:
-            k += 1
-        self.tn2 = dict(items[j:k]) # get all the paths in (t,n,2) form
+        # if not any("," in content_names for content_names in loaded.keys()):
+        #     print("All instances of map failed, quitting")
+        # i = 0
+        # while "-random-" not in items[i][0]:
+        #     i += 1
+        # self.maps = dict(map_items) # get all the maps
+        # j = i
+        # while "," not in items[j][0]:
+        #     j += 1
+        # self.bds = dict(items[i:j]) # get all the bds
+        # k = j
+        # while k < len(items) and "twh" not in items[k][0]:
+        #     k += 1
+        # self.tn2 = dict(items[j:k]) # get all the paths in (t,n,2) form
         # since the # of data is simply number of agent locations, this is t*n, which we append to the dictionary for each path
+        
         totalT = 0 
         for ky, v in self.tn2.items():
             t, n, _ = np.shape(v)
@@ -534,7 +537,6 @@ def batch_path(dir):
     # valFiles = random.sample(range(0, numFiles), numFiles // 5) # take 20% of data for val
     # print(valFiles, numFiles)
     valFiles = [] # No more validation dataset
-
     # iterate over files in directory, making a tuple for each
     idx = 0 # keep track of if we want to save to val set or train set
     for filename in os.listdir(dir):
@@ -551,16 +553,19 @@ def batch_path(dir):
             val = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             # print("___________________________\n")
-            if idx in valFiles:
-                res2[mapname + "," + bdname] = val
-            else:
-                res1[mapname + "," + bdname] = val
+            # if idx in valFiles:
+            #     res2[mapname + "," + bdname] = val
+            # else:
+            res1[mapname + "," + bdname] = val
             # res2[mapname + "," + bdname + "," + seed + ",twh"] = val2
             # print(f)
             idx += 1
         else:
             raise RuntimeError("bad path dir")
+    
     return res1, res2
+
+
 
 def main():
     # cmdline argument parsing: take in dirs for paths, maps, and bds, and where you want the outputted npz

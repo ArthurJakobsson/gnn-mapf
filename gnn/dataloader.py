@@ -112,7 +112,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
 class MyOwnDataset(Dataset):
-    def __init__(self, root, device, exp_folder, iternum, num_cores=20, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root, device, exp_folder, iternum, num_cores=20, transform=None, pre_transform=None, pre_filter=None, generate_initial=True):
         self.num_cores = num_cores
         self.k = 4 # padding size
         self.m = 5 # number of agents considered close
@@ -123,6 +123,7 @@ class MyOwnDataset(Dataset):
         # self.data_dictionaries = []
         self.length = 0
         self.device = device
+        self.generate_initial = generate_initial
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load_metadata()
 
@@ -159,9 +160,12 @@ class MyOwnDataset(Dataset):
         torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
 
     def process(self):
+        if self.iternum==0 and not self.generate_initial:
+            return #if pt's are made already skip the first iteration of pt making
         idx = self.load_metadata()
         for raw_path in self.raw_paths: #TODO check if new npzs are read
-            
+            if "maps" in raw_path or "bds" in raw_path:
+                continue
             cur_path_iter = raw_path.split("_")[-1][:-4]
             if not (int(cur_path_iter)==self.iternum):
                 continue
