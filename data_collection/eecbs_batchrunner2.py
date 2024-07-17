@@ -9,6 +9,8 @@ from collections import defaultdict
 import shutil
 
 import multiprocessing
+# from custom_utils.custom_timer import CustomTimer
+from custom_utils.custom_timer import CustomTimer
 # from custom_utils.multirunner import createTmuxSession, runCommandWithTmux, killTmuxSession
 
 ###############################################################
@@ -79,17 +81,18 @@ mapsToMaxNumAgents = { #TODO change this to 100 for all
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
-def runOnSingleInstance(eecbsArgs, outputfile, mapfile, numAgents, scenfile, 
+def runOnSingleInstance(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, scenfile, 
                         runOrReturnCommand="run"):
     scenname = (scenfile.split("/")[-1])
     mapname = mapfile.split("/")[-1].split(".")[0]
-    bd_path = f".{file_home}/eecbs/raw_data/{mapname}/bd/{scenname}{numAgents}.txt"
+    bd_path = f"{outputFolder}/bd/{scenname}{numAgents}.txt"
     assert(runOrReturnCommand in ["run", "return"])
-    command = f".{file_home}/eecbs/build_release2/eecbs"
+    # command = f".{file_home}/eecbs/build_release2/eecbs"
+    command = f"{eecbsPath}"
 
     for aKey in eecbsArgs:
         command += " --{}={}".format(aKey, eecbsArgs[aKey])
-    tempOutPath = f".{file_home}/eecbs/raw_data/{mapname}/paths/{scenname}{numAgents}.txt"
+    tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.txt"
     command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --bd_file={}".format(
                 numAgents, scenfile, tempOutPath, firstIter, bd_path)
     # command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
@@ -137,11 +140,11 @@ def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputCS
     workerOutputCSV = idToWorkerOutputCSV(worker_id, mapName)
     combined_filename = idToWorkerOutputCSV(-1, mapName) # -1 denotes combined
     mapFile = static_dict[mapName]["map"]
-
+    outputFolder = static_dict[mapName]["outputFolder"]
 
     runBefore, status = detectExistingStatus(eecbsArgs, mapFile, curAgentNum, scen, combined_filename) # check in combinedDf
     if not runBefore:
-        command = runOnSingleInstance(eecbsArgs, workerOutputCSV, mapFile, curAgentNum, scen, runOrReturnCommand="return")
+        command = runOnSingleInstance(eecbsArgs, outputFolder, workerOutputCSV, mapFile, curAgentNum, scen, runOrReturnCommand="return")
         # print(command)
         runCommandWithTmux(worker_id, command)
         runBefore, status = detectExistingStatus(eecbsArgs, mapFile, curAgentNum, scen, workerOutputCSV)  # check in worker's df
@@ -188,16 +191,19 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
         assert(runBefore)
         numSuccess += status
 
+    # shouldRunDataManipulator = False
     if len(static_dict[mapName]["agentRange"]) > 0: # If we are running a range of agents, check the next one
         if numSuccess < numToRunTotal/2:
             print("Early terminating as only succeeded {}/{} for {} agents on map {}".format(
                                             numSuccess, numToRunTotal, curAgentNum, mapName))
+            # shouldRunDataManipulator = True
         else:
             scens = static_dict[mapName]["scens"]
             agentNumsToRun = static_dict[mapName]["agentRange"]
             assert(curAgentNum in agentNumsToRun)
             if agentNumsToRun.index(curAgentNum) + 1 == len(agentNumsToRun):
                 print("Finished all agent numbers for map: {}".format(mapName))
+                # shouldRunDataManipulator = True
             else:
                 nextAgentNum = agentNumsToRun[agentNumsToRun.index(curAgentNum) + 1]
                 lock.acquire()
@@ -208,6 +214,33 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
                     queue.put(("runSingleInstanceMT", (eecbsArgs, mapName, agentNum, scen)))
     else: # If not, we are done
         print("Finished all agent numbers for map: {}, succeeded {}/{}".format(mapName, numSuccess, numToRunTotal))
+        # shouldRunDataManipulator = True
+    
+    # if shouldRunDataManipulator:
+    #     queue.put(("runDataManipulator", 
+    #                 (mapName, )))
+                        # static_dict[mapName]["scens"], f".{file_home}/eecbs/raw_data/{mapName}/bd/", mapFile, 
+                        # f".{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapName}_{args.iter}", 
+                        # f".{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapName}_{args.iter}")))
+
+
+# def runDataManipulator(worker_id, mapName):
+#     # print("AT DATA MANIPULATOR")
+#     trainOut = f".{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapName}_{args.iter}"
+#     valOut = f".{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapName}_{args.iter}"
+#     if os.path.exists(trainOut) and os.path.exists(valOut):
+#         print("Data already exists")
+#         return
+
+#     # command = ["python", "./data_collection/data_manipulator.py", 
+#     command = ["python", "-m", "data_collection.data_manipulator", 
+#                 f"--pathsIn=.{file_home}/eecbs/raw_data/{mapName}/paths/", 
+#                 f"--bdIn=.{file_home}/eecbs/raw_data/{mapName}/bd/", 
+#                 f"--mapIn={mapsInputFolder}", f"--trainOut={trainOut}", 
+#                 f"--valOut={valOut}", "--num_parallel=3"]
+#     # os.get
+#     runCommandWithTmux(worker_id, " ".join(command))
+    
 
 
 def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
@@ -221,15 +254,33 @@ def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
             checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutputCSV, static_dict, *args)
         elif func == "runSingleInstanceMT":
             runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputCSV, static_dict, *args)
+        # elif func == "runDataManipulator":
+        #     runDataManipulator(worker_id, *args)
         else:
             raise ValueError("Unknown function")
         queue.task_done()
 
+def helperRun(command):
+    subprocess.run(command, check=True, shell=True)
 
 def eecbs_runner(args):
     """
     Compare the runtime of EECBS and W-EECBS
     """
+    ### Start filesystem logic
+    outputFolder = args.outputFolder
+    os.makedirs(outputFolder, exist_ok=True)
+    scenInputFolder = args.scenFolder
+    mapsInputFolder = args.mapFolder
+    global firstIter, eecbsPath
+    firstIter = args.firstIter
+    eecbsPath = args.eecbsPath
+    assert(eecbsPath.startswith(".") and eecbsPath.endswith("eecbs") and os.path.exists(eecbsPath))
+
+    
+    ### Start multiprocessing logic
+    ct = CustomTimer()
+    ct.start("EECBS Calls")
     manager = multiprocessing.Manager()
     lock = manager.Lock()
     queue = multiprocessing.JoinableQueue()
@@ -245,14 +296,16 @@ def eecbs_runner(args):
         mapsToScens[mapFile].append(scenInputFolder+"/"+dir_path)
 
     ### For each map, get the static information
+    # This includes the map file, the scens, and the number of agents to run
     static_dict = dict()
     nameToNumRun = manager.dict()
-    for mapFile in mapsToScens:
+    for mapFile in mapsToScens: # mapFile is just the map name without the path or .map extension
         static_dict[mapFile] = {
             "map": f"{mapsInputFolder}/{mapFile}.map",
             "scens": mapsToScens[mapFile],
             "agentsPerScen": [], # This is used for when each scen has a specific number of agents already specified, e.g. for encountered scens
             "agentRange": [], # This is used for when we want to run a range of agents, e.g. for benchmark scens
+            "outputFolder": f"{outputFolder}/{mapFile}", # This is where the output of the runs
         }
 
         if "benchmark" in scenInputFolder: # pre-loop run
@@ -275,15 +328,16 @@ def eecbs_runner(args):
         
         assert(len(static_dict[mapFile]["agentsPerScen"]) > 0)
         nameToNumRun[mapFile] = len(mapsToScens[mapFile])
-        print(f"Map: {mapFile} requires {nameToNumRun[mapFile]} runs")
+        # print(f"Map: {mapFile} requires {nameToNumRun[mapFile]} runs")
 
 
     def idToWorkerOutputCSV(worker_id, mapName):
         assert(worker_id >= -1)
         if worker_id == -1: # worker_id = -1 denotes combined csv
-            return f".{file_home}/eecbs/raw_data/{mapName}/csvs/combined.csv"
-        return f".{file_home}/eecbs/raw_data/{mapName}/csvs/worker_{worker_id}.csv"
+            return f"{outputFolder}/{mapName}/csvs/combined.csv"
+        return f"{outputFolder}/{mapName}/csvs/worker_{worker_id}.csv"
 
+    # pdb.set_trace()
     # Start worker processes with corresponding tmux session
     for worker_id in range(num_workers):
         createTmuxSession(worker_id)
@@ -302,10 +356,13 @@ def eecbs_runner(args):
 
     ## Create initial jobs
     for mapFile in mapsToScens.keys():
-        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
-        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
-        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/paths/", exist_ok=True)
-        os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/csvs/", exist_ok=True)
+        mapOutputFolder = static_dict[mapFile]["outputFolder"]
+        # print(mapOutputFolder)
+        os.makedirs(mapOutputFolder, exist_ok=True)
+        os.makedirs(f"{mapOutputFolder}/bd/", exist_ok=True)
+        os.makedirs(f"{mapOutputFolder}/paths/", exist_ok=True)
+        os.makedirs(f"{mapOutputFolder}/csvs/", exist_ok=True)
+        # pdb.set_trace()
         for scen, agentNum in zip(static_dict[mapFile]["scens"], static_dict[mapFile]["agentsPerScen"]):
             queue.put(("runSingleInstanceMT", (eecbsArgs, mapFile, agentNum, scen)))
 
@@ -325,52 +382,74 @@ def eecbs_runner(args):
             filename = idToWorkerOutputCSV(worker_id, mapName)
             if os.path.exists(filename):
                 os.remove(filename)
-
     # print("All tasks completed!")
+    ct.stop("EECBS Calls")
+    print("------------ Finished EECBS Calls in :{:.3f} seconds".format(ct.getTimes("EECBS Calls")))
 
     # pdb.set_trace()
-    for mapFile in mapsToScens:
-        # move the new eecbs output
-        # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
-        # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/bd/", exist_ok=True)
-        # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}/paths/", exist_ok=True)
+    ### Create folder for saving data_manipulator npz files
+    outputPathNpzFolder = args.outputPathNpzFolder
+    if outputPathNpzFolder is None:
+        outputPathNpzFolder = f"{outputFolder}/../eecbs_npzs"
+    os.makedirs(outputPathNpzFolder, exist_ok=True)
 
-        # bd_files = os.listdir(f".{file_home}/eecbs/raw_data/bd/")
-        # # path_files = os.listdir(f".{file_home}/eecbs/raw_data/paths/")
-        # for file_name in bd_files:
-        #     shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/bd/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/bd/{file_name}") 
-        # for file_name in path_files:
-        #     shutil.move(os.path.join(f".{file_home}/eecbs/raw_data/paths/", file_name), f".{file_home}/eecbs/raw_data/{mapFile}/paths/{file_name}") 
-        
-        # shutil.move(f".{file_home}/eecbs/raw_data/bd/", f".{file_home}/eecbs/raw_data/{mapFile}/bd/")
-        # shutil.move(f".{file_home}/eecbs/raw_data/paths/", f".{file_home}/eecbs/raw_data/{mapFile}/paths/")
-        # os.makedirs(f".{file_home}/eecbs/raw_data/paths/", exist_ok=True)
+    ### Run data manipulator with multiprocessing
+    ct.start("Data Manipulator")
+    input_list = []
+    numWorkersParallelForDataManipulator = 1
+    for mapFile in mapsToScens: # mapFile is just the map name without the path or .map extension
+        mapOutputFolder = static_dict[mapFile]["outputFolder"]
+        pathsIn = f"{mapOutputFolder}/paths/"
+        if not os.listdir(pathsIn): # if the pathsIn folder is empty
+            print("Skipping: {} as all failed".format(mapFile))
+            continue
+        # mapOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_map.npz"
+        # bdOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_bds.npz"
+        mapOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_map.npz"
+        bdOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_bds.npz"
 
+        command = " ".join(["python", "-m", "data_collection.data_manipulator", 
+                        f"--pathsIn={pathsIn}", f"--pathOutFile={outputPathNpzFolder}/{mapFile}_paths.npz",
+                        f"--bdIn={mapOutputFolder}/bd", f"--bdOutFile={bdOutputNpz}", 
+                        f"--mapIn={mapsInputFolder}", f"--mapOutFile={args.constantMapAndBDFolder}/all_maps.npz", #f"--mapOutFile={mapOutputNpz}",
+                        # f"--trainOut={outputFolder}/eecbs_npz/train_{mapFile}_{args.iter}",
+                        # f"--trainOut={file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
+                        # f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}",
+                        f"--num_parallel={numWorkersParallelForDataManipulator}"])
+        input_list.append((command,))
         # make the npz files
         # TODO don't hardcode exp, iter numbers
-        subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
-                        f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
-                        f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
-                        f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
-        # pdb.set_trace()
         # subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
         #                 f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
-        #                 f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/eecbs/raw_data/train_{mapFile}_{args.iter}", 
-        #                 f"--valOut=.{file_home}/eecbs/raw_data/train_{mapFile}_{args.iter}"])
-        # pdb.set_trace()
+        #                 f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
+        #                 f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
+    # pdb.set_trace()
+    with multiprocessing.Pool(processes=min(len(mapName), num_workers//numWorkersParallelForDataManipulator)) as pool:
+        pool.starmap(helperRun, input_list)
+    ct.stop("Data Manipulator")
+    print("------------ Finished Data Manipulator in :{:.3f} seconds".format(ct.getTimes("Data Manipulator")))
+    
 
-        # os.mkdir(f".{file_home}/eecbs/raw_data/bd")
-        # os.mkdir(f".{file_home}/eecbs/raw_data/paths")
-        # shutil.rmtree(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # clean path files once they have been recorded
-        # os.mkdir(f".{file_home}/eecbs/raw_data/{mapFile}/paths") # remake "path" folder
 
-# python batch_runner.py den312d --logPath data/logs/test --cutoffTime 10 --suboptimality 2
+# python ./data_collection/data_manipulator.py --pathsIn=data_collection/eecbs/raw_data/den520d/paths --bdIn=data_collection/eecbs/raw_data/den520d/bd/ 
+# --mapIn=data_collection/data/benchmark_data/maps/ --trainOut=data_collection/data/logs/EXP0/labels/raw/train_den520d_0 --valOut=data_collection/data/logs/EXP0/labels/raw/val_den520d_0
+
+### Example call from master_process_runner.py
+# python -m data_collection.eecbs_batchrunner2 --mapFolder=./data_collection/data/benchmark_data/maps --scenFolder=./data_collection/data/benchmark_data/scens 
+#                   --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ --expnum=0 --firstIter=true --iter=0 --num_parallel=10 --cutoffTime=20
+### Updated one
+# python -m data_collection.eecbs_batchrunner2 --mapFolder=data_collection/data/benchmark_data/maps --scenFolder=data_collection/data/benchmark_data/scens 
+#                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs/ --outputPathNpzFolder=data_collection/data/logs/EXP_Test/iter0/eecbs_npzs
+#                  --outputFolder=data_collection/data/logs/EXP_Test/iter0/eecbs_outputs --expnum=0 --firstIter=true --iter=0 --num_parallel=10 --cutoffTime=5
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--mapFolder", help="contains all scens to run", type=str)
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str)
-    parser.add_argument("--outputFolder", help="place to output all eecbs output", type=str)
+    parser.add_argument("--constantMapAndBDFolder", help="contains the precomputed map and bd folders", type=str)
+    parser.add_argument("--outputFolder", help="place to output all eecbs output, parent folder of each map folder", type=str)
+    parser.add_argument("--outputPathNpzFolder", help="folder for data_manipulator to create npz files", type=str, default=None)
+    parser.add_argument("--eecbsPath", help="path to eecbs executable", type=str, default="./data_collection/eecbs/build_release2/eecbs")
     parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
     parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
     parser.add_argument("--expnum", help="experiment number", type=int, default=0)
@@ -379,9 +458,9 @@ if __name__ == "__main__":
     parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 
                         type=int)
     args = parser.parse_args()
-    scenInputFolder = args.scenFolder
-    mapsInputFolder = args.mapFolder
-    firstIter = args.firstIter
-    file_home = "/data_collection"
+    # scenInputFolder = args.scenFolder
+    # mapsInputFolder = args.mapFolder
+    # firstIter = args.firstIter
+    # file_home = "/data_collection"
     print("iternum: " + str(args.iter))
     eecbs_runner(args)

@@ -20,6 +20,7 @@ data_collection/eecbs/build_release2/*
 data_collection/eecbs/CMakeFiles/*
 data_collection/eecbs/data/*
 data_collection/eecbs/raw_data/*
+data_collection/eecbs/raw_data_large/*
 data_collection/data/*
 *.scen
 *.zip

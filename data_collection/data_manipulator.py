@@ -7,13 +7,13 @@ import numpy as np
 import argparse
 import pdb
 import pandas as pd
-from os.path import exists
-import torchvision
 from torch.utils.data import Dataset
 from collections import defaultdict
-import pdb
-import math
-import random
+import multiprocessing
+# print(os.path.abspath(os.getcwd()))
+# sys.path.insert(0, './data_collection/')
+# sys.path.append(os.path.abspath(os.getcwd())+"/custom_utils/")
+from custom_utils.custom_timer import CustomTimer
 
 '''
 0. parse bd (fix eecbs by having it make another txt output, parse it here)
@@ -31,7 +31,7 @@ class PipelineDataset(Dataset):
     '''
 
     # instantiate class variables
-    def __init__(self, numpy_data_path, k, size, max_agents, helper_bd_preprocess="middle"):
+    def __init__(self, mapFileNpz, bdFileNpz, pathFileNpz, k, size, max_agents, helper_bd_preprocess="middle"):
         '''
         INPUT:
             numpy_data_path: the path to the npz file storing all map, backward dijkstra, and path information across all EECBS runs. (string)
@@ -49,12 +49,18 @@ class PipelineDataset(Dataset):
         '''
 
         # read in the dataset, saving map, bd, and path info to class variables
-        loaded = np.load(numpy_data_path)
+        # loaded = np.load(numpy_data_path)
+        # self.numpy_data_path = numpy_data_path
+        self.maps = dict(np.load(mapFileNpz))
+        self.bds = dict(np.load(bdFileNpz))
+        self.tn2 = dict(np.load(pathFileNpz))
         self.k = k
         self.size = size
-        self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
+        # self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
         self.max_agents = max_agents
         self.helper_bd_preprocess = helper_bd_preprocess
+
+        self.parse_npz2()
 
 
     # get number of instances in total (length of training data)
@@ -190,7 +196,9 @@ class PipelineDataset(Dataset):
                 j += 1
         except: 
             print(loaded.keys())
-            pdb.set_trace()
+            print(self.numpy_data_path)
+            # pdb.set_trace()
+            raise RuntimeError("SHOULDNT BE HERE")
         self.bds = dict(items[i:j]) # get all the bds
         k = j
         while k < len(items) and "twh" not in items[k][0]:
@@ -210,6 +218,27 @@ class PipelineDataset(Dataset):
             # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
         for key in self.maps:
             self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
+
+    def parse_npz2(self):
+        # self.maps = maps
+        # self.bds = bds
+        # self.tn2 = paths
+        # since the # of data is simply number of agent locations, this is t*n, which we append to the dictionary for each path
+        # pdb.set_trace()
+        totalT = 0 
+        for ky, v in self.tn2.items():
+            t, n, _ = np.shape(v)
+            self.tn2[ky] = (t*n, v)
+            totalT += t
+        self.length = totalT
+
+        npads = ((0,0),(self.k, self.k), (self.k, self.k))
+        for key in self.bds:
+            self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
+            # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
+        for key in self.maps:
+            self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
+
 
 
 def parse_map(mapfile):
@@ -244,6 +273,7 @@ def parse_path(pathfile):
     outputs: (T,N,2) np.darray: where is each agent at time T?
     '''
     # save dimensions for later array saving
+    # pdb.set_trace()
     w = h = 0
     # maps timesteps to a list of agent coordinates
     timestepsToMaps = defaultdict(list)
@@ -314,8 +344,22 @@ def parse_path(pathfile):
 
     res = np.asarray(res)
     # print(t, w, h, n)
+    # pdb.set_trace()
 
-    # res2 = [[[1 if [width, height] in res[time] else 0 for width in range(w)] for height in range(h)] for time in range(t)]
+    # with open(pathfile, 'r') as fd:
+    #     for i, line in enumerate(fd.readlines()):
+    #         if i == 0:
+    #             line = line[:-1]
+    #             line = line.split(",")
+    #             w = int(line[0])
+    #             h = int(line[1])
+    #         # timesteps = 0
+    #         # for c in line:
+    #         #     if c == ',': timesteps += 1
+    #         # maxTimesteps = max(maxTimesteps, timesteps)
+    #         # linenum += 1
+    #         coords = line.split("->")
+
     return res
 
 def parse_bd(bdfile):
@@ -324,44 +368,65 @@ def parse_bd(bdfile):
     input: bdfile (string)
     output: (N,H,W) NOTE: this is a transposed bd compared to the map! (fixed in npz parsing logic in dataloader)
     '''
-    timetobd = defaultdict(list)
+    # pdb.set_trace()
+    # timetobd = defaultdict(list)
+    # w, h = None, None
+    # with open(bdfile, 'r') as fd:
+    #     agent = 0
+    #     linenum = 0
+    #     for line in fd.readlines():
+    #         if linenum == 0: # parse dimensions and keep going
+    #             line = line[:-1]
+    #             line = line.split(",")
+    #             h = int(line[0])
+    #             w = int(line[1])
+    #             linenum += 1
+    #             continue
+    #         line = line[:-2]
+    #         heuristics = line.split(",")
+    #         heuristics = [int(x) for x in heuristics]
+    #         timetobd[agent] = heuristics
+    #         agent += 1
+    # for key in timetobd:
+    #     timetobd[key] = np.asarray(timetobd[key])
+    #     nwh = timetobd[key]
+    #     new = []
+    #     assert(not len(nwh) % w and not len(nwh) % h)
+    #     # transform to n x w x h here, assuming row-major order
+    #     while len(nwh):
+    #         takeaway = nwh[:w]
+    #         new.append(takeaway)
+    #         nwh = nwh[w:]
+    #     timetobd[key] = new
+
+    # # make this n x w x h from dictionary of n w x h arrays
+    # res = []
+    # for i in range(len(timetobd)):
+    #     res.append(timetobd[i])
+    # res = np.asarray(res)
+    # pdb.set_trace()
+
+    agent_to_bd = []
     w, h = None, None
     with open(bdfile, 'r') as fd:
-        agent = 0
-        linenum = 0
-        for line in fd.readlines():
-            if linenum == 0: # parse dimensions and keep going
+        for i, line in enumerate(fd.readlines()):
+            if i == 0: # parse dimensions and keep going
                 line = line[:-1]
                 line = line.split(",")
                 h = int(line[0])
                 w = int(line[1])
-                linenum += 1
-                continue
-            line = line[:-2]
-            heuristics = line.split(",")
-            heuristics = [int(x) for x in heuristics]
-            timetobd[agent] = heuristics
-            agent += 1
-    for key in timetobd:
-        timetobd[key] = np.asarray(timetobd[key])
-        nwh = timetobd[key]
-        new = []
-        assert(not len(nwh) % w and not len(nwh) % h)
-        # transform to n x w x h here, assuming row-major order
-        while len(nwh):
-            takeaway = nwh[:w]
-            new.append(takeaway)
-            nwh = nwh[w:]
-        timetobd[key] = new
+            else:
+                agent_to_bd.append(np.fromstring(line, dtype=int, sep=',')) # (W*H+1)
+    agent_to_bd = np.asarray(agent_to_bd)[:,:-1] # (N, W*H) removes trailing comma
+    agent_to_bd = agent_to_bd.reshape((agent_to_bd.shape[0], h, w)) # (N, H, W)
+    # pdb.set_trace()
+    # tmp = np.fromstring(allLines, dtype=int, sep=',') # Ideally, but fails due to trailing comma
+    # tmp = np.genfromtxt(bdfile, delimiter=',', dtype=int, skip_header=1) # Works but too slow
 
-    # make this n x w x h from dictionary of n w x h arrays
-    res = []
-    for i in range(len(timetobd)):
-        res.append(timetobd[i])
-    res = np.asarray(res)
-    return res
+    # return res
+    return agent_to_bd
 
-def batch_map(dir):
+def batch_map(dir, num_parallel):
     '''
     goes through a directory of maps, parsing each one and saving to a dictionary
     input: directory of maps (string)
@@ -369,21 +434,34 @@ def batch_map(dir):
     '''
 
     res = {} # string->np
-    # iterate over files in directory, parsing each map
+    inputs_list = []
+    filenames_list = []
     for filename in os.listdir(dir):
         f = os.path.join(dir, filename)
-        # print(f)
-        # checking if it is a file
         if os.path.isfile(f):
             if ".DS_Store" in f: continue # deal with invisible ds_store file
             # parse the map file and add to a global dictionary (or some class variable dictionary)
-            val = parse_map(f)
-            res[filename] = val
+            if num_parallel == 1: # Parse it directly
+                res[filename] = parse_map(f)
+            else:
+                inputs_list.append((f,))  # Note, need to pass in as tuple for use with starmap
+                filenames_list.append(filename)
         else:
             raise RuntimeError("bad map dir")
+        
+    if num_parallel == 1:
+        return res
+    
+    with multiprocessing.Pool(processes=num_parallel) as pool:
+        results = pool.starmap(parse_map, inputs_list)
+
+    for i in range(len(inputs_list)):
+        filename = filenames_list[i]
+        res[filename] = results[i]
+        
     return res
 
-def batch_bd(dir):
+def batch_bd(dir, num_parallel):
     '''
     goes through a directory of bd outputs, parsing each one and saving to a dictionary
     input: directory of backward djikstras (string)
@@ -391,17 +469,48 @@ def batch_bd(dir):
     '''
     res = {} # string->np
     # iterate over files in directory, parsing each map
+    # for filename in os.listdir(dir):
+    #     f = os.path.join(dir, filename)
+    #     # checking if it is a file
+    #     if os.path.isfile(f):
+    #         # parse the bd file and add to a global dictionary (or some class variable dictionary)
+    #         val = parse_bd(f)
+    #         bdname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. "Paris_1_256-random-110, where 1 is instance, 10 is agents"
+    #         res[bdname + agents] = val # TODO make sure that filename doesn't have weird chars you don't want in the npz
+    #         # print(f)
+    #     else:
+    #         raise RuntimeError("bad bd dir")
+
+    # res = {} # string->np
+    inputs_list = []
+    filenames_list = []
+    # iterate over files in directory, parsing each map
     for filename in os.listdir(dir):
         f = os.path.join(dir, filename)
         # checking if it is a file
         if os.path.isfile(f):
             # parse the bd file and add to a global dictionary (or some class variable dictionary)
-            val = parse_bd(f)
+            # val = parse_bd(f)
             bdname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. "Paris_1_256-random-110, where 1 is instance, 10 is agents"
-            res[bdname + agents] = val # TODO make sure that filename doesn't have weird chars you don't want in the npz
-            # print(f)
+            # res[bdname + agents] = val # TODO make sure that filename doesn't have weird chars you don't want in the npz
+            if num_parallel == 1:
+                res[bdname + agents] = parse_bd(f)
+            else:
+                inputs_list.append((f,))  # Note, need to pass in as tuple for use with starmap
+                filenames_list.append(bdname + agents)
         else:
             raise RuntimeError("bad bd dir")
+    
+    if num_parallel == 1:
+        return res
+
+    with multiprocessing.Pool(processes=num_parallel) as pool:
+        results = pool.starmap(parse_bd, inputs_list)
+
+    for i in range(len(inputs_list)):
+        filename = filenames_list[i]
+        res[filename] = results[i]
+        
     return res
 
 def batch_path(dir):
@@ -457,50 +566,86 @@ def main():
     # cmdline argument parsing: take in dirs for paths, maps, and bds, and where you want the outputted npz
     parser = argparse.ArgumentParser()
     parser.add_argument("--pathsIn", help="directory containing txt files of agents and paths taken", type=str)
+    parser.add_argument("--pathOutFile", help="output filepath npz to save path", type=str)
     parser.add_argument("--bdIn", help="directory containing txt files with backward djikstra output", type=str)
+    parser.add_argument("--bdOutFile", help="output filepath npz to save backward djikstras", type=str)
     parser.add_argument("--mapIn", help="directory containing txt files with obstacles", type=str)
-    npzMsg = "output file with maps, bds as name->array dicts, along with (mapname, bdname, path) triplets for each EECBS run"
-    parser.add_argument("--trainOut", help=npzMsg, type=str)
-    parser.add_argument("--valOut", help=npzMsg, type=str)
+    parser.add_argument("--mapOutFile", help="output filepath npz to save map", type=str)
+    # npzMsg = "output file with maps, bds as name->array dicts, along with (mapname, bdname, path) triplets for each EECBS run"
+    parser.add_argument("--num_parallel", help="num_parallel", type=int, default=1)
     
 
     args = parser.parse_args()
 
-    pathsIn = args.pathsIn
-    bdIn = args.bdIn
-    mapIn = args.mapIn
-    trainOut = args.trainOut
-    valOut = args.valOut
+    # pathsIn = args.pathsIn
+    # bdIn = args.bdIn
+    # mapIn = args.mapIn
+    # trainOut = args.trainOut
 
     # instantiate global variables that will keep track of each map and bd that you've encountered
-    maps = {} # maps mapname->np array containing the obstacles in map
-    bds = {} # maps bdname->np array containing bd for each agent in the instance (NOTE: keep track of number agents in bdname)
+    # maps = {} # maps mapname->np array containing the obstacles in map
+    # bds = {} # maps bdname->np array containing bd for each agent in the instance (NOTE: keep track of number agents in bdname)
 
     # parse each map, add to global dict
+    ct = CustomTimer()
     
-    maps = batch_map(mapIn)
-    # print(maps)
+    assert(args.mapOutFile.endswith(".npz"))
+    if os.path.exists(args.mapOutFile):
+        print("Map file already exists, skipping map parsing")
+    else:
+        with ct("Parsing maps"):
+            maps = batch_map(args.mapIn, args.num_parallel) # maps mapname->np array containing the obstacles in map
+        np.savez_compressed(args.mapOutFile, **maps)
+        ct.printTimes("Parsing maps")
 
     # parse each bd, add to global dict
-    bds = batch_bd(bdIn)
-    # print(bds)
+    assert(args.bdOutFile.endswith(".npz"))
+    if os.path.exists(args.bdOutFile):
+        print("BD file already exists, skipping bd parsing")
+    else:
+        with ct("Parsing bds"):
+            bds = batch_bd(args.bdIn, args.num_parallel)
+        np.savez_compressed(args.bdOutFile, **bds)
+        ct.printTimes("Parsing bds")
 
     # parse each path, add to global list
-    data1train, data1val = batch_path(pathsIn)
-
+    assert(args.pathOutFile.endswith(".npz"))
+    if os.path.exists(args.pathOutFile):
+        print("Path file already exists, skipping path parsing")
+    else:
+        with ct("Parsing paths"):
+            data1train, data1val = batch_path(args.pathsIn)
+        ct.printTimes("Parsing paths")
+        with ct("Saving npz"):
+            np.savez_compressed(args.pathOutFile, **data1train)
+        ct.printTimes("Saving npz")
+    
     # send each map, each bd, and each tuple representing a path + instance to npz
-    np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
+    # with ct("Saving npz"):
+    #     np.savez_compressed(trainOut, **maps, **bds, **data1train) # Note automatically stacks to numpy vectors
+    # print("Done saving train npz")
+    # print(ct.getTimes("Saving npz"))
+    # with ct("Saving npz"):
+    #     np.savez_compressed(trainOut + ".npz", **data1train)
+    # ct.printTimes("Saving npz")
 
-    # DEBUGGING: test out the dataloader
-    loader = PipelineDataset(trainOut + ".npz", 4, float('inf'), 300, 'current')
-    print(len(loader), " train size")
-    for i in range(len(loader)):
-        locs, labels, bd, grid = loader[i]
-        assert(labels.shape[1] == 5)
-        assert(locs.shape[1] == 2)
-        # grid/bd should be 9,9 for single agent but is full map for graph version
+    # DEBUGGING: test out the dataloaders
+    with ct("Testing dataloader"):
+        loader = PipelineDataset(args.mapOutFile, args.bdOutFile, args.pathOutFile, 4, float('inf'), 300, 'current')
+        print(len(loader), " train size")
+        random_samples = np.random.choice(len(loader), 10)
+        for i in random_samples:
+            locs, labels, bd, grid = loader[i]
+            assert(labels.shape[1] == 5)
+            assert(locs.shape[1] == 2)
+            # grid/bd should be 9,9 for single agent but is full map for graph version
 
 
-
+# python -m data_collection.data_manipulator --pathsIn=./data_collection/eecbs/raw_data/final_test8/paths/ 
+#       --bdIn=./data_collection/eecbs/raw_data/final_test8/bd/ 
+#       --bdOutFile=./data_collection/data/benchmark_data/constant_npzs/final_test8_bds.npz 
+#       --mapOutFile=./data_collection/data/benchmark_data/constant_npzs/final_test8_map.npz 
+#       --mapIn=./data_collection/data/benchmark_data/maps --trainOut=./data_collection/data/logs/EXP0/labels/raw/train_final_test8_0 
+#       --num_parallel=1
 if __name__ == "__main__":
     main()
