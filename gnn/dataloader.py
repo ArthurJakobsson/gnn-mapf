@@ -12,10 +12,13 @@ from tqdm import tqdm
 import os
 import sys
 from multiprocessing import Pool
+# from multiprocessing.dummy import Pool
 
 # print(os.path.abspath(os.getcwd()))
-sys.path.insert(0, './data_collection/')
-import data_manipulator
+# sys.path.insert(0, './data_collection/')
+# import data_manipulator
+from data_collection import data_manipulator
+from custom_utils.custom_timer import CustomTimer
 
 def slice_maps(pos, curmap, k):
     """
@@ -112,7 +115,16 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
 class MyOwnDataset(Dataset):
-    def __init__(self, root, device, exp_folder, iternum, num_cores=20, transform=None, pre_transform=None, pre_filter=None, generate_initial=True):
+    def __init__(self, root, device, exp_folder, iternum, 
+                mapNpzFile, bdNpzFolder, pathNpzFolders,
+                num_cores=20, transform=None, pre_transform=None, pre_filter=None, generate_initial=True):
+        self.mapNpzFile = mapNpzFile
+        self.bdNpzFolder = bdNpzFolder
+        self.pathNpzFolders = pathNpzFolders
+        self._raw_file_names = None # Use this to avoid recomputing raw_file_names everytime
+
+        self.ct = CustomTimer()
+
         self.num_cores = num_cores
         self.k = 4 # padding size
         self.m = 5 # number of agents considered close
@@ -135,19 +147,42 @@ class MyOwnDataset(Dataset):
         return self.length
 
     @property
+    def raw_dir(self) -> str:
+        raise NotImplementedError("Should not be called!")
+    
+    @property
+    def raw_paths(self):
+        return self.raw_file_names
+
+    @property
     def raw_file_names(self):
-        npz_paths = os.listdir(self.exp_folder+"/labels/raw/")
-        return npz_paths
+        if self._raw_file_names is None:
+            # npz_paths = os.listdir(self.exp_folder+"/labels/raw/")
+            # npz_paths = os.listdir(f"{self.exp_folder}/iter{self.iternum}/eecbs_npzs/")
+            # return npz_paths
+            # pdb.set_trace()
+            npz_paths = []
+            for folder in self.pathNpzFolders:
+            #     npz_paths.extend(os.listdir(folder))
+                npz_paths.extend([os.path.join(folder, file) for file in os.listdir(folder)])
+            self._raw_file_names = npz_paths
+        # pdb.set_trace()
+        print(len(self._raw_file_names))
+        return self._raw_file_names
 
     @property
     def processed_file_names(self):
         file_names = []
         for i in range(self.length):
             file_names.append(f"data_{i}.pt")
-        return  file_names 
+        return file_names 
 
-    def download():
-        raise ImportError
+    @property
+    def has_download(self) -> bool:
+        """Need to define as parent Dataset checks this"""
+        return False
+    # def download():
+    #     raise ImportError
 
     def create_and_save_graph(self, idx, time_instance):
         # Graphify
@@ -163,26 +198,45 @@ class MyOwnDataset(Dataset):
         if self.iternum==0 and not self.generate_initial:
             return #if pt's are made already skip the first iteration of pt making
         idx = self.load_metadata()
+        print(f"Num cores: {self.num_cores}")
         for raw_path in self.raw_paths: #TODO check if new npzs are read
-            if "maps" in raw_path or "bds" in raw_path:
+            raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
+            # if "maps" in raw_path or "bds" in raw_path:
+            #     continue
+            if not raw_path.endswith(".npz"):
                 continue
-            cur_path_iter = raw_path.split("_")[-1][:-4]
-            if not (int(cur_path_iter)==self.iternum):
-                continue
+            # pdb.set_trace()
+            map_name = raw_path.split("/")[-1].removesuffix("_paths.npz")
+            # cur_path_iter = raw_path.split("_")[-1][:-4]
+            # if not (int(cur_path_iter)==self.iternum):
+            #     continue
 
-            cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
+            # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
+            bdNpzFile = f"{self.bdNpzFolder}/{map_name}_bds.npz"
+            self.ct.start("Loading")
+            cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, raw_path, self.k, self.size, self.max_agents)
             print(f"Loading: {raw_path} of size {len(cur_dataset)}")
             idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
-            with Pool(self.num_cores) as p: #change number of workers later
-                p.starmap(self.create_and_save_graph, zip(idx_list, cur_dataset))
+            self.ct.stop("Loading")
+            pdb.set_trace()
+            self.ct.start("Processing")
+            for t in range(len(cur_dataset)):
+                time_instance = cur_dataset[t]
+                self.create_and_save_graph(t, time_instance)
+                
+            # with Pool(self.num_cores) as p: #change number of workers later
+            #     p.starmap(self.create_and_save_graph, zip(idx_list, cur_dataset))
+            self.ct.stop("Processing")
             # for time_instance in tqdm(cur_dataset):
                 
             self.length = len(cur_dataset)
             idx+=self.length
             meta = torch.tensor([self.length])
             torch.save(meta, osp.join(self.processed_dir, f"meta_data.pt"))
-
+            # print(self.ct.getTimes())
+            self.ct.printTimes()
+        
     def len(self):
         return self.length
 

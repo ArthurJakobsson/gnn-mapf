@@ -85,6 +85,7 @@ if __name__ == "__main__":
             os.makedirs(f"./{LE}/iter{iternum}")
 
         # train the naive model
+        # python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4 --generate_initial=True
         subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}", f"--num_cores={num_cores}", f"--generate_initial={generate_initial}"])
         log_time(f"training for iteration: {iternum}")
         # run cs-pibt new maps to create new scenes

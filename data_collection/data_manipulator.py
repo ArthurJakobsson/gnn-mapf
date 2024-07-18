@@ -53,6 +53,7 @@ class PipelineDataset(Dataset):
         # read in the dataset, saving map, bd, and path info to class variables
         # loaded = np.load(numpy_data_path)
         # self.numpy_data_path = numpy_data_path
+        assert(mapFileNpz.endswith(".npz") and bdFileNpz.endswith(".npz") and pathFileNpz.endswith(".npz"))
         self.maps = dict(np.load(mapFileNpz))
         self.bds = dict(np.load(bdFileNpz))
         self.tn2 = dict(np.load(pathFileNpz))
@@ -84,25 +85,37 @@ class PipelineDataset(Dataset):
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
         bd, grid, paths, timestep, t = self.find_instance(idx)
-        labels = []
-        locs = []
-        num_agent = paths.shape[1]
-        for agent in range(0,num_agent): # TODO: numpyify this
-            curloc = paths[timestep, agent]
-            nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
-            label = nextloc - curloc # get the label: where did the agent go next?
-            # create one-hot vector
-            index = None
-            if label[0] == 0 and label[1] == 0: index = 0
-            elif label[0] == 0 and label[1] == 1: index = 1
-            elif label[0] == 1 and label[1] == 0: index = 2
-            elif label[0] == -1 and label[1] == 0: index = 3
-            else: index = 4
-            finallabel = np.zeros(5)
-            finallabel[index] = 1
-            labels.append(finallabel)
-            locs.append(curloc)
-        return np.array(locs), np.array(labels), bd, grid
+        # labels = []
+        # locs = []
+        # num_agent = paths.shape[1]
+        # for agent in range(0,num_agent): # TODO: numpyify this
+        #     curloc = paths[timestep, agent]
+        #     nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
+        #     label = nextloc - curloc # get the label: where did the agent go next?
+        #     # create one-hot vector
+        #     index = None
+        #     if label[0] == 0 and label[1] == 0: index = 0
+        #     elif label[0] == 0 and label[1] == 1: index = 1
+        #     elif label[0] == 1 and label[1] == 0: index = 2
+        #     elif label[0] == -1 and label[1] == 0: index = 3
+        #     else: index = 4
+        #     finallabel = np.zeros(5)
+        #     finallabel[index] = 1
+        #     labels.append(finallabel)
+        #     locs.append(curloc)
+        # return np.array(locs), np.array(labels), bd, grid
+        cur_locs = paths[timestep] # (N,2)
+        next_locs = paths[timestep+1] if timestep < t-1 else cur_locs # (N,2)
+        deltas = next_locs - cur_locs # (N,2)
+
+        # Define the mapping from direction vectors to indices
+        direction_labels = np.array([(0,0), (0,1), (1,0), (-1,0), (0,-1)]) # (5,2)
+        # Find the index of each direction in the possible_directions array
+        indices = np.argmax(np.all(deltas[:, None] == direction_labels, axis=2), axis=1)
+        # Create a one-hot encoded array using np.eye
+        labels = np.eye(direction_labels.shape[0])[indices]
+        return cur_locs, labels, bd, grid
+
 
     def process_helper_bds(self, bd, windowAgentLocs, windowAgents, curloc, dijk):
         '''

@@ -126,8 +126,11 @@ def detectExistingStatus(eecbsArgs, mapfile, aNum, scenfile, df): # TODO update
         df = df[df[aKey] == aValue]  # Filter the dataframe to only include the runs with the same parameters
     df = df[(df["map"] == mapfile) & (df["agents"] == scenfile) & (df["agentNum"] == aNum)]
     if len(df) > 0:
-        assert(len(df) == 1)
-        success = df["solution cost"].values[0] != -1
+        # assert(len(df) == 1)
+        if len(df) > 1:
+            print("Warning, multiple runs with the same parameters, likely due to a previous crash")
+            print("Map: {}, NumAgents: {}, Scen: {}, # Found: {}".format(mapfile, aNum, scenfile, len(df)))
+        success = df["solution cost"].values[-1] != -1
         # success = df["overall_solution"].values[0] == 1
         return True, success
     else:
@@ -192,11 +195,13 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
         numSuccess += status
 
     # shouldRunDataManipulator = False
+    finished = False
     if len(static_dict[mapName]["agentRange"]) > 0: # If we are running a range of agents, check the next one
         if numSuccess < numToRunTotal/2:
             print("Early terminating as only succeeded {}/{} for {} agents on map {}".format(
                                             numSuccess, numToRunTotal, curAgentNum, mapName))
             # shouldRunDataManipulator = True
+            finished = True
         else:
             scens = static_dict[mapName]["scens"]
             agentNumsToRun = static_dict[mapName]["agentRange"]
@@ -204,6 +209,7 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
             if agentNumsToRun.index(curAgentNum) + 1 == len(agentNumsToRun):
                 print("Finished all agent numbers for map: {}".format(mapName))
                 # shouldRunDataManipulator = True
+                finished = True
             else:
                 nextAgentNum = agentNumsToRun[agentNumsToRun.index(curAgentNum) + 1]
                 lock.acquire()
@@ -214,7 +220,13 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
                     queue.put(("runSingleInstanceMT", (eecbsArgs, mapName, agentNum, scen)))
     else: # If not, we are done
         print("Finished all agent numbers for map: {}, succeeded {}/{}".format(mapName, numSuccess, numToRunTotal))
+        finished = True
         # shouldRunDataManipulator = True
+
+    if finished:
+        finished_txt = idToWorkerOutputCSV(-2, mapName)
+        with open(finished_txt, "w") as f:
+            f.write("")
     
     # if shouldRunDataManipulator:
     #     queue.put(("runDataManipulator", 
@@ -241,8 +253,6 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
 #     # os.get
 #     runCommandWithTmux(worker_id, " ".join(command))
     
-
-
 def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
             worker_id: int, num_workers: int, static_dict, idToWorkerOutputCSV):
     while True:
@@ -263,6 +273,10 @@ def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
 def helperRun(command):
     subprocess.run(command, check=True, shell=True)
 
+# def createFinishedTxtFile(outputFolder, mapName):
+#     with open(f"{outputFolder}/{mapName}/finished.txt", "w") as f:
+#         f.write("")
+
 def eecbs_runner(args):
     """
     Compare the runtime of EECBS and W-EECBS
@@ -277,6 +291,20 @@ def eecbs_runner(args):
     eecbsPath = args.eecbsPath
     assert(eecbsPath.startswith(".") and eecbsPath.endswith("eecbs") and os.path.exists(eecbsPath))
 
+    def idToWorkerOutputCSV(worker_id, mapName):
+        assert(worker_id >= -2)
+        if worker_id == -2: # worker_id = -2 denotes the finished txt
+            return f"{outputFolder}/{mapName}/finished.txt"
+        if worker_id == -1: # worker_id = -1 denotes combined csv
+            return f"{outputFolder}/{mapName}/csvs/combined.csv"
+        return f"{outputFolder}/{mapName}/csvs/worker_{worker_id}.csv"
+
+    # Create folder for saving data_manipulator npz files
+    # Do this now so we can check if the folder exists before running the eecbs
+    outputPathNpzFolder = args.outputPathNpzFolder
+    if outputPathNpzFolder is None:
+        outputPathNpzFolder = f"{outputFolder}/../eecbs_npzs"
+    os.makedirs(outputPathNpzFolder, exist_ok=True)
     
     ### Start multiprocessing logic
     ct = CustomTimer()
@@ -299,7 +327,9 @@ def eecbs_runner(args):
     # This includes the map file, the scens, and the number of agents to run
     static_dict = dict()
     nameToNumRun = manager.dict()
+    maps_to_run = []
     for mapFile in mapsToScens: # mapFile is just the map name without the path or .map extension
+        ### Create the static_dict for the map
         static_dict[mapFile] = {
             "map": f"{mapsInputFolder}/{mapFile}.map",
             "scens": mapsToScens[mapFile],
@@ -308,11 +338,22 @@ def eecbs_runner(args):
             "outputFolder": f"{outputFolder}/{mapFile}", # This is where the output of the runs
         }
 
+        ### Check if the paths npz file already exists, if so skip
+        # target_npz = f"{outputPathNpzFolder}/{mapFile}_paths.npz"
+        if os.path.exists(idToWorkerOutputCSV(-2, mapFile)): # If eecbs has already run
+            print("Skipping {} as finished.txt already exists".format(mapFile))
+            continue
+        else: # Else, restart from scratch, so remove existing folders
+            if os.path.exists(f"{outputFolder}/{mapFile}"):
+                print("Removing previous potentially partial run for {}".format(mapFile))
+                shutil.rmtree(f"{outputFolder}/{mapFile}", ignore_errors=False)
+        maps_to_run.append(mapFile)
+
+        ### Get the number of agents to run for each scen
         if "benchmark" in scenInputFolder: # pre-loop run
             increment = min(100,  mapsToMaxNumAgents[mapFile]-1)
             agentNumbers = list(range(increment, mapsToMaxNumAgents[mapFile]+1, increment))
             static_dict[mapFile]["agentRange"] = agentNumbers
-            # pdb.set_trace()
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
         else: # we are somewhere in the training loop
             agentNumbers = []
@@ -329,13 +370,6 @@ def eecbs_runner(args):
         assert(len(static_dict[mapFile]["agentsPerScen"]) > 0)
         nameToNumRun[mapFile] = len(mapsToScens[mapFile])
         # print(f"Map: {mapFile} requires {nameToNumRun[mapFile]} runs")
-
-
-    def idToWorkerOutputCSV(worker_id, mapName):
-        assert(worker_id >= -1)
-        if worker_id == -1: # worker_id = -1 denotes combined csv
-            return f"{outputFolder}/{mapName}/csvs/combined.csv"
-        return f"{outputFolder}/{mapName}/csvs/worker_{worker_id}.csv"
 
     # pdb.set_trace()
     # Start worker processes with corresponding tmux session
@@ -355,9 +389,13 @@ def eecbs_runner(args):
     # pdb.set_trace()
 
     ## Create initial jobs
-    for mapFile in mapsToScens.keys():
-        mapOutputFolder = static_dict[mapFile]["outputFolder"]
+    for mapFile in maps_to_run:
+        ### Clean up the folder if already exists (which would occur if run previously)
+        # if combined.csv exists, we can skip this job
+        # Else remove previous runs
+        
         # print(mapOutputFolder)
+        mapOutputFolder = static_dict[mapFile]["outputFolder"]
         os.makedirs(mapOutputFolder, exist_ok=True)
         os.makedirs(f"{mapOutputFolder}/bd/", exist_ok=True)
         os.makedirs(f"{mapOutputFolder}/paths/", exist_ok=True)
@@ -377,7 +415,7 @@ def eecbs_runner(args):
         p.join()
 
     # Delete CSV files with {mapName}_worker naming convention
-    for mapName in mapsToScens.keys():
+    for mapName in maps_to_run:
         for worker_id in range(num_workers):
             filename = idToWorkerOutputCSV(worker_id, mapName)
             if os.path.exists(filename):
@@ -386,35 +424,29 @@ def eecbs_runner(args):
     ct.stop("EECBS Calls")
     print("------------ Finished EECBS Calls in :{:.3f} seconds".format(ct.getTimes("EECBS Calls")))
 
-    # pdb.set_trace()
-    ### Create folder for saving data_manipulator npz files
-    outputPathNpzFolder = args.outputPathNpzFolder
-    if outputPathNpzFolder is None:
-        outputPathNpzFolder = f"{outputFolder}/../eecbs_npzs"
-    os.makedirs(outputPathNpzFolder, exist_ok=True)
-
     ### Run data manipulator with multiprocessing
     ct.start("Data Manipulator")
     input_list = []
     numWorkersParallelForDataManipulator = 1
-    for mapFile in mapsToScens: # mapFile is just the map name without the path or .map extension
+    for mapFile in mapsToScens.keys(): # mapFile is just the map name without the path or .map extension
         mapOutputFolder = static_dict[mapFile]["outputFolder"]
         pathsIn = f"{mapOutputFolder}/paths/"
-        if not os.listdir(pathsIn): # if the pathsIn folder is empty
+        if not os.path.exists(pathsIn) or not os.listdir(pathsIn): # if the pathsIn folder doesn't exist or is empty
             print("Skipping: {} as all failed".format(mapFile))
             continue
         # mapOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_map.npz"
         # bdOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_bds.npz"
         mapOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_map.npz"
         bdOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_bds.npz"
+        pathOutputNpz = f"{outputPathNpzFolder}/{mapFile}_paths.npz"
+        if os.path.exists(pathOutputNpz):
+            print("Skipping: {} as paths npz already exists".format(mapFile))
+            continue
 
         command = " ".join(["python", "-m", "data_collection.data_manipulator", 
-                        f"--pathsIn={pathsIn}", f"--pathOutFile={outputPathNpzFolder}/{mapFile}_paths.npz",
+                        f"--pathsIn={pathsIn}", f"--pathOutFile={pathOutputNpz}",
                         f"--bdIn={mapOutputFolder}/bd", f"--bdOutFile={bdOutputNpz}", 
                         f"--mapIn={mapsInputFolder}", f"--mapOutFile={args.constantMapAndBDFolder}/all_maps.npz", #f"--mapOutFile={mapOutputNpz}",
-                        # f"--trainOut={outputFolder}/eecbs_npz/train_{mapFile}_{args.iter}",
-                        # f"--trainOut={file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
-                        # f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
         input_list.append((command,))
         # make the npz files
@@ -424,10 +456,22 @@ def eecbs_runner(args):
         #                 f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
         #                 f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
     # pdb.set_trace()
-    with multiprocessing.Pool(processes=min(len(mapName), num_workers//numWorkersParallelForDataManipulator)) as pool:
-        pool.starmap(helperRun, input_list)
+    if len(input_list) > 0:
+        with multiprocessing.Pool(processes=min(len(input_list), num_workers//numWorkersParallelForDataManipulator)) as pool:
+            pool.starmap(helperRun, input_list)
+    else:
+        print("No data manipulator runs as all paths npz files already exist")
     ct.stop("Data Manipulator")
     print("------------ Finished Data Manipulator in :{:.3f} seconds".format(ct.getTimes("Data Manipulator")))
+
+    ### Clean up the bds, csvs, and paths folders
+    for mapFile in mapsToScens:
+        mapOutputFolder = static_dict[mapFile]["outputFolder"]
+        if os.path.exists(f"{mapOutputFolder}/bd/"):
+            shutil.rmtree(f"{mapOutputFolder}/bd/") # Delete the bd folder
+        if os.path.exists(f"{mapOutputFolder}/paths/"):
+            shutil.rmtree(f"{mapOutputFolder}/paths/") # Delete the paths folder
+        # Keep the csvs folder, it should just contain the combined.csv file
     
 
 

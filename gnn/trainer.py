@@ -17,7 +17,8 @@ import networkx as nx
 import numpy as np
 
 from torch_geometric.datasets import TUDataset
-from dataloader import MyOwnDataset
+# from dataloader import MyOwnDataset
+from gnn.dataloader import MyOwnDataset
 from torch_geometric.datasets import Planetoid
 from torch_geometric.data import DataLoader
 
@@ -241,6 +242,10 @@ def visualize():
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
+# python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4 --generate_initial=True
+#   --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz
+#   --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs
+#   --pathNpzFolders=data_collection/data/logs/EXP_Test/iter0/eecbs_npzs
 if __name__ == "__main__":
     # current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     parser = argparse.ArgumentParser()
@@ -249,6 +254,11 @@ if __name__ == "__main__":
     parser.add_argument("--iternum", help="iteration name", type=int)
     parser.add_argument("--num_cores", help="num_cores", type=int)
     parser.add_argument('--generate_initial', type=lambda x: bool(str2bool(x)))
+
+    parser.add_argument("--mapNpzFile", help="map npz file", type=str)
+    parser.add_argument("--bdNpzFolder", help="bd npz file", type=str)
+    parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str)
+
     args = parser.parse_args()
     exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
     itername = "iter"+str(iternum)
@@ -260,7 +270,7 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(f"./data_collection/data/logs/train_logs/"+expname+"_"+itername)
     model_path = exp_folder+f"/{itername}"+"/models/"
-    os.mkdir(model_path)
+    os.makedirs(model_path, exist_ok=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
     # device = "cpu"
@@ -268,7 +278,9 @@ if __name__ == "__main__":
 
     
 
-    dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum, num_cores=args.num_cores, generate_initial=args.generate_initial)
+    dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum, 
+                        mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, pathNpzFolders=args.pathNpzFolders.split(','),
+                           num_cores=args.num_cores, generate_initial=args.generate_initial)
     dataset = dataset.shuffle()
     task = 'node'
 

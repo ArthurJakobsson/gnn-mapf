@@ -29,9 +29,11 @@ class CustomTimer:
     # Returns sum of times per key
     def getTimes(self, aKey=None):
         if aKey is None:
+            retDict = dict()
             for aKey in self.time_dict:
-                self.time_dict[aKey] = np.sum(self.time_dict[aKey])
-            return self.time_dict  # Dictionary
+                # self.time_dict[aKey] = 
+                retDict[aKey] = np.sum(self.time_dict[aKey])
+            return retDict  # Dictionary
         else:
             return np.sum(self.time_dict[aKey])   # Single value
     
