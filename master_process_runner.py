@@ -4,17 +4,18 @@ import argparse
 import pdb
 import shutil
 import multiprocessing
-import datetime
+from datetime import datetime
+
+last_recorded_time = datetime.now()
+
+def log_time(event_name):
+    cur_time = datetime.now()
+    with open(f"timing.txt", mode='a') as file:
+        file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
+    last_recorded_time  = cur_time
 
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
-
-last_recorded_time = datetime.datetime.now()
-
-def log_time(event_name):
-    cur_time = datetime.datetime.now()
-    with open(f"./{LE}/timing.txt", mode='a') as file:
-        file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
 
 if __name__ == "__main__":
 
@@ -88,7 +89,12 @@ if __name__ == "__main__":
         subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}", f"--num_cores={num_cores}", f"--generate_initial={generate_initial}"])
         log_time(f"training for iteration: {iternum}")
         # run cs-pibt new maps to create new scenes
-        subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}"])
+        print((" ").join(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", 
+                        f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}",
+                        f"--label_folder=./{LE}/labels/raw/"]))
+        subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", 
+                        f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}",
+                        f"--label_folder=./{LE}/labels/raw/"])
         first_iteration = "false"
         log_time(f"simulating for iteration: {iternum}")
         

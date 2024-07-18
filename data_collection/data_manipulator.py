@@ -14,6 +14,16 @@ from collections import defaultdict
 import pdb
 import math
 import random
+from datetime import datetime
+
+last_recorded_time = datetime.now()
+
+def log_time(event_name):
+    cur_time = datetime.now()
+    with open(f"timing.txt", mode='a') as file:
+        file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
+    last_recorded_time  = cur_time
+
 
 '''
 0. parse bd (fix eecbs by having it make another txt output, parse it here)
@@ -24,6 +34,33 @@ import random
 4. write tuples of (map name, bd name, paths np) to npz
 '''
 
+
+def parse_bds_npz(loaded_bds, k_val):       
+        bds = {k:v for k, v in loaded_bds.items()}
+        # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form
+        npads = ((0,0),(k_val, k_val), (k_val, k_val))
+        for key in bds:
+            bds[key] = np.pad(bds[key], npads, mode="constant", constant_values=1073741823)
+            # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
+        return bds
+
+def parse_maps_npz(loaded_maps, k_val):
+    maps = {k:v for k, v in loaded_maps.items()}
+    for key in maps:
+        maps[key] = np.pad(maps[key], k_val, mode="constant", constant_values=1)
+        
+    return maps
+
+def parse_tn2_npz(loaded_paths):
+    tn2 = {k:v for k, v in loaded_paths.items()}
+    totalT = 0 
+    for ky, v in tn2.items():
+        t, n, _ = np.shape(v)
+        tn2[ky] = (t*n, v)
+        totalT += t
+    length = totalT # number of paths = number of timesteps
+    
+    return tn2, length
 
 class PipelineDataset(Dataset):
     '''
@@ -47,14 +84,19 @@ class PipelineDataset(Dataset):
             naming convention: mapname + "," + bdname + "," + seed
         helper_bd_preprocess: method by which we center helper backward dijkstras. can be 'middle', 'current', or 'subtraction'.
         '''
+        log_time("start loading npzs")
         raw_folder = numpy_data_path.split("train_")[0]
         loaded_maps = np.load(raw_folder+"maps.npz")
-        loaded_bds = np.load(numpy_data_path.split(".npz")[0]+"_bds.npz")
+        without_iternum = ('_').join(numpy_data_path.split(".npz")[0].split("_")[0:-1]) # some magic to replace the name with the original npz file (TODO change to constants folder)
+        loaded_bds = np.load(without_iternum+"_0_bds.npz")
         # read in the dataset, saving map, bd, and path info to class variables
         loaded_paths = np.load(numpy_data_path)
+        log_time("loading npzs")
         self.k = k
         self.size = size
+        log_time("before calling parse_npz")
         self.parse_npz(loaded_paths, loaded_maps, loaded_bds) # TODO change len(dataloader) = max_timesteps
+        log_time("after calling parse_npz")
         self.max_agents = max_agents
         self.helper_bd_preprocess = helper_bd_preprocess
 
@@ -178,44 +220,11 @@ class PipelineDataset(Dataset):
         return bd, grid, paths, timestep, t
 
     def parse_npz(self, loaded_paths, loaded_maps, loaded_bds):
-        self.tn2 = {k:v for k, v in loaded_paths.items()}
-        self.maps = {k:v for k, v in loaded_maps.items()}
-        self.bds = {k:v for k, v in loaded_bds.items()}
-        # path_items = list(loaded_paths.items())
-        # bd_items = list(loaded_bds.items())
-        # map_items = list(loaded_maps.items())
-        # print(loaded["Paris_1_256.map,Paris_1_256-random-110,2"]) # testing
-        # index -> tuple mapping, finding maps, then bds, then paths
-        # if not any("," in content_names for content_names in loaded.keys()):
-        #     print("All instances of map failed, quitting")
-        # i = 0
-        # while "-random-" not in items[i][0]:
-        #     i += 1
-        # self.maps = dict(map_items) # get all the maps
-        # j = i
-        # while "," not in items[j][0]:
-        #     j += 1
-        # self.bds = dict(items[i:j]) # get all the bds
-        # k = j
-        # while k < len(items) and "twh" not in items[k][0]:
-        #     k += 1
-        # self.tn2 = dict(items[j:k]) # get all the paths in (t,n,2) form
-        # since the # of data is simply number of agent locations, this is t*n, which we append to the dictionary for each path
-        
-        totalT = 0 
-        for ky, v in self.tn2.items():
-            t, n, _ = np.shape(v)
-            self.tn2[ky] = (t*n, v)
-            totalT += t
-        self.length = totalT # number of paths = number of timesteps
-        # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form
-        npads = ((0,0),(self.k, self.k), (self.k, self.k))
-        for key in self.bds:
-            self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
-            # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
-        for key in self.maps:
-            self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
+        self.tn2, self.length = parse_tn2_npz(loaded_paths)
+        self.maps = parse_maps_npz(loaded_maps, self.k)
+        self.bds = parse_bds_npz(loaded_bds, self.k)
 
+        
 
 def parse_map(mapfile):
     '''
@@ -383,7 +392,8 @@ def batch_map(dir):
             if ".DS_Store" in f: continue # deal with invisible ds_store file
             # parse the map file and add to a global dictionary (or some class variable dictionary)
             val = parse_map(f)
-            res[filename] = val
+            just_map_name = filename[:-4]
+            res[just_map_name] = val 
         else:
             raise RuntimeError("bad map dir")
     return res
@@ -441,7 +451,7 @@ def batch_path(dir):
             raw = filename.split(".txt")[0].split(".scen") # remove .txt
             raw = raw[0]+raw[1]
             # raw = raw[:-1]
-            mapname = raw.split("-")[0] + ".map"
+            mapname = raw.split("-")[0]
             bdname = raw
             val = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
@@ -491,27 +501,31 @@ def main():
         # parse each map, add to global dict
         maps = batch_map(mapIn)
         np.savez_compressed(args.npz_location+"maps", **maps)
+        log_time("batch_map")
         # print(maps)
 
         # parse each bd, add to global dict
         bds = batch_bd(bdIn)
         np.savez_compressed(trainOut+"_bds", **bds)
-        
+        log_time("batch_bds")
         # print(bds)
     else:
+        log_time("before map bd load")
         maps = np.load(args.npz_location+"maps.npz")
         maps = {k:v for k, v in maps.items()}
-        bds = np.load(trainOut+"_bds.npz")
+        bds = np.load(args.npz_location+f"train_{args.mapFile}_0_bds.npz")
         bds = {k:v for k, v in bds.items()}
+        log_time("after map bd load")
 
     # parse each path, add to global list
     data1train, data1val = batch_path(pathsIn)
+    log_time("batch paths")
 
     # send each map, each bd, and each tuple representing a path + instance to npz
-    # pdb.set_trace()
     if(len(data1train.keys())>0):
         np.savez_compressed(trainOut, **data1train) # Note automatically stacks to numpy vectors
         print(f"Generating {trainOut}")
+        log_time("save path npz")
     else:
         print(f"{trainOut} had no successful eecbs runs")
         

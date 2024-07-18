@@ -10,8 +10,17 @@ import shutil
 
 import multiprocessing
 from multiprocessing import Pool
+from datetime import datetime
 
 # from custom_utils.multirunner import createTmuxSession, runCommandWithTmux, killTmuxSession
+
+last_recorded_time = datetime.now()
+
+def log_time(event_name):
+    cur_time = datetime.now()
+    with open(f"timing.txt", mode='a') as file:
+        file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
+    last_recorded_time = cur_time
 
 ###############################################################
 def createTmuxSession(i):
@@ -240,6 +249,7 @@ def eecbs_runner(args):
     """
     Compare the runtime of EECBS and W-EECBS
     """
+    log_time("start_eecbs_runner")
     manager = multiprocessing.Manager()
     lock = manager.Lock()
     queue = multiprocessing.JoinableQueue()
@@ -269,7 +279,6 @@ def eecbs_runner(args):
             increment = min(100,  mapsToMaxNumAgents[mapFile]-1)
             agentNumbers = list(range(increment, mapsToMaxNumAgents[mapFile]+1, increment))
             static_dict[mapFile]["agentRange"] = agentNumbers
-            # pdb.set_trace()
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
         else: # we are somewhere in the training loop
             agentNumbers = []
@@ -293,6 +302,8 @@ def eecbs_runner(args):
         if worker_id == -1: # worker_id = -1 denotes combined csv
             return f".{file_home}/eecbs/raw_data/{mapName}/csvs/combined.csv"
         return f".{file_home}/eecbs/raw_data/{mapName}/csvs/worker_{worker_id}.csv"
+    
+    log_time("eecbs preprocessing")
 
     # Start worker processes with corresponding tmux session
     for worker_id in range(num_workers):
@@ -308,7 +319,6 @@ def eecbs_runner(args):
         "cutoffTime": args.cutoffTime,
         # "firstIter": args.firstIter,
     }
-    # pdb.set_trace()
 
     ## Create initial jobs
     for mapFile in mapsToScens.keys():
@@ -328,6 +338,8 @@ def eecbs_runner(args):
         queue.put(None)
     for p in workers:
         p.join()
+    
+    log_time("eecbs done")
 
     # Delete CSV files with {mapName}_worker naming convention
     for mapName in mapsToScens.keys():
@@ -335,12 +347,15 @@ def eecbs_runner(args):
             filename = idToWorkerOutputCSV(worker_id, mapName)
             if os.path.exists(filename):
                 os.remove(filename)
+                
+    log_time("delete csvs")
 
     # print("All tasks completed!")
 
-    # pdb.set_trace()
     with Pool(num_workers) as p:
         p.map(runNPZCreationInsance, mapsToScens)
+        
+    log_time("done creating npzs")
     # for mapFile in mapsToScens:
         # move the new eecbs output
         # os.makedirs(f".{file_home}/eecbs/raw_data/{mapFile}", exist_ok=True)
@@ -364,12 +379,10 @@ def eecbs_runner(args):
         #                 f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
         #                 f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapFile}_{args.iter}", 
         #                 f"--valOut=.{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapFile}_{args.iter}"])
-        # pdb.set_trace()
         # subprocess.run(["python", "./data_collection/data_manipulator.py", f"--pathsIn=.{file_home}/eecbs/raw_data/{mapFile}/paths/", 
         #                 f"--bdIn=.{file_home}/eecbs/raw_data/{mapFile}/bd/", 
         #                 f"--mapIn={mapsInputFolder}", f"--trainOut=.{file_home}/eecbs/raw_data/train_{mapFile}_{args.iter}", 
         #                 f"--valOut=.{file_home}/eecbs/raw_data/train_{mapFile}_{args.iter}"])
-        # pdb.set_trace()
 
         # os.mkdir(f".{file_home}/eecbs/raw_data/bd")
         # os.mkdir(f".{file_home}/eecbs/raw_data/paths")

@@ -24,12 +24,24 @@ from bd_planner import *
 # sys.path.insert(0, '/home/arthur/snap/snapd-desktop-integration/current/Documents/gnn-mapf/gnn/')
 from dataloader import *
 from trainer import *
+sys.path.insert(0, './data_collection/')
+from data_manipulator import *
 
 # tools
 from multiprocessing import Pool
 from itertools import repeat
 import matplotlib.pyplot as plt
 import pickle
+from datetime import datetime
+
+last_recorded_time = datetime.now()
+
+def log_time(event_name):
+    cur_time = datetime.now()
+    with open(f"timing.txt", mode='a') as file:
+        file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
+    last_recorded_time  = cur_time
+
 
 up = [-1, 0]
 down = [1, 0]
@@ -72,7 +84,9 @@ def parse_scene(scen_path, scene_f):
 
     with open(scen_path+scene_f) as f:
         line = f.readline().strip()
-        # if line[0] == 'v':  # Nathan's benchmark
+        if line[0] != 'v':  # Nathan's benchmark
+            print(scene_f)
+            return False
         start_locations = list()
         goal_locations = list()
         sep = "\t"
@@ -94,18 +108,14 @@ def parse_scen_name(scen_name):
     index = scen_name.rindex('random')
     return scen_name[0:index-1]
 
-# def calculate_bds(goals, map_arr):
-#     bds = list()
-#     env = EnvironmentWrapper(map_arr)
-#     with Pool() as pool:
-#         for heuristic in pool.starmap(computeHeuristicMap, zip(repeat(env), goals)):
-#             bds.append(heuristic)
-#     return np.array(bds)
+def calculate_bds(goals, map_arr):
+    bds = list()
+    env = EnvironmentWrapper(map_arr)
+    with Pool() as pool:
+        for heuristic in pool.starmap(computeHeuristicMap, zip(repeat(env), goals)):
+            bds.append(heuristic)
+    return np.array(bds)
 
-def get_bds(scen_name):
-    map_name = scen_name.split("-random-")[0]
-    loaded = np.load(raw_folder+f"/train_{map_name}.npz")
-    
 
 # def create_scen_folder(idx):
 #     if not os.path.exists("created_scens/created_scen_files_"+str(idx)):
@@ -148,36 +158,49 @@ class Preprocess():
             self.map_dict = collections.defaultdict(list)
             self.map_dict['map'] = dict()
             self.map_dict['scen'] = dict()
-
-        for map_name in map_files:
-            if map_name in self.map_dict['loaded_maps']:
-                continue
-            if "DS_Store" in map_name:
-                continue
-            self.map_dict['loaded_maps'].append(map_name)
-            just_map_name = map_name[0:-4]
-            # print(just_map_name)
-            self.map_dict['map'][just_map_name] = parse_map(map_path, map_name, self.k)
-        for scen_f in scen_files:
-            if scen_f in  self.map_dict['loaded_scenes']:
-                continue
-            if "DS_Store" in scen_f:
-                continue
-            self.map_dict['loaded_scenes'].append(scen_f)
-            scen_name = parse_scen_name(scen_f)
-            if not scen_name in self.map_dict['scen']:
-                self.map_dict['scen'][scen_name]=collections.defaultdict(list)
-            start_loc, goal_loc = parse_scene(scen_path, scen_f)
-            # add start and goal
-            self.map_dict['scen'][scen_name]['scen_full_name'].append(scen_f[:-5])
-            self.map_dict['scen'][scen_name]['agent_info'].append((start_loc+self.k,goal_loc+self.k))
-            # calculate bds
-            self.map_dict['scen'][scen_name]['bd'].append(calculate_bds(goal_loc, self.map_dict['map'][scen_name]))
             
-        
-        
-        with open('saved_map_dict.pickle', 'wb') as handle: 
-            pickle.dump(self.map_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            map_dict_file = np.load(label_folder+"maps.npz")
+            map_dict_processed = parse_maps_npz(map_dict_file, self.k)
+
+            for map_name in map_dict_processed.keys(): # happens only once so not too big of an issue with slowness
+                if map_name in self.map_dict['loaded_maps']:
+                    continue
+                if "DS_Store" in map_name:
+                    continue
+                self.map_dict['loaded_maps'].append(map_name)
+                # print(just_map_name)
+                self.map_dict['map'][map_name] = map_dict_processed[map_name]
+            for scen_f in scen_files:
+                if scen_f in  self.map_dict['loaded_scenes']:
+                    continue
+                if "DS_Store" in scen_f or "8_8" in scen_f: # TODO: fix can't simulate low agents for now
+                    continue
+                self.map_dict['loaded_scenes'].append(scen_f)
+                scen_name = parse_scen_name(scen_f)
+                if not scen_name: # TODO: can't process non-nathan's benchmark
+                    continue
+                if not scen_name in self.map_dict['scen']:
+                    self.map_dict['scen'][scen_name]=collections.defaultdict(list)
+                start_loc, goal_loc = parse_scene(scen_path, scen_f)
+                # add start and goal
+                self.map_dict['scen'][scen_name]['scen_full_name'].append(scen_f[:-5])
+                self.map_dict['scen'][scen_name]['agent_info'].append((start_loc+self.k,goal_loc+self.k))
+                # get bds
+                # start_time = datetime.now() 
+                # temp = calculate_bds(goal_loc[0:100], self.map_dict['map'][scen_name]) #NOTE: I timed it and loading was 17 times faster than calculating
+                
+                loaded_bds = np.load(label_folder+f"/train_{scen_name}_0_bds.npz") # scen_name == map_name here
+                bds_processed = parse_bds_npz(loaded_bds, self.k)
+                map_name = scen_name.split("-random-")[0]
+                add_agent_num = scen_f[:-5]+"100"
+                scen_bd = bds_processed[add_agent_num]
+                load_time = datetime.now() 
+                self.map_dict['scen'][scen_name]['bd'].append(scen_bd)
+            log_time("create_map_dict")
+                
+            with open('saved_map_dict.pickle', 'wb') as handle: 
+                pickle.dump(self.map_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            log_time("save pickle")
 
     def get_map_dict(self):
         return self.map_dict
@@ -198,15 +221,17 @@ class RunModel():
         self.max_samples = max_samples
 
         if preprocess==None or model==None:
-            raise RuntimeError("No prerpocessing information or model provided")
+            raise RuntimeError("No preprocessing information or model provided")
 
         self.run_simulation()
 
 
     def run_simulation(self):
+        log_time("before simulation")
         for map_name in self.map_dict['map'].keys():
             for scen_idx in range(len(self.map_dict['scen'][map_name]['agent_info'])):
                 self.simulate_agent_iterations(map_name, scen_idx)
+        log_time("after simulation")
 
     def simulate_agent_iterations(self, map_name, scen_idx):
         cur_map = self.map_dict['map'][map_name] 
@@ -376,9 +401,10 @@ if __name__ == "__main__":
     parser.add_argument("--iternum", help="iternum", type=int)
     parser.add_argument("--num_samples", help="number of scens to make", type=int)
     parser.add_argument("--max_samples", help="max number of scens to make", type=int)
+    parser.add_argument("--label_folder", help="folder to get labels from", type=str)
     args = parser.parse_args()
     exp_folder, firstIter, source_maps_scens, iternum, num_samples, max_samples= args.exp_folder, args.firstIter, args.source_maps_scens, args.iternum, args.num_samples, args.max_samples
-
+    label_folder = args.label_folder
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # device = "cpu"
     model = torch.load(exp_folder+f"/iter{iternum}/models/max_double_test_acc.pt")
@@ -404,9 +430,10 @@ if __name__ == "__main__":
 
     map_files = os.listdir(map_path_chosen)
     scen_files = os.listdir(scen_path_chosen)
+    log_time("before simulator preprocessing")
     startup = Preprocess(map_files, scen_files, k=k, map_path=map_path_chosen, scen_path=scen_path_chosen, first_time=firstIter)
     # print(startup.get_map_dict())
-
+    log_time("before simulator run")
     model_run = RunModel(device, scen_folder, num_samples,max_samples, model=model, preprocess=startup, cs_type="PIBT", k=k, m=m, num_agents=num_agents)
     
 
