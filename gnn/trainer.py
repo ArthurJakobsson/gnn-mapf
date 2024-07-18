@@ -34,8 +34,9 @@ from datetime import datetime
 last_recorded_time = datetime.now()
 
 def log_time(event_name):
+    global last_recorded_time
     cur_time = datetime.now()
-    with open(f"timing.txt", mode='a') as file:
+    with open(f"./timing_folder/master_timing.txt", mode='a') as file:
         file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
     last_recorded_time  = cur_time
 
@@ -276,10 +277,10 @@ if __name__ == "__main__":
     # device = "cpu"
     # print('Current cuda device: ',torch.cuda.get_device_name(0))
 
-    
-
     dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum, num_cores=args.num_cores, generate_initial=args.generate_initial)
+    log_time(".pt creation")
     dataset = dataset.shuffle()
     task = 'node'
 
     model = train(dataset, task, writer)
+    log_time("training")

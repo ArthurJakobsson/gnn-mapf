@@ -37,8 +37,9 @@ from datetime import datetime
 last_recorded_time = datetime.now()
 
 def log_time(event_name):
+    global last_recorded_time
     cur_time = datetime.now()
-    with open(f"timing.txt", mode='a') as file:
+    with open(f"./timing_folder/simulator_timing.txt", mode='a') as file:
         file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
     last_recorded_time  = cur_time
 
@@ -186,7 +187,6 @@ class Preprocess():
                 self.map_dict['scen'][scen_name]['scen_full_name'].append(scen_f[:-5])
                 self.map_dict['scen'][scen_name]['agent_info'].append((start_loc+self.k,goal_loc+self.k))
                 # get bds
-                # start_time = datetime.now() 
                 # temp = calculate_bds(goal_loc[0:100], self.map_dict['map'][scen_name]) #NOTE: I timed it and loading was 17 times faster than calculating
                 
                 loaded_bds = np.load(label_folder+f"/train_{scen_name}_0_bds.npz") # scen_name == map_name here

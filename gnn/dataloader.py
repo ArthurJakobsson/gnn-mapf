@@ -48,24 +48,36 @@ def get_neighbors(m, pos, pos_list, k):
         i+=1
     return closest_5_in_box
 
-def convert_neighbors_to_edge_list(num_agents, closest_neighbors_idx):
-    edge_index = [] # edge list source, destination
-
-    for i in range(0,num_agents):
-        for j in closest_neighbors_idx[i]:
-            edge_index.append([i,j])
-
+def convert_neighbors_to_edge_list(num_agents, closest_neighbors_idx):            
+    # Create arrays to hold source and destination indices and edge_indices
+    edge_index, source_indices, dest_indices = [], [], []
+    # Iterate through agents and their closest neighbors
+    for i in range(num_agents):
+        neighbors = closest_neighbors_idx[i]
+        source_indices.extend([i] * len(neighbors))
+        dest_indices.extend(neighbors)
+    # Convert to NumPy arrays
+    source_indices = np.array(source_indices)
+    dest_indices = np.array(dest_indices)
+    # Stack and transpose to create the final edge index
+    edge_index = np.vstack((source_indices, dest_indices)).T
     return torch.tensor(edge_index, dtype=torch.long).t().contiguous() #transpose
 
 def get_edge_attributes(edge_index, pos_list):
-    edge_attributes = []
+    # Convert pos_list and edge_index to NumPy arrays
+    pos_array = np.array(pos_list)
+    edge_index_array = np.array(edge_index)
 
-    for source_idx, dest_idx in zip(edge_index[0], edge_index[1]):
-        source_pos = pos_list[source_idx]
-        dest_pos = pos_list[dest_idx]
-        edge_attributes.append(np.array([source_pos[0]-dest_pos[0], source_pos[1]-dest_pos[1]]))
+    # Get the source and destination indices
+    source_indices, dest_indices = edge_index_array[0], edge_index_array[1]
 
-    return edge_attributes
+    # Get the positions of the sources and destinations
+    source_positions, dest_positions = pos_array[source_indices], pos_array[dest_indices]
+
+    # Compute the differences
+    differences = source_positions - dest_positions
+
+    return differences
 
 def get_idx_name(raw_path):
     if 'val' in raw_path:
@@ -107,7 +119,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
 
     # Tensorify
     x = torch.tensor(np.array(x), dtype=torch.float)
-    edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
+    edge_attr = torch.tensor(edge_attr, dtype=torch.float)
     labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
@@ -160,8 +172,8 @@ class MyOwnDataset(Dataset):
         torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
 
     def process(self):
-        if self.iternum==0 and not self.generate_initial:
-            return #if pt's are made already skip the first iteration of pt making
+        # if self.iternum==0 and not self.generate_initial:
+        #     return #if pt's are made already skip the first iteration of pt making
         idx = self.load_metadata()
         for raw_path in self.raw_paths: #TODO check if new npzs are read
             if "maps" in raw_path or "bds" in raw_path:
@@ -174,7 +186,8 @@ class MyOwnDataset(Dataset):
             print(f"Loading: {raw_path} of size {len(cur_dataset)}")
             idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
-            with Pool(self.num_cores) as p: #change number of workers later
+            self.create_and_save_graph(0, cur_dataset[0])
+            with Pool(self.num_cores) as p: 
                 p.starmap(self.create_and_save_graph, zip(idx_list, cur_dataset))
             # for time_instance in tqdm(cur_dataset):
                 

@@ -65,4 +65,7 @@ shutil.rmtree("./data_collection/data/logs/")
 os.mkdir("./data_collection/data/logs/")
 os.mkdir("./data_collection/data/logs/train_logs")
 
+shutil.rmtree("./timing_folder/")
+os.mkdir("./timing_folder/")
+
 print("Tim has collected your trash 😘")

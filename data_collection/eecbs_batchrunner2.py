@@ -17,8 +17,9 @@ from datetime import datetime
 last_recorded_time = datetime.now()
 
 def log_time(event_name):
+    global last_recorded_time
     cur_time = datetime.now()
-    with open(f"timing.txt", mode='a') as file:
+    with open(f"./timing_folder/eecbs_timing.txt", mode='a') as file:
         file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
     last_recorded_time = cur_time
 

@@ -9,8 +9,9 @@ from datetime import datetime
 last_recorded_time = datetime.now()
 
 def log_time(event_name):
+    global last_recorded_time
     cur_time = datetime.now()
-    with open(f"timing.txt", mode='a') as file:
+    with open(f"./timing_folder/master_timing.txt", mode='a') as file:
         file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
     last_recorded_time  = cur_time
 
@@ -18,7 +19,6 @@ def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("expnum", help="experiment number", type=int)
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
