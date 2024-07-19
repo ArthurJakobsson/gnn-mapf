@@ -114,10 +114,10 @@ def save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test
         torch.save(model, model_path + '/max_double_test_acc.pt')
 
 def train(dataset, task, writer):
-    pdb.set_trace()
+    # pdb.set_trace()
     data_size = len(dataset)
-    loader = DataLoader(dataset[:int(data_size * 0.8)], batch_size=64, shuffle=True, num_workers=4, pin_memory=False)
-    test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True, num_workers=4, pin_memory=False)
+    loader = DataLoader(dataset[:int(data_size * 0.8)], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
 
     model = GNNStack(max(dataset.num_node_features, 1), 128, dataset.num_classes, task=task).to(device)
     opt = optim.AdamW(model.parameters(), lr=0.005, weight_decay=5e-4)
@@ -129,14 +129,15 @@ def train(dataset, task, writer):
     patience = 10
     no_improvement = 0
 
-    for epoch in tqdm(range(10)):
+    for epoch in range(3):
         total_loss = 0
         correct = 0
         second_correct = 0
         total_samples = 0
 
         model.train()
-        for batch in loader:
+        # pdb.set_trace()
+        for batch in tqdm(loader):
             batch = batch.to(device)
             opt.zero_grad()
             with autocast():
@@ -257,9 +258,9 @@ if __name__ == "__main__":
     parser.add_argument("--num_cores", help="num_cores", type=int)
     parser.add_argument('--generate_initial', type=lambda x: bool(str2bool(x)))
 
-    parser.add_argument("--mapNpzFile", help="map npz file", type=str)
-    parser.add_argument("--bdNpzFolder", help="bd npz file", type=str)
-    parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str)
+    parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
+    parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
+    parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
 
     args = parser.parse_args()
     exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
@@ -280,7 +281,7 @@ if __name__ == "__main__":
 
     
 
-    dataset = MyOwnDataset(root=None, device=device, exp_folder=exp_folder, iternum=iternum, 
+    dataset = MyOwnDataset(root=None, exp_folder=exp_folder, iternum=iternum, 
                         mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, pathNpzFolders=args.pathNpzFolders.split(','),
                            num_cores=args.num_cores, generate_initial=args.generate_initial)
     dataset = dataset.shuffle()

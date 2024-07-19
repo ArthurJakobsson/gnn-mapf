@@ -202,7 +202,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
                 y = torch.tensor(labels, dtype=torch.int8))
 
 class MyOwnDataset(Dataset):
-    def __init__(self, root, device, exp_folder, iternum, 
+    def __init__(self, root, exp_folder, iternum, 
                 mapNpzFile, bdNpzFolder, pathNpzFolders,
                 num_cores=20, transform=None, pre_transform=None, pre_filter=None, generate_initial=True):
         self.mapNpzFile = mapNpzFile
@@ -222,7 +222,7 @@ class MyOwnDataset(Dataset):
         self.current_iter_folder = f"{self.exp_folder}/iter{self.iternum}"
         # self.data_dictionaries = []
         self.length = 0
-        self.device = device
+        # self.device = device
         self.generate_initial = generate_initial
         self.df = None
         super().__init__(root, transform, pre_transform, pre_filter) # this automatically calls process()
@@ -384,13 +384,13 @@ class MyOwnDataset(Dataset):
             self.ct.start("Processing")
             # pr = cProfile.Profile()
             # pr.enable()
-            tmp = []
+            # tmp = []
             for t in tqdm(range(len(cur_dataset))):
                 time_instance = cur_dataset[t]
-                tmp.append(self.create_and_save_graph(idx+t, time_instance))
+                torch.save(self.create_and_save_graph(t, time_instance),
+                            osp.join(self.processed_dir, f"data_{map_name}_{t}.pt"))
             # Save tmp to pt
-            # pdb.set_trace()
-            torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
+            # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
             idx += len(cur_dataset)
             self.ct.stop("Processing")
             # pr.disable()
@@ -404,7 +404,7 @@ class MyOwnDataset(Dataset):
 
             self.ct.printTimes()
             new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                            "pt_path": [f"data_{map_name}.pt"],
+                                            "pt_path": [f"data_{map_name}"],
                                             "status": ["processed"], 
                                             "num_pts": [len(cur_dataset)],
                                             "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
@@ -419,13 +419,21 @@ class MyOwnDataset(Dataset):
         ### Get indices and files
         # self.order_of_indices looks like [0, 213, 457, 990, 1405, ...]
         # self.order_of_files looks like [map1, map2, map2, map4, map5, ...]
+        # pdb.set_trace()
         self.order_of_indices = [0] # start with 0
         self.order_of_files = []
+        # self.order_to_loaded_pt = []
         for row in self.df.iterrows():
-            self.order_of_files.append(row[1]["pt_path"])
+            pt_path = row[1]["pt_path"]
+            self.order_of_files.append(pt_path)
             self.order_of_indices.append(row[1]["num_pts"])
+            # self.order_to_loaded_pt.append(torch.load(osp.join(self.processed_dir, pt_path)))
         self.order_of_indices.pop() # Remove the last element since it is the sum of all elements
         self.order_of_indices = np.cumsum(self.order_of_indices) # (num_maps)
+        # pdb.set_trace()
+
+        # for row in self.df.iterrows():
+        #     self.order_to_loaded_pt.append(torch.load(osp.join(self.processed_dir, row[1]["pt_path"])))
         
     def len(self):
         """Require to override Dataset len()"""
@@ -436,13 +444,16 @@ class MyOwnDataset(Dataset):
         # pdb.set_trace()
         # assert(self.df is not None and len(self.df) > 0)
         which_file_index = np.searchsorted(self.order_of_indices, idx, side='right')-1 # (num_maps)
-        data_file = self.order_of_files[which_file_index]
+        # data_file = self.order_of_files[which_file_index]
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
-        curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
+        filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
+        curdata = torch.load(osp.join(self.processed_dir, filename))
+        # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
+        # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
         # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
         # curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
-        curdata = curdata.to(self.device)
+        # curdata = curdata.to(self.device) # Do not move it to device here, this slows stuff down and prevents pin_memory
 
         # normalize bd, normalize edge attributes
         # edge_weights, bd_and_grids = curdata.edge_attr, curdata.x

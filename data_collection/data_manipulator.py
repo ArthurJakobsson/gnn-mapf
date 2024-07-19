@@ -628,7 +628,8 @@ def main():
     
     assert(args.mapOutFile.endswith(".npz"))
     if os.path.exists(args.mapOutFile):
-        print("Map file already exists, skipping map parsing")
+        # print("Map file already exists, skipping map parsing")
+        pass
     else:
         with ct("Parsing maps"):
             maps = batch_map(args.mapIn, args.num_parallel) # maps mapname->np array containing the obstacles in map
@@ -638,7 +639,8 @@ def main():
     # parse each bd, add to global dict
     assert(args.bdOutFile.endswith(".npz"))
     if os.path.exists(args.bdOutFile):
-        print("BD file already exists, skipping bd parsing")
+        # print("BD file already exists, skipping bd parsing")
+        pass
     else:
         with ct("Parsing bds"):
             bds = batch_bd(args.bdIn, args.num_parallel)
@@ -648,7 +650,7 @@ def main():
     # parse each path, add to global list
     assert(args.pathOutFile.endswith(".npz"))
     if os.path.exists(args.pathOutFile):
-        print("Path file already exists, skipping path parsing")
+        print(f"Path file {args.pathOutFile} already exists, skipping path parsing")
     else:
         with ct("Parsing paths"):
             data1train, data1val = batch_path(args.pathsIn)
