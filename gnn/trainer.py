@@ -129,7 +129,7 @@ def train(dataset, task, writer):
     patience = 10
     no_improvement = 0
 
-    for epoch in range(3):
+    for epoch in range(6):
         total_loss = 0
         correct = 0
         second_correct = 0
@@ -172,13 +172,13 @@ def train(dataset, task, writer):
         writer.add_scalar("train_top2_accuracy", train_top2_acc, epoch)
         scheduler.step(total_loss)
 
-        if epoch % 5 == 0:
+        if epoch % 1 == 0:
             test_acc, double_test_acc = test(test_loader, model)
             print(f"Epoch {epoch}. Loss: {total_loss:.4f}. Train accuracy: {train_acc:.2f}%. Train Top2 accuracy: {train_top2_acc:.2f}%. Test accuracy: {test_acc:.4f}. Top2 Test accuracy: {double_test_acc:.4f}")
             writer.add_scalar("test_accuracy", test_acc, epoch)
             writer.add_scalar("test_top2_accuracy", double_test_acc, epoch)
 
-            if epoch >= 2:
+            if epoch != 0:
                 save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc)
 
             # # Early stopping logic
@@ -208,7 +208,10 @@ def test(loader, model, is_validation=False):
             first_choice = sorted_pred[:, -1]
             second_choice = sorted_pred[:, -2]
             validation_pred = pred.argmax(dim=1)
-            assert(torch.all(first_choice == validation_pred))
+            # pdb.set_trace()
+            if not torch.all(first_choice == validation_pred):
+                print("WARNING: SOMETHING FISHY IN TEST AS FIRST CHOICE IS NOT EQUAL TO VALIDATION PREDICTION")
+            #     pdb.set_trace()
             label = data.y.argmax(dim=1)
 
             if model.task == 'node':

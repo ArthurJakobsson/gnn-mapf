@@ -101,10 +101,12 @@ if __name__ == "__main__":
                             f"--pathNpzFolders={LE}/iter{iternum}/eecbs_npzs"])
         print(command)
         subprocess.run(command, shell=True, check=True)
+        pdb.set_trace()
 
         # subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}", f"--num_cores={num_cores}", f"--generate_initial={generate_initial}"])
         log_time(f"training for iteration: {iternum}")
         # run cs-pibt new maps to create new scenes
+        tmp = ["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}"]
         subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}"])
         first_iteration = "false"
         log_time(f"simulating for iteration: {iternum}")

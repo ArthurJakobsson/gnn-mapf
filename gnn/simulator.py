@@ -19,13 +19,16 @@ import numpy as np
 import torch.optim as optim
 import sys
 
-from bd_planner import *
+# from bd_planner import *
+# from gnn.bd_planner import 
 
 # sys.path.insert(0, '/home/arthur/snap/snapd-desktop-integration/current/Documents/gnn-mapf/gnn/')
-from dataloader import *
-from trainer import *
+# from dataloader import *
+from gnn.dataloader import create_data_object, normalize_graph_data
+from gnn.trainer import GNNStack, CustomConv # Required for loading in the model (even though not explicitly used)
 
 # tools
+import random
 from multiprocessing import Pool
 from itertools import repeat
 import matplotlib.pyplot as plt
@@ -139,7 +142,8 @@ def save_scen(start_locs, goal_locs, map, map_name, scen_name, idx, scen_folder,
     file.close()
 
 class Preprocess():
-    def __init__(self, map_files, scen_files, k=4, map_path='../data_collection/data/benchmark_data/maps', scen_path = '../data_collection/data/benchmark_data/scens', first_time=False):
+    def __init__(self, map_files, scen_files, k=4, map_path='../data_collection/data/benchmark_data/maps', 
+                 scen_path = '../data_collection/data/benchmark_data/scens', first_time=False):
         self.k = 4
         if not first_time:
             with open('saved_map_dict.pickle', 'rb') as handle:
@@ -184,7 +188,8 @@ class Preprocess():
     
 
 class RunModel():
-    def __init__(self, device, scen_folder, num_samples=20, max_samples=200, model=None, preprocess=None, cs_type="PIBT", m=5, k=4, num_agents=100): #TODO change to both 5, 50 and 100
+    def __init__(self, device, scen_folder, num_samples=20, max_samples=200, model=None, preprocess=None, 
+                cs_type="PIBT", m=5, k=4, num_agents=100): #TODO change to both 5, 50 and 100
         self.m = m
         self.k = k
         self.device = device
@@ -224,13 +229,14 @@ class RunModel():
 
         
         while (iteration < self.max_samples and not solved):
-            cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m) 
+            cur_data = create_data_object(pos_list=cur_agent_locs, bd_list=cur_bd, grid=cur_map, k=self.k, m=self.m)
+            cur_data = normalize_graph_data(cur_data, self.k)
             cur_data = cur_data.to(self.device)
             
-            # normalize bd, normalize edge attributes
-            edge_weights, bd_and_grids = cur_data.edge_attr, cur_data.x
-            cur_data.edge_attr = apply_edge_normalization(edge_weights)
-            cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
+            # # normalize bd, normalize edge attributes
+            # edge_weights, bd_and_grids = cur_data.edge_attr, cur_data.x
+            # cur_data.edge_attr = apply_edge_normalization(edge_weights)
+            # cur_data.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
             _, predictions = model(cur_data)
             probabilities = torch.softmax(predictions, dim=1) 
             
@@ -367,7 +373,9 @@ class RunModel():
 
 
 
-
+### Example run
+# python -m gnn.simulator --exp_folder=data_collection/data/logs/EXP_Test2 --firstIter=true 
+#           --source_maps_scens=data_collection/data/benchmark_data --iternum=0 --num_samples=100 --max_samples=1000
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp_folder", help="experiment folder", type=str)
