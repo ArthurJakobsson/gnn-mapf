@@ -12,6 +12,8 @@ from tqdm import tqdm
 import os
 import sys
 from multiprocessing import Pool
+import cProfile
+import pstats
 # from multiprocessing.dummy import Pool
 
 # print(os.path.abspath(os.getcwd()))
@@ -80,11 +82,13 @@ def get_idx_name(raw_path):
 
 def apply_masks(data_len, curdata):
     tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
-    tr_mask[:int((3/4)*data_len)] = 1
-    te_mask[int((3/4)*data_len):] = 1
+    # tr_mask[:int((3/4)*data_len)] = 1
+    # te_mask[int((3/4)*data_len):] = 1
+    indices = torch.randperm(data_len)
+    tr_mask[indices[:int((3/4)*data_len)]] = 1
+    te_mask[indices[int((3/4)*data_len):]] = 1
     curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)
     curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
-    return curdata
 
 def apply_edge_normalization(edge_weights):
     # TODO have an option to choose method based on flags
@@ -120,8 +124,9 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     # Adjust indices to gather slices
     x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
-    slices = grid[x_mesh, y_mesh] # (N,D,D)
-    bds = bd_list[np.arange(num_agents)[:,None,None], x_mesh, y_mesh] # (N,D,D)
+    grid_slices = grid[x_mesh, y_mesh] # (N,D,D)
+    bd_slices = bd_list[np.arange(num_agents)[:,None,None], x_mesh, y_mesh] # (N,D,D)
+    node_features = np.stack([grid_slices, bd_slices], axis=1) # (N,2,D,D)
 
     # pdb.set_trace()
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
@@ -136,43 +141,35 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     # agent_inds = np.arange(num_agents)[:, None] # (N,1)
     neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
     selection = distance_of_neighbors != np.inf # (N,m)
-    subset = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
-    subset_deltas = deltas[subset[0], subset[1]] # (num_edges,2), the difference between each agent
+    edge_indices = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
+    edge_features = deltas[edge_indices[0], edge_indices[1]] # (num_edges,2), the difference between each agent
 
-    # tmp2 = (distance_of_neighbors != np.inf)[None,:] # (1,N,m)
-    # tmp = distance_of_neighbors[:, :, None] # (N,m,1)
-    # blah = closest_neighbors[distance_of_neighbors != np.inf] # Flattens the array
-    # Want to which neigbhors correspond to which agents
-    # Should be working with 
-    test_neighbors = []
-    totalCount = 0
-    for i in range(num_agents):
-        cur_delta = np.abs(pos_list - pos_list[i]) # (N,2)
-        dists = np.sum(cur_delta, axis=1) # (N)
-        tmp = np.argsort(dists)[:m] # (m,)
-        curN = []
-        for j in tmp:
-            if j == i or cur_delta[j][0] > k or cur_delta[j][1] > k:
-                continue
-            curN.append(j)
-            totalCount+=1
-        test_neighbors.append(curN)
-    
+    # test_neighbors = []
+    # totalCount = 0
+    # for i in range(num_agents):
+    #     cur_delta = np.abs(pos_list - pos_list[i]) # (N,2)
+    #     dists = np.sum(cur_delta, axis=1) # (N)
+    #     tmp = np.argsort(dists)[:m] # (m,)
+    #     curN = []
+    #     for j in tmp:
+    #         if j == i or cur_delta[j][0] > k or cur_delta[j][1] > k:
+    #             continue
+    #         curN.append(j)
+    #         totalCount+=1
+    #     test_neighbors.append(curN)
 
-    # m_closest_nborsIdx_list = [get_neighbors(m, pos, pos_list, k) for pos in pos_list] # (m,n)
-    m_closest_nborsIdx_list = test_neighbors
-    edge_index = convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
-    edge_attr = get_edge_attributes(edge_index, pos_list) # (num_edges,2 )
-    pdb.set_trace()
-
-    # Tensorify
+    # m_closest_nborsIdx_list = [get_neighbors(m, pos, pos_list, k) for pos in pos_list] # (m,n) THE OUTPUT LOOKS WRONG
+    # m_closest_nborsIdx_list = test_neighbors
+    # edge_index = convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
+    # edge_attr = get_edge_attributes(edge_index, pos_list) # (num_edges,2 )
     # x = torch.tensor(np.array(x), dtype=torch.float)
-    x = torch.tensor(np.stack([slices, bds], axis=1), dtype=torch.float)
-    # assert torch.all(torch.eq(x, xNew))
-    pdb.set_trace()
-    edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
-    labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
-    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
+    # edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
+    # labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
+    # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
+
+    return Data(x=node_features, edge_index=torch.tensor(edge_indices, dtype=torch.int32), 
+                edge_attr=torch.tensor(edge_features, dtype=torch.float), 
+                y = torch.tensor(labels, dtype=torch.int8))
 
 class MyOwnDataset(Dataset):
     def __init__(self, root, device, exp_folder, iternum, 
@@ -251,7 +248,7 @@ class MyOwnDataset(Dataset):
         pos_list, labels, bd_list, grid = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
 
         curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
-        curdata = apply_masks(len(curdata.x), curdata)
+        curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
 
     def process(self):
@@ -260,7 +257,7 @@ class MyOwnDataset(Dataset):
         idx = self.load_metadata()
         print(f"Num cores: {self.num_cores}")
         for raw_path in self.raw_paths: #TODO check if new npzs are read
-            raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
+            # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
             # if "maps" in raw_path or "bds" in raw_path:
             #     continue
             if not raw_path.endswith(".npz"):
@@ -280,10 +277,15 @@ class MyOwnDataset(Dataset):
 
             self.ct.stop("Loading")
             self.ct.start("Processing")
-            for t in range(len(cur_dataset)):
+            # pr = cProfile.Profile()
+            # pr.enable()
+            for t in tqdm(range(len(cur_dataset))):
                 time_instance = cur_dataset[t]
                 self.create_and_save_graph(t, time_instance)
                 
+            # pr.disable()
+            # ps = pstats.Stats(pr).sort_stats('cumtime')
+            # ps.print_stats(10)
             # with Pool(self.num_cores) as p: #change number of workers later
             #     p.starmap(self.create_and_save_graph, zip(idx_list, cur_dataset))
             self.ct.stop("Processing")

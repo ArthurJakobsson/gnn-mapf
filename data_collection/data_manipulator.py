@@ -56,7 +56,7 @@ class PipelineDataset(Dataset):
         assert(mapFileNpz.endswith(".npz") and bdFileNpz.endswith(".npz") and pathFileNpz.endswith(".npz"))
         self.maps = dict(np.load(mapFileNpz))
         self.bds = dict(np.load(bdFileNpz))
-        self.tn2 = np.load(pathFileNpz)
+        self.tn2 = dict(np.load(pathFileNpz)) # Note: Very important to make this a dict() otherwise lazy loading kills performance later on
         self.k = k
         self.size = size
         # self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
