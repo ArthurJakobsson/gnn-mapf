@@ -56,7 +56,7 @@ class PipelineDataset(Dataset):
         assert(mapFileNpz.endswith(".npz") and bdFileNpz.endswith(".npz") and pathFileNpz.endswith(".npz"))
         self.maps = dict(np.load(mapFileNpz))
         self.bds = dict(np.load(bdFileNpz))
-        self.tn2 = dict(np.load(pathFileNpz))
+        self.tn2 = np.load(pathFileNpz)
         self.k = k
         self.size = size
         # self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
@@ -84,7 +84,7 @@ class PipelineDataset(Dataset):
         if idx >= self.__len__():
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
-        bd, grid, paths, timestep, t = self.find_instance(idx)
+        bd, grid, paths, timestep, max_timesteps = self.find_instance(idx)
         # labels = []
         # locs = []
         # num_agent = paths.shape[1]
@@ -105,7 +105,7 @@ class PipelineDataset(Dataset):
         #     locs.append(curloc)
         # return np.array(locs), np.array(labels), bd, grid
         cur_locs = paths[timestep] # (N,2)
-        next_locs = paths[timestep+1] if timestep < t-1 else cur_locs # (N,2)
+        next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
         deltas = next_locs - cur_locs # (N,2)
 
         # Define the mapping from direction vectors to indices
@@ -173,28 +173,47 @@ class PipelineDataset(Dataset):
                 bdname = front+back
             return bdname
 
-        items = list(self.tn2.items())
+        assert(idx < self.length)
+        # pdb.set_trace()
+        # items = list(self.tn2.items())
+        total_sum = 0
+        key_to_use = None
+        timestep_to_use = 0
+        for aKey, pathVec in self.tn2.items(): #pathVec is (T,N,2)
+            timesteps = pathVec.shape[0]
+            if total_sum + timesteps > idx:
+                key_to_use = aKey
+                timestep_to_use = idx - total_sum
+                break
+            total_sum += timesteps
+        assert(key_to_use is not None)
 
-        tn2ind = 0
-        tracker = 0
-        while tracker + items[tn2ind][1][0] <= idx:
-            tracker += items[tn2ind][1][0] # add number of data in the (t,n,2) matrix
-            tn2ind += 1
-        # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
-        mapname, bdname = items[tn2ind][0].split(",")
+
+        # tn2ind = 0
+        # tracker = 0
+        # while tracker + items[tn2ind][1][0] <= idx:
+        #     tracker += items[tn2ind][1][0] # add number of data in the (t,n,2) matrix
+        #     tn2ind += 1
+        # # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
+        # mapname, bdname = items[tn2ind][0].split(",")
+        mapname, bdname = key_to_use.split(",")
         bdname = translate_bd_name(bdname)
-        bd = self.bds[bdname]      # (N, W, H) # TODO: need to chop of the "custom" part
-        grid = self.maps[mapname]  # (W, H)
+        bd = self.bds[bdname]      # (N,W,H) # TODO: need to chop of the "custom" part
+        grid = self.maps[mapname]  # (W,H)
+        paths = self.tn2[key_to_use] + self.k # (T,N,2)
+        max_timesteps = paths.shape[0]
         # pad bds (for all agents), grid (for all agents) with empty 0 window(s), k in all directions
 
         # get the location, dir to next location
-        newidx = idx - tracker # index within the matrix to get
-        paths = items[tn2ind][1][1].copy() # (t,n,2) paths matrix
-        paths += self.k # adjust for padding
-        bd *= (1-grid) 
-        t, n, _ = np.shape(paths)
-        timestep = newidx // n
-        return bd, grid, paths, timestep, t
+        # newidx = idx - tracker # index within the matrix to get
+        # paths = items[tn2ind][1][1].copy() # (t,n,2) paths matrix
+        # paths += self.k # adjust for padding
+        # bd *= (1-grid) 
+        # t, n, _ = np.shape(paths)
+        # timestep = newidx // n
+        # return bd, grid, paths, timestep, t
+
+        return bd, grid, paths, timestep_to_use, max_timesteps
 
     def parse_npz(self, loaded_paths, loaded_maps, loaded_bds):
         self.tn2 = {k:v for k, v in loaded_paths.items()}
@@ -244,7 +263,7 @@ class PipelineDataset(Dataset):
         totalT = 0 
         for ky, v in self.tn2.items():
             t, n, _ = np.shape(v)
-            self.tn2[ky] = (t*n, v)
+            # self.tn2[ky] = (t*n, v)
             totalT += t
         self.length = totalT
 

@@ -101,15 +101,37 @@ def apply_bd_normalization(bd_grid, k, device):
     return bd_grid
 
 def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
+    """
+    poslist: (N,2) positions
+    bd_list: (N,W,H) bd's
+    grid: (W,H) grid
+    k: (int) local region size
+    m: (int) number of closest neighbors to consider
+    """
     num_agents = len(pos_list)
-    x = [np.array([slice_maps(pos, grid, k), slice_maps(pos, bd, k)]) for (pos, bd) in zip(pos_list, bd_list)]
+    # pdb.set_trace()
+    # x = [np.array([slice_maps(pos, grid, k), slice_maps(pos, bd, k)]) for (pos, bd) in zip(pos_list, bd_list)]
+    # x = np.array(x) # (N,2,W,H)
+    ### Numpy advanced indexing to get all agent slices at once
+    rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
+    colLocs = pos_list[:,1][:, None] # (N)->(N,1)
+
+    x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
+    # Adjust indices to gather slices
+    x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
+    y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
+    slices = grid[x_mesh, y_mesh] # (N,D,D)
+    bds = bd_list[np.arange(num_agents)[:,None,None], x_mesh, y_mesh] # (N,D,D)
 
     m_closest_nborsIdx_list = [get_neighbors(m, pos, pos_list, k) for pos in pos_list] # (m,n)
     edge_index = convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
     edge_attr = get_edge_attributes(edge_index, pos_list) # (num_edges,2 )
 
     # Tensorify
-    x = torch.tensor(np.array(x), dtype=torch.float)
+    # x = torch.tensor(np.array(x), dtype=torch.float)
+    x = torch.tensor(np.stack([slices, bds], axis=1), dtype=torch.float)
+    # assert torch.all(torch.eq(x, xNew))
+    pdb.set_trace()
     edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
     labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
@@ -219,7 +241,6 @@ class MyOwnDataset(Dataset):
             idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
             self.ct.stop("Loading")
-            pdb.set_trace()
             self.ct.start("Processing")
             for t in range(len(cur_dataset)):
                 time_instance = cur_dataset[t]
