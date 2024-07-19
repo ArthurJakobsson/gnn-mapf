@@ -23,63 +23,64 @@ import pstats
 from data_collection import data_manipulator
 from custom_utils.custom_timer import CustomTimer
 
-def slice_maps(pos, curmap, k):
-    """
-    Turns a full size bd into a 2k+1, 2k+1
-    param: pos, bd (current position and bd)
-    output: sliced bd
-    """
-    r,c = pos[0], pos[1]
-    return curmap[r-k:r+k+1,c-k:c+k+1] 
+# def slice_maps(pos, curmap, k):
+#     """
+#     Turns a full size bd into a 2k+1, 2k+1
+#     param: pos, bd (current position and bd)
+#     output: sliced bd
+#     """
+#     r,c = pos[0], pos[1]
+#     return curmap[r-k:r+k+1,c-k:c+k+1] 
 
-def get_neighbors(m, pos, pos_list, k):
-    """
-    Gets the m closest neighbors *within* 2k+1 bounding
-    param: m, pos, pos_list
-    output: list of indices of 5 closest
-    """
-    closest_5_in_box = []
+# def get_neighbors(m, pos, pos_list, k):
+#     """
+#     Gets the m closest neighbors *within* 2k+1 bounding
+#     param: m, pos, pos_list
+#     output: list of indices of 5 closest
+#     """
+#     closest_5_in_box = []
 
-    distances = cdist([pos], pos_list, 'cityblock')[0]
-    zipped_lists = zip(distances, pos_list, list(range(0,len(pos_list)))) #knit distances, pos, and idxs
-    sorted_lists = sorted(zipped_lists, key = lambda t: t[0])
-    count, i = 0,0
-    while count<m and i<len(pos_list):
-        xdif = pos_list[i][0]-pos[0]
-        ydif = pos_list[i][1]-pos[1]
-        if abs(xdif) <= k and abs(ydif)<=k and (xdif!=0 and ydif!=0):
-            count+=1
-            closest_5_in_box.append(sorted_lists[i][2])
-            # add to list if within bounding box
-        i+=1
-    return closest_5_in_box
+#     distances = cdist([pos], pos_list, 'cityblock')[0]
+#     zipped_lists = zip(distances, pos_list, list(range(0,len(pos_list)))) #knit distances, pos, and idxs
+#     sorted_lists = sorted(zipped_lists, key = lambda t: t[0])
+#     count, i = 0,0
+#     while count<m and i<len(pos_list):
+#         xdif = pos_list[i][0]-pos[0]
+#         ydif = pos_list[i][1]-pos[1]
+#         if abs(xdif) <= k and abs(ydif)<=k and (xdif!=0 and ydif!=0):
+#             count+=1
+#             closest_5_in_box.append(sorted_lists[i][2])
+#             # add to list if within bounding box
+#         i+=1
+#     return closest_5_in_box
 
-def convert_neighbors_to_edge_list(num_agents, closest_neighbors_idx):
-    edge_index = [] # edge list source, destination
+# def convert_neighbors_to_edge_list(num_agents, closest_neighbors_idx):
+#     edge_index = [] # edge list source, destination
 
-    for i in range(0,num_agents):
-        for j in closest_neighbors_idx[i]:
-            edge_index.append([i,j])
+#     for i in range(0,num_agents):
+#         for j in closest_neighbors_idx[i]:
+#             edge_index.append([i,j])
 
-    return torch.tensor(edge_index, dtype=torch.long).t().contiguous() #transpose
+#     return torch.tensor(edge_index, dtype=torch.long).t().contiguous() #transpose
 
-def get_edge_attributes(edge_index, pos_list):
-    edge_attributes = []
+# def get_edge_attributes(edge_index, pos_list):
+#     edge_attributes = []
 
-    for source_idx, dest_idx in zip(edge_index[0], edge_index[1]):
-        source_pos = pos_list[source_idx]
-        dest_pos = pos_list[dest_idx]
-        edge_attributes.append(np.array([source_pos[0]-dest_pos[0], source_pos[1]-dest_pos[1]]))
+#     for source_idx, dest_idx in zip(edge_index[0], edge_index[1]):
+#         source_pos = pos_list[source_idx]
+#         dest_pos = pos_list[dest_idx]
+#         edge_attributes.append(np.array([source_pos[0]-dest_pos[0], source_pos[1]-dest_pos[1]]))
 
-    return edge_attributes
+#     return edge_attributes
 
-def get_idx_name(raw_path):
-    if 'val' in raw_path:
-        return 'val'
-    elif 'train' in raw_path:
-        return 'train'
-    else:
-        return 'unknownNPZ'
+
+# def get_idx_name(raw_path):
+#     if 'val' in raw_path:
+#         return 'val'
+#     elif 'train' in raw_path:
+#         return 'train'
+#     else:
+#         return 'unknownNPZ'
 
 def apply_masks(data_len, curdata):
     tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
@@ -196,7 +197,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     # labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
     # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
-    return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.int32), 
+    return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
                 edge_attr=torch.tensor(edge_features, dtype=torch.float), 
                 y = torch.tensor(labels, dtype=torch.int8))
 
@@ -218,6 +219,7 @@ class MyOwnDataset(Dataset):
         self.max_agents = 500
         self.exp_folder = exp_folder
         self.iternum = iternum
+        self.current_iter_folder = f"{self.exp_folder}/iter{self.iternum}"
         # self.data_dictionaries = []
         self.length = 0
         self.device = device
@@ -233,12 +235,18 @@ class MyOwnDataset(Dataset):
     #         self.length = 0 
     #     return self.length
 
+    @property
+    def processed_dir(self) -> str:
+        # return osp.join(self.exp_folder, 'processed')
+        return osp.join(self.current_iter_folder, 'processed')
+
     def load_status_data(self):
-        self.df_path = osp.join(self.processed_dir, f"../status_data.csv")
+        # self.df_path = osp.join(self.processed_dir, f"../status_data.csv")
+        self.df_path = f"{self.processed_dir}/status_data.csv"
         if osp.isfile(self.df_path):
             self.df = pd.read_csv(self.df_path)
         else:
-            self.df = pd.DataFrame(columns=["raw_path", "status", "num_pts", "loading_time", "processing_time"])
+            self.df = pd.DataFrame(columns=["npz_path", "pt_path", "status", "num_pts", "loading_time", "processing_time"])
 
     @property
     def raw_dir(self) -> str:
@@ -247,6 +255,11 @@ class MyOwnDataset(Dataset):
     @property
     def raw_paths(self):
         return self.raw_file_names
+
+    @property
+    def num_classes(self) -> int:
+        """REQUIRED: Otherwise dataset will iterate through everything really slowly"""
+        return 5
 
     @property
     def raw_file_names(self):
@@ -288,6 +301,51 @@ class MyOwnDataset(Dataset):
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata
+    
+    def process_single(self, npz_path):
+        """
+        Still in progress, do not use!
+        """
+        shared_lock = self.shared_lock
+        assert(npz_path.endswith(".npz"))
+        map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
+        shared_lock.acquire()
+        df_row = self.df.loc[self.df['npz_path'] == npz_path]
+        assert(len(df_row) <= 1)
+        if len(df_row) == 1:
+            if df_row.iloc[0]["status"] == "processed":
+                print(f"Skipping: {npz_path}")
+            else:
+                print(f"WARNING: Unexpected status for {map_name}: {df_row.iloc[0]['status']}")
+        shared_lock.release()
+
+        bdNpzFile = f"{self.bdNpzFolder}/{map_name}_bds.npz"
+        cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
+        print(f"Loading: {npz_path} of size {len(cur_dataset)}")
+
+        tmp = []
+        for t in tqdm(range(len(cur_dataset))):
+            time_instance = cur_dataset[t]
+            tmp.append(self.create_and_save_graph(idx+t, time_instance))
+        torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
+        idx += len(cur_dataset)
+
+        new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                        "pt_path": [f"data_{map_name}.pt"],
+                                        "status": ["processed"], 
+                                        "num_pts": [len(cur_dataset)],
+                                        "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+                                        "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+        
+        shared_lock.acquire()
+        if len(self.df) == 0:
+            self.df = new_df
+        else:
+            self.df = pd.concat([self.df, new_df], ignore_index=True)
+        self.df.to_csv(self.df_path, index=False)
+        shared_lock.release()
+        raise NotImplementedError("Not implemented yet")
+
 
     def process(self):
         self.load_status_data()
@@ -297,8 +355,6 @@ class MyOwnDataset(Dataset):
         idx = 0
         print(f"Num cores: {self.num_cores}")
         for npz_path in self.raw_paths: #TODO check if new npzs are read
-            if idx > 10000:
-                break
             # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
             # if "maps" in raw_path or "bds" in raw_path:
             #     continue
@@ -341,14 +397,10 @@ class MyOwnDataset(Dataset):
             # ps = pstats.Stats(pr).sort_stats('cumtime')
             # ps.print_stats(10)
             # self.ct.start("Parallel Processing")
-            # This is slower with multiprocessing
+            ### Note: Multiprocessing seems slower than single processing
             # with Pool(self.num_cores) as p: #change number of workers later
             #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
             # self.ct.stop("Parallel Processing")
-            # for time_instance in tqdm(cur_dataset):
-                
-            # self.length = len(cur_dataset)
-            # idx+=self.length
 
             self.ct.printTimes()
             new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
