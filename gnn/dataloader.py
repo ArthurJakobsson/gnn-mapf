@@ -37,14 +37,14 @@ def get_neighbors(m, pos, pos_list, k):
     """
     closest_5_in_box = []
 
-    distances = cdist([pos], pos_list, 'euclidean')[0]
+    distances = cdist([pos], pos_list, 'cityblock')[0]
     zipped_lists = zip(distances, pos_list, list(range(0,len(pos_list)))) #knit distances, pos, and idxs
     sorted_lists = sorted(zipped_lists, key = lambda t: t[0])
     count, i = 0,0
     while count<m and i<len(pos_list):
         xdif = pos_list[i][0]-pos[0]
         ydif = pos_list[i][1]-pos[1]
-        if abs(xdif) <= k and abs(ydif)<=k:
+        if abs(xdif) <= k and abs(ydif)<=k and (xdif!=0 and ydif!=0):
             count+=1
             closest_5_in_box.append(sorted_lists[i][2])
             # add to list if within bounding box
@@ -123,9 +123,47 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     slices = grid[x_mesh, y_mesh] # (N,D,D)
     bds = bd_list[np.arange(num_agents)[:,None,None], x_mesh, y_mesh] # (N,D,D)
 
-    m_closest_nborsIdx_list = [get_neighbors(m, pos, pos_list, k) for pos in pos_list] # (m,n)
+    # pdb.set_trace()
+    agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
+    deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
+    dists = np.linalg.norm(deltas, axis=2, ord=1) # (N,N), the distance between each agent
+    fov_dist = np.any(np.abs(deltas) > k, axis=2) # (N,N,2)->(N,N) bool for if the agent is within the field of view
+    dists[fov_dist] = np.inf # Set the distance to infinity if the agent is out of the field of view
+    np.fill_diagonal(dists, np.inf) # Set the distance to itself to infinity
+    closest_neighbors = np.argsort(dists, axis=1)[:, :m] # (N,m), the indices of the 4 closest agents
+    distance_of_neighbors = dists[np.arange(num_agents)[:,None],closest_neighbors] # (N,m)
+    
+    # agent_inds = np.arange(num_agents)[:, None] # (N,1)
+    neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
+    selection = distance_of_neighbors != np.inf # (N,m)
+    subset = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
+    subset_deltas = deltas[subset[0], subset[1]] # (num_edges,2), the difference between each agent
+
+    # tmp2 = (distance_of_neighbors != np.inf)[None,:] # (1,N,m)
+    # tmp = distance_of_neighbors[:, :, None] # (N,m,1)
+    # blah = closest_neighbors[distance_of_neighbors != np.inf] # Flattens the array
+    # Want to which neigbhors correspond to which agents
+    # Should be working with 
+    test_neighbors = []
+    totalCount = 0
+    for i in range(num_agents):
+        cur_delta = np.abs(pos_list - pos_list[i]) # (N,2)
+        dists = np.sum(cur_delta, axis=1) # (N)
+        tmp = np.argsort(dists)[:m] # (m,)
+        curN = []
+        for j in tmp:
+            if j == i or cur_delta[j][0] > k or cur_delta[j][1] > k:
+                continue
+            curN.append(j)
+            totalCount+=1
+        test_neighbors.append(curN)
+    
+
+    # m_closest_nborsIdx_list = [get_neighbors(m, pos, pos_list, k) for pos in pos_list] # (m,n)
+    m_closest_nborsIdx_list = test_neighbors
     edge_index = convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
     edge_attr = get_edge_attributes(edge_index, pos_list) # (num_edges,2 )
+    pdb.set_trace()
 
     # Tensorify
     # x = torch.tensor(np.array(x), dtype=torch.float)
