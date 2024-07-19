@@ -6,6 +6,7 @@ import torch
 from torch_geometric.data import Dataset, download_url
 import numpy as np
 import pdb
+import pandas as pd # for loading status df
 
 from torch_geometric.data import Data
 from tqdm import tqdm
@@ -89,20 +90,48 @@ def apply_masks(data_len, curdata):
     te_mask[indices[int((3/4)*data_len):]] = 1
     curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)
     curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
+    return curdata
 
-def apply_edge_normalization(edge_weights):
-    # TODO have an option to choose method based on flags
-    edge_weights = torch.exp(-edge_weights)
-    return edge_weights
+# def apply_edge_normalization(edge_weights):
+#     """ edge_weights: (num_edges,2), the deltas in each direction
+#     Note: These deltas can be negative, so exp(-edge_weights) does NOT work
+#     """
+#     # TODO have an option to choose method based on flags
+#     edge_weights = torch.exp(-edge_weights)
+#     return edge_weights
 
-def apply_bd_normalization(bd_grid, k, device):
-    center = bd_grid[:, 1, k, k].unsqueeze(1).unsqueeze(2)
+# def apply_bd_normalization(bd_grid, k, device):
+#     center = bd_grid[:, 1, k, k].unsqueeze(1).unsqueeze(2)
+#     bd_grid[:, 1, :, :] -= center
+#     bd_grid[:, 1, :, :] *= (1 - bd_grid[:, 0, :, :])
+#     bd_grid[:, 1, :, :] /= k
+#     bd_grid[:, 1, :, :] = torch.clamp(bd_grid[:, 1, :, :], min=-10.0, max=10.0)
+
+#     return bd_grid
+
+def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
+    """Modifies data in place"""
+    ### Normalize edge attributes
+    # data.edge_attr (num_edges,2) the deltas in each direction which can be negative
+    assert(edge_normalize in ["k"])
+    if edge_normalize == "k":
+        data.edge_attr /= k # Normalize edge attributes
+    else:
+        raise KeyError("Invalid edge normalization method: {}".format(edge_normalize))
+
+    ### Normalize bd
+    # pdb.set_trace()
+    assert(bd_normalize in ["center"])
+    bd_grid = data.x # (N,2,D,D)
+    center = bd_grid[:, 1, k, k].unsqueeze(1).unsqueeze(2) # (N,1,1)
     bd_grid[:, 1, :, :] -= center
     bd_grid[:, 1, :, :] *= (1 - bd_grid[:, 0, :, :])
-    bd_grid[:, 1, :, :] /= k
-    bd_grid[:, 1, :, :] = torch.clamp(bd_grid[:, 1, :, :], min=-10.0, max=10.0)
+    bd_grid[:, 1, :, :] /= (2*k)
+    bd_grid[:, 1, :, :] = torch.clamp(bd_grid[:, 1, :, :], min=-1.0, max=1.0)
 
-    return bd_grid
+    data.x = bd_grid
+    return data
+
 
 def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     """
@@ -167,7 +196,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     # labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
     # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
-    return Data(x=node_features, edge_index=torch.tensor(edge_indices, dtype=torch.int32), 
+    return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.int32), 
                 edge_attr=torch.tensor(edge_features, dtype=torch.float), 
                 y = torch.tensor(labels, dtype=torch.int8))
 
@@ -193,15 +222,23 @@ class MyOwnDataset(Dataset):
         self.length = 0
         self.device = device
         self.generate_initial = generate_initial
-        super().__init__(root, transform, pre_transform, pre_filter)
-        self.load_metadata()
+        self.df = None
+        super().__init__(root, transform, pre_transform, pre_filter) # this automatically calls process()
+        # self.load_metadata()
 
-    def load_metadata(self):
-        if osp.isfile(osp.join(self.processed_dir, f"meta_data.pt")):
-            self.length = torch.load(osp.join(self.processed_dir, f"meta_data.pt"))[0]
+    # def load_metadata(self):
+    #     if osp.isfile(osp.join(self.processed_dir, f"meta_data.pt")):
+    #         self.length = torch.load(osp.join(self.processed_dir, f"meta_data.pt"))[0]
+    #     else:
+    #         self.length = 0 
+    #     return self.length
+
+    def load_status_data(self):
+        self.df_path = osp.join(self.processed_dir, f"../status_data.csv")
+        if osp.isfile(self.df_path):
+            self.df = pd.read_csv(self.df_path)
         else:
-            self.length = 0 
-        return self.length
+            self.df = pd.DataFrame(columns=["raw_path", "status", "num_pts", "loading_time", "processing_time"])
 
     @property
     def raw_dir(self) -> str:
@@ -249,68 +286,118 @@ class MyOwnDataset(Dataset):
 
         curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
-        torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+        # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+        return curdata
 
     def process(self):
+        self.load_status_data()
         if self.iternum==0 and not self.generate_initial:
             return #if pt's are made already skip the first iteration of pt making
-        idx = self.load_metadata()
+        # idx = self.load_metadata()
+        idx = 0
         print(f"Num cores: {self.num_cores}")
-        for raw_path in self.raw_paths: #TODO check if new npzs are read
+        for npz_path in self.raw_paths: #TODO check if new npzs are read
+            if idx > 10000:
+                break
             # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
             # if "maps" in raw_path or "bds" in raw_path:
             #     continue
-            if not raw_path.endswith(".npz"):
+            if not npz_path.endswith(".npz"):
                 continue
             # pdb.set_trace()
-            map_name = raw_path.split("/")[-1].removesuffix("_paths.npz")
+            map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
             # cur_path_iter = raw_path.split("_")[-1][:-4]
             # if not (int(cur_path_iter)==self.iternum):
             #     continue
+            df_row = self.df.loc[self.df['npz_path'] == npz_path]
+            assert(len(df_row) <= 1)
+            if len(df_row) == 1:
+                if df_row.iloc[0]["status"] == "processed":
+                    print(f"Skipping: {npz_path}")
+                    idx+=df_row.iloc[0]["num_pts"]
+                    continue
 
             # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             bdNpzFile = f"{self.bdNpzFolder}/{map_name}_bds.npz"
             self.ct.start("Loading")
-            cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, raw_path, self.k, self.size, self.max_agents)
-            print(f"Loading: {raw_path} of size {len(cur_dataset)}")
-            idx_list = np.array(range(len(cur_dataset)))+int(idx)
+            cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
+            print(f"Loading: {npz_path} of size {len(cur_dataset)}")
+            # idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
             self.ct.stop("Loading")
             self.ct.start("Processing")
             # pr = cProfile.Profile()
             # pr.enable()
+            tmp = []
             for t in tqdm(range(len(cur_dataset))):
                 time_instance = cur_dataset[t]
-                self.create_and_save_graph(t, time_instance)
-                
+                tmp.append(self.create_and_save_graph(idx+t, time_instance))
+            # Save tmp to pt
+            # pdb.set_trace()
+            torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
+            idx += len(cur_dataset)
+            self.ct.stop("Processing")
             # pr.disable()
             # ps = pstats.Stats(pr).sort_stats('cumtime')
             # ps.print_stats(10)
+            # self.ct.start("Parallel Processing")
+            # This is slower with multiprocessing
             # with Pool(self.num_cores) as p: #change number of workers later
-            #     p.starmap(self.create_and_save_graph, zip(idx_list, cur_dataset))
-            self.ct.stop("Processing")
+            #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
+            # self.ct.stop("Parallel Processing")
             # for time_instance in tqdm(cur_dataset):
                 
-            self.length = len(cur_dataset)
-            idx+=self.length
-            meta = torch.tensor([self.length])
-            torch.save(meta, osp.join(self.processed_dir, f"meta_data.pt"))
-            # print(self.ct.getTimes())
+            # self.length = len(cur_dataset)
+            # idx+=self.length
+
             self.ct.printTimes()
+            new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                            "pt_path": [f"data_{map_name}.pt"],
+                                            "status": ["processed"], 
+                                            "num_pts": [len(cur_dataset)],
+                                            "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+                                            "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+            if len(self.df) == 0:
+                self.df = new_df
+            else:
+                self.df = pd.concat([self.df, new_df], ignore_index=True)
+            self.df.to_csv(self.df_path, index=False)
+        self.length = idx
+
+        ### Get indices and files
+        # self.order_of_indices looks like [0, 213, 457, 990, 1405, ...]
+        # self.order_of_files looks like [map1, map2, map2, map4, map5, ...]
+        self.order_of_indices = [0] # start with 0
+        self.order_of_files = []
+        for row in self.df.iterrows():
+            self.order_of_files.append(row[1]["pt_path"])
+            self.order_of_indices.append(row[1]["num_pts"])
+        self.order_of_indices.pop() # Remove the last element since it is the sum of all elements
+        self.order_of_indices = np.cumsum(self.order_of_indices) # (num_maps)
         
     def len(self):
+        """Require to override Dataset len()"""
         return self.length
 
     def get(self, idx):
-        curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
+        """Require to override Dataset get()"""
+        # pdb.set_trace()
+        # assert(self.df is not None and len(self.df) > 0)
+        which_file_index = np.searchsorted(self.order_of_indices, idx, side='right')-1 # (num_maps)
+        data_file = self.order_of_files[which_file_index]
+        data_idx = idx-self.order_of_indices[which_file_index]
+        assert(data_idx >= 0)
+        curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
+        # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
+        # curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
         curdata = curdata.to(self.device)
 
         # normalize bd, normalize edge attributes
-        edge_weights, bd_and_grids = curdata.edge_attr, curdata.x
-        curdata.edge_attr = apply_edge_normalization(edge_weights)
-        curdata.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
+        # edge_weights, bd_and_grids = curdata.edge_attr, curdata.x
+        # curdata.edge_attr = apply_edge_normalization(edge_weights)
+        # curdata.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
 
-        return curdata
+        return normalize_graph_data(curdata, self.k, edge_normalize="k", bd_normalize="center")
 
 # john = MyOwnDataset('map_data_big2d_new')
 # john.get(5)

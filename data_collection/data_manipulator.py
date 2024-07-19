@@ -117,48 +117,48 @@ class PipelineDataset(Dataset):
         return cur_locs, labels, bd, grid
 
 
-    def process_helper_bds(self, bd, windowAgentLocs, windowAgents, curloc, dijk):
-        '''
-        input: bd
-        from class construction we'll pass in a flag representing how to preprocess the helper_bds (self.helper_bd_preprocess)
-        if this flag is 'middle', normalize by the value contained at center of the bd
-        if this flag is 'current', normalize by where the helper bd's agent is
-        if this flag is 'subtraction', normalize by subtracting current agent's bd from 'current'
-        note that all bds will still be centered at the current agent's location.
-        '''
+    # def process_helper_bds(self, bd, windowAgentLocs, windowAgents, curloc, dijk):
+    #     '''
+    #     input: bd
+    #     from class construction we'll pass in a flag representing how to preprocess the helper_bds (self.helper_bd_preprocess)
+    #     if this flag is 'middle', normalize by the value contained at center of the bd
+    #     if this flag is 'current', normalize by where the helper bd's agent is
+    #     if this flag is 'subtraction', normalize by subtracting current agent's bd from 'current'
+    #     note that all bds will still be centered at the current agent's location.
+    #     '''
 
-        # for each agent in window, get its bd, centered at curloc with provided window size
-        helper_bds = [bd[inwindow[1]][curloc[0]-self.k:curloc[0]+self.k+1, curloc[1]-self.k:curloc[1]+self.k+1] for inwindow in windowAgents] # for each of the (at most) 4 nearby agents, get their bds centered at the current agent's location
-        helper_bds = np.array(helper_bds)
-        # for each helper bd, subtract out the middle TODO validate
-        helper_bds = np.array([helper_bd - bd[inwindow[1]][loc[0]][loc[1]] for inwindow, loc, helper_bd in zip(windowAgents, windowAgentLocs, helper_bds)])
+    #     # for each agent in window, get its bd, centered at curloc with provided window size
+    #     helper_bds = [bd[inwindow[1]][curloc[0]-self.k:curloc[0]+self.k+1, curloc[1]-self.k:curloc[1]+self.k+1] for inwindow in windowAgents] # for each of the (at most) 4 nearby agents, get their bds centered at the current agent's location
+    #     helper_bds = np.array(helper_bds)
+    #     # for each helper bd, subtract out the middle TODO validate
+    #     helper_bds = np.array([helper_bd - bd[inwindow[1]][loc[0]][loc[1]] for inwindow, loc, helper_bd in zip(windowAgents, windowAgentLocs, helper_bds)])
 
-        # helper_bds = np.where(helper_bds == 1073741823, 0, helper_bds)
+    #     # helper_bds = np.where(helper_bds == 1073741823, 0, helper_bds)
 
-        # normalization logic
-        # if len(helper_bds) >= 1: pdb.set_trace()
-        # if self.helper_bd_preprocess == 'current':
-        #     # if len(helper_bds) >= 1: pdb.set_trace()
-        #     helper_bds = np.array([helper_bd - bd[inwindow[1]][loc[0]][loc[1]] for inwindow, loc, helper_bd in zip(windowAgents, windowAgentLocs, helper_bds)])
-        #     helper_bds = np.where(helper_bds > 1000000000, 0, helper_bds) # TODO np.where after subtraction (probably, turn anything smaller than -a million to filler val)
-        # elif self.helper_bd_preprocess == 'subtraction':
-        #     helper_bds = np.array([bd - dijk for bd in helper_bds])
-        #     # assert(np.all(abs(helper_bds) < 1073741823))
-        # else: # default to 'middle'
-        #     helper_bds = np.array([bd - bd[self.k,self.k] for bd in helper_bds])
-        #     helper_bds = np.where(helper_bds > 1000000000, 0, helper_bds) # TODO np.where after subtraction (probably, turn anything smaller than -a million to filler val)
+    #     # normalization logic
+    #     # if len(helper_bds) >= 1: pdb.set_trace()
+    #     # if self.helper_bd_preprocess == 'current':
+    #     #     # if len(helper_bds) >= 1: pdb.set_trace()
+    #     #     helper_bds = np.array([helper_bd - bd[inwindow[1]][loc[0]][loc[1]] for inwindow, loc, helper_bd in zip(windowAgents, windowAgentLocs, helper_bds)])
+    #     #     helper_bds = np.where(helper_bds > 1000000000, 0, helper_bds) # TODO np.where after subtraction (probably, turn anything smaller than -a million to filler val)
+    #     # elif self.helper_bd_preprocess == 'subtraction':
+    #     #     helper_bds = np.array([bd - dijk for bd in helper_bds])
+    #     #     # assert(np.all(abs(helper_bds) < 1073741823))
+    #     # else: # default to 'middle'
+    #     #     helper_bds = np.array([bd - bd[self.k,self.k] for bd in helper_bds])
+    #     #     helper_bds = np.where(helper_bds > 1000000000, 0, helper_bds) # TODO np.where after subtraction (probably, turn anything smaller than -a million to filler val)
 
-        # pad empty entries with 0s
-        n = len(helper_bds)
-        if n < 4:
-            if n == 0:
-                windowAgentLocs = np.array([[curloc[0], curloc[1]]]*4)
-                helper_bds = np.zeros((4-n, self.k*2+1,self.k*2+1))
-            else:
-                windowAgentLocs = np.concatenate([windowAgentLocs, np.array([[curloc[0], curloc[1]]]*(4-n))])
-                helper_bds = np.concatenate([helper_bds, np.zeros((4-n, self.k*2+1,self.k*2+1))])
+    #     # pad empty entries with 0s
+    #     n = len(helper_bds)
+    #     if n < 4:
+    #         if n == 0:
+    #             windowAgentLocs = np.array([[curloc[0], curloc[1]]]*4)
+    #             helper_bds = np.zeros((4-n, self.k*2+1,self.k*2+1))
+    #         else:
+    #             windowAgentLocs = np.concatenate([windowAgentLocs, np.array([[curloc[0], curloc[1]]]*(4-n))])
+    #             helper_bds = np.concatenate([helper_bds, np.zeros((4-n, self.k*2+1,self.k*2+1))])
 
-        return helper_bds, windowAgentLocs
+    #     return helper_bds, windowAgentLocs
 
 
     def find_instance(self, idx):

@@ -27,15 +27,21 @@ class CustomTimer:
             self.time_dict[aKey].append(dif)
 
     # Returns sum of times per key
-    def getTimes(self, aKey=None):
-        if aKey is None:
-            retDict = dict()
-            for aKey in self.time_dict:
-                # self.time_dict[aKey] = 
+    def getTimes(self, aKey=None, retType="sum"):
+        assert(retType in ["sum", "list"])
+        keys = list(self.time_dict.keys())
+        if aKey is not None:
+            keys = [aKey]
+
+        retDict = dict()
+        for aKey in keys:
+            if retType == "list":
+                retDict[aKey] = self.time_dict[aKey]
+            else:
                 retDict[aKey] = np.sum(self.time_dict[aKey])
-            return retDict  # Dictionary
-        else:
-            return np.sum(self.time_dict[aKey])   # Single value
+        if aKey is not None:
+            return retDict[aKey]
+        return retDict  # Dictionary
     
     def printTimes(self, aKey=None):
         if aKey is not None:
@@ -54,6 +60,14 @@ class CustomTimer:
         self.time_dict[aKey].append(dif)
         del self.specific_calls[aKey]
 
+    # def clearKeys(self, keys=None):
+    #     if keys is None:
+    #         self.time_dict.clear()
+    #     elif isinstance(keys, str):
+    #         self.time_dict.pop(keys, None)
+    #     else:
+    #         for key in keys:
+    #             self.time_dict.pop(key, None)
 
 def exampleUse():
     # Example use
