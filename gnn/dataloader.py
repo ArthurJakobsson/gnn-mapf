@@ -12,6 +12,7 @@ from tqdm import tqdm
 import os
 import sys
 from multiprocessing import Pool
+import pickle
 
 # print(os.path.abspath(os.getcwd()))
 sys.path.insert(0, './data_collection/')
@@ -124,42 +125,52 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
 
 class MyOwnDataset(Dataset):
-    def __init__(self, root, device, exp_folder, iternum, num_cores=20, transform=None, pre_transform=None, pre_filter=None, generate_initial=True):
+    def __init__(self, root, file_path_loaded, device, iternum, num_cores=20, transform=None, pre_transform=None, pre_filter=None, generate_initial=True):
+        self.file_path_loaded = file_path_loaded
         self.num_cores = num_cores
         self.k = 4 # padding size
         self.m = 5 # number of agents considered close
         self.size = float('inf')
         self.max_agents = 500
-        self.exp_folder = exp_folder
         self.iternum = iternum
         # self.data_dictionaries = []
         self.length = 0
         self.device = device
         self.generate_initial = generate_initial
+        meta = {"length": 0, "ranges": [(0,"nothing")]}
+        with open(file_path_loaded["meta_data"], 'wb') as fp:
+            pickle.dump(meta, fp, protocol=pickle.HIGHEST_PROTOCOL)
+            
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load_metadata()
 
     def load_metadata(self):
-        if osp.isfile(osp.join(self.processed_dir, f"meta_data.pt")):
-            self.length = torch.load(osp.join(self.processed_dir, f"meta_data.pt"))[0]
+        if osp.isfile(self.file_path_loaded["meta_data"]):
+            with open(self.file_path_loaded["meta_data"], 'rb') as fp:
+                meta_data = pickle.load(fp)
+                self.length = meta_data["length"]
         else:
             self.length = 0 
         return self.length
 
     @property
     def raw_file_names(self):
-        npz_paths = os.listdir(self.exp_folder+"/labels/raw/")
+        npz_paths = os.listdir(self.file_path_loaded["eecbs_npzs"])
         return npz_paths
 
-    @property
-    def processed_file_names(self):
-        file_names = []
-        for i in range(self.length):
-            file_names.append(f"data_{i}.pt")
-        return  file_names 
+    # @property
+    # def processed_file_names(self):
+    #     file_names = []
+    #     for i in range(self.length):
+    #         file_names.append(f"data_{i}.pt")
+    #     return  file_names 
 
     def download():
         raise ImportError
+    
+    @property
+    def num_classes(self) -> int:
+        return 5
 
     def create_and_save_graph(self, idx, time_instance):
         # Graphify
@@ -169,12 +180,11 @@ class MyOwnDataset(Dataset):
 
         curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
         curdata = apply_masks(len(curdata.x), curdata)
-        torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+        torch.save(curdata, osp.join(self.file_path_loaded["processed"], f"data_{idx}.pt"))
 
     def process(self):
         # if self.iternum==0 and not self.generate_initial:
         #     return #if pt's are made already skip the first iteration of pt making
-        idx = self.load_metadata()
         for raw_path in self.raw_paths: #TODO check if new npzs are read
             if "maps" in raw_path or "bds" in raw_path:
                 continue
@@ -184,23 +194,41 @@ class MyOwnDataset(Dataset):
 
             cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
             print(f"Loading: {raw_path} of size {len(cur_dataset)}")
-            idx_list = np.array(range(len(cur_dataset)))+int(idx)
+            idx_list = np.array(range(len(cur_dataset)))
 
             self.create_and_save_graph(0, cur_dataset[0])
             with Pool(self.num_cores) as p: 
                 p.starmap(self.create_and_save_graph, zip(idx_list, cur_dataset))
             # for time_instance in tqdm(cur_dataset):
                 
-            self.length = len(cur_dataset)
-            idx+=self.length
-            meta = torch.tensor([self.length])
-            torch.save(meta, osp.join(self.processed_dir, f"meta_data.pt"))
+            self.length += len(cur_dataset)
+
+            with open(self.file_path_loaded["meta_data"], 'rb') as file:
+                meta_data = pickle.load(file)
+
+            meta_data["length"] = self.length
+            meta_data["ranges"].append((self.length, self.file_path_loaded["processed"]))
+            # Overwrite the picle file
+            with open(self.file_path_loaded["meta_data"], 'wb') as file:
+                pickle.dump(meta_data, file)
+            # meta = torch.tensor([self.length])
+            # torch.save(meta, self.file_path_loaded["meta_data"])
 
     def len(self):
         return self.length
 
     def get(self, idx):
-        curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
+        with open(self.file_path_loaded["meta_data"], 'rb') as file:
+            meta_data = pickle.load(file)
+        ranges = meta_data["ranges"]
+        folder_num = 0 
+        while idx > ranges[folder_num][0]:
+            folder_num+=1
+        
+        chosen_folder = ranges[folder_num][1]
+        file_idx = idx - ranges[folder_num-1][0]
+        
+        curdata = torch.load(osp.join(chosen_folder, f"data_{file_idx}.pt"))
         curdata = curdata.to(self.device)
 
         # normalize bd, normalize edge attributes

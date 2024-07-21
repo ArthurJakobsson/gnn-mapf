@@ -12,6 +12,7 @@ import pdb
 from tqdm import tqdm
 import os
 import argparse
+import pickle
 
 import networkx as nx
 import numpy as np
@@ -255,29 +256,33 @@ def str2bool(v):
 if __name__ == "__main__":
     # current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exp_folder", help="experiment folder", type=str)
+    # parser.add_argument("--exp_folder", help="experiment folder", type=str)
     parser.add_argument("--experiment", help="experiment name", type=str)
     parser.add_argument("--iternum", help="iteration name", type=int)
     parser.add_argument("--num_cores", help="num_cores", type=int)
     parser.add_argument('--generate_initial', type=lambda x: bool(str2bool(x)))
     args = parser.parse_args()
-    exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
+    expname, iternum = args.experiment, args.iternum
     itername = "iter"+str(iternum)
+    
+    with open('file_path_master.pickle', 'rb') as fp:
+        file_path_loaded = pickle.load(fp)
     
     torch.manual_seed(0)
     np.random.seed(0)
     random.seed(0)
     torch.backends.cudnn.deterministic = True
 
-    writer = SummaryWriter(f"./data_collection/data/logs/train_logs/"+expname+"_"+itername)
-    model_path = exp_folder+f"/{itername}"+"/models/"
+    writer = SummaryWriter(file_path_loaded["train_logs"]+expname+"_"+itername)
+    model_path = file_path_loaded["init_models"] if args.generate_initial else file_path_loaded["models"]
     os.mkdir(model_path)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
     # device = "cpu"
     # print('Current cuda device: ',torch.cuda.get_device_name(0))
+    label_directory = file_path_loaded["initial_paths"] if args.generate_initial else file_path_loaded["iter_logs"] #TODO: I don't think this will be used
 
-    dataset = MyOwnDataset(root=f"{exp_folder}/labels/", device=device, exp_folder=exp_folder, iternum=iternum, num_cores=args.num_cores, generate_initial=args.generate_initial)
+    dataset = MyOwnDataset(root=label_directory, file_path_loaded=file_path_loaded, device=device, iternum=iternum, num_cores=args.num_cores, generate_initial=args.generate_initial)
     log_time(".pt creation")
     dataset = dataset.shuffle()
     task = 'node'
