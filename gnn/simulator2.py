@@ -4,6 +4,7 @@ import pdb
 import numpy as np
 import torch # For the model
 import pandas as pd # For saving the results
+import csv # For saving the results
 
 from gnn.dataloader import create_data_object, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
@@ -53,14 +54,55 @@ def convertProbsToPreferences(probs, conversion_type):
         raise ValueError('Invalid conversion type: {}'.format(conversion_type))
     return preferences
 
+def getCosts(solution_path, goal_locs):
+    """
+    Inputs:
+        solution_path: (T,N,2)
+        goal_locs: (N,2)
+    Outputs:
+        total_cost_true: sum of true costs (intermediate waiting at goal incurs costs)
+        total_cost_not_resting_at_goal: sum of costs if not resting at goal
+    """
+    print(solution_path.shape)
+    at_goal = np.all(np.equal(solution_path, np.expand_dims(goal_locs, 0)), axis=2) # (T,N,2), (1,N,2) -> (T,N)
+
+    # Find the last timestep each agent is not at the goal
+    not_at_goal = 1 - at_goal # (T,N)
+    last_timestep_at_goal = len(at_goal) - np.argmax(not_at_goal[::-1], axis=0) # (N), argmax returns first occurence, so reverse
+    last_timestep_at_goal = np.minimum(last_timestep_at_goal, len(at_goal)-1) # Agents that never reach goal will be fixed here
+    total_cost_true = last_timestep_at_goal.sum()
+
+    resting_at_goal = np.logical_and(at_goal[:-1], at_goal[1:]) # (T-1,N)
+    total_cost_not_resting_at_goal = (1-resting_at_goal).sum()
+
+    num_agents_at_goal = np.sum(at_goal[-1])
+    assert(total_cost_true >= total_cost_not_resting_at_goal)
+    assert(total_cost_true <= (solution_path.shape[0]-1)*solution_path.shape[1])
+    return total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal
+
+def testGetCosts():
+    goal_locs = np.array([[1,10], [2,20], [3,30]])
+    solution_path = np.array([
+        [[1,9],  [1,10], [1,10], [1,9],  [1,10]], # TC=4, TNRAG=3
+        [[0,20], [1,20], [2,20], [2,20], [2,20]], # TC=2, TNRAG=2
+        [[5,4],  [5,4],  [5,4],  [5,4],  [5,4]]   # TC=4, TNRAG=4
+    ]) # (N=3,T=5,2)
+    solution_path = np.swapaxes(solution_path, 0, 1) # (T,N,2)
+    # pdb.set_trace()
+
+    total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal = getCosts(solution_path, goal_locs)
+    assert(total_cost_true == 4+2+4)
+    assert(total_cost_not_resting_at_goal == 3+2+4)
+    assert(num_agents_at_goal == 2)
+    print("getCosts test passed!")
+
+
 def simulate(model, k, m, grid_map, bd, start_locations, goal_locations, 
              max_steps, shield_type, seed):
     cur_locs = start_locations # (N,2)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     agent_priorities = np.random.permutation(len(cur_locs)) # (N)
-    total_cost_true = 0
-    total_cost_not_resting_at_goal = 0
     solution_path = [cur_locs.copy()]
     success = False
     for step in range(max_steps):
@@ -84,6 +126,7 @@ def simulate(model, k, m, grid_map, bd, start_locations, goal_locations,
         if not cspibt_worked:
             raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
         # cur_locs = cur_locs + new_move # (N,2)
+        cur_locs += new_move # (N,2)
         solution_path.append(cur_locs.copy())
 
         # Check if all agents have reached their goals
@@ -93,9 +136,9 @@ def simulate(model, k, m, grid_map, bd, start_locations, goal_locations,
     
     # pdb.set_trace()
     solution_path = np.array(solution_path) # (T<=max_steps+1,N,2)
-    at_goal = np.all(np.equal(solution_path, np.expand_dims(goal_locations, 0)), axis=2) # (T,N,2), (1,N,2) -> (T,N)
+    total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal = getCosts(solution_path, goal_locations)
 
-    return solution_path, total_cost_true, total_cost_not_resting_at_goal, success
+    return solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success
 
 
 def pibt(grid_map, agent_id, action_preferences, planned_agents, move_matrix, 
@@ -264,7 +307,7 @@ def main(args: argparse.ArgumentParser):
     model.eval()
 
     # Simulate
-    solution_path, total_cost_true, total_cost_not_resting_at_goal, success = simulate(model, 
+    solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(model, 
             k, args.m, map_grid, bd, start_locations, goal_locations, 
             args.maxSteps, args.shieldType, args.seed)
     
@@ -272,14 +315,25 @@ def main(args: argparse.ArgumentParser):
     if os.path.exists(args.outputCSVFile):
         df = pd.read_csv(args.outputCSVFile)
     else:
-        df = pd.DataFrame(columns=['map', 'scen', 'agentNum', 'seed', 'shieldType', 
-                                   'success', 'total_cost_true', 'total_cost_not_resting_at_goal'])
+        # df = pd.DataFrame(columns=['map', 'scen', 'agentNum', 'seed', 'shieldType', 
+        #                            'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
+        #                            'num_agents_at_goal'])
+        with open(args.outputCSVFile, 'w') as f:
+            writer = csv.writer(f, delimiter=',')
+            writer.writerow(['map', 'scen', 'agentNum', 'seed', 'shieldType', 
+                             'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
+                             'num_agents_at_goal'])
     
-    new_df = pd.DataFrame.from_dict({"map": [args.mapName], 'scen': [args.scenFile], 'agentNum': [args.agentNum],
-                                    'seed': [args.seed], 'shieldType': [args.shieldType], 'success': [success],
-                                    'total_cost_true': [total_cost_true], 'total_cost_not_resting_at_goal': [total_cost_not_resting_at_goal]})
-    df = pd.concat([df, new_df], ignore_index=True)
-    df.to_csv(args.outputCSVFile, index=False)
+    # new_df = pd.DataFrame.from_dict({"map": [args.mapName], 'scen': [args.scenFile], 'agentNum': [args.agentNum],
+    #                                 'seed': [args.seed], 'shieldType': [args.shieldType], 'success': [success],
+    #                                 'total_cost_true': [total_cost_true], 'total_cost_not_resting_at_goal': [total_cost_not_resting_at_goal],
+    #                                 'num_agents_at_goal': [num_agents_at_goal]})
+    # df = pd.concat([df, new_df], ignore_index=True)
+    # df.to_csv(args.outputCSVFile, index=False)
+    with open(args.outputCSVFile, 'a') as f:
+        writer = csv.writer(f, delimiter=',')
+        writer.writerow([args.mapName, args.scenFile, args.agentNum, args.seed, args.shieldType, 
+                         success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal])
 
     # Save the paths
     assert(args.outputPathsFile.endswith('.npy'))
@@ -287,14 +341,15 @@ def main(args: argparse.ArgumentParser):
 
 ### Example run
 # python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/constant_npzs/all_maps.npz
-#       --k=4 --m=5
 #       --mapName den520d.map --scenFile data_collection/data/benchmark_data/scens/den520d-random-1.scen
 #       --agentNum 100 --bdNpzFile data_collection/data/benchmark_data/constant_npzs/den520d_bds.npz
 #       --modelPath data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt 
+#       --k=4 --m=5
 #       --maxSteps 200 --seed 0 --shieldType CS-PIBT
 #       --outputCSVFile data_collection/data/logs/EXP_Test2/iter0/results.csv
 #       --outputPathsFile data_collection/data/logs/EXP_Test2/iter0/paths.npy
 if __name__ == '__main__':
+    # testGetCosts()
     parser = argparse.ArgumentParser()
     # Map / scen parameters
     parser.add_argument('--mapNpzFile', type=str, required=True)
