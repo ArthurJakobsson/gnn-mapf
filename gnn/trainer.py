@@ -137,7 +137,7 @@ def train(dataset, task, writer):
     patience = 10
     no_improvement = 0
 
-    for epoch in tqdm(range(10)):
+    for epoch in tqdm(range(40)):
         total_loss = 0
         correct = 0
         second_correct = 0
@@ -179,13 +179,13 @@ def train(dataset, task, writer):
         writer.add_scalar("train_top2_accuracy", train_top2_acc, epoch)
         scheduler.step(total_loss)
 
-        if epoch % 5 == 0:
+        if epoch % 3 == 0:
             test_acc, double_test_acc = test(test_loader, model)
             print(f"Epoch {epoch}. Loss: {total_loss:.4f}. Train accuracy: {train_acc:.2f}%. Train Top2 accuracy: {train_top2_acc:.2f}%. Test accuracy: {test_acc:.4f}. Top2 Test accuracy: {double_test_acc:.4f}")
             writer.add_scalar("test_accuracy", test_acc, epoch)
             writer.add_scalar("test_top2_accuracy", double_test_acc, epoch)
 
-            if epoch >= 2:
+            if epoch >= 20:
                 save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc)
 
             # # Early stopping logic

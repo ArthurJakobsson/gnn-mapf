@@ -8,10 +8,43 @@ from datetime import datetime
 
 last_recorded_time = datetime.now()
 
-def log_time(event_name):
+class MyDict(dict):
+   def __getitem__(self, item):
+       return dict.__getitem__(self, item) % self
+
+def get_iternum():
+    global iternum
+    return str(iternum)
+
+def create_file_paths(args):
+    file_path_master = MyDict({
+        'data' : './data_collection/data',
+        'logs' : '%(data)s/logs',
+        'benchmark' : '%(data)s/benchmark_data',
+        'mini_benchmark' : '%(data)s/mini_benchmark_data',
+        'source_maps' : '%(mini_benchmark)s/maps' if args.mini_test else '%(benchmark)s/maps',
+        'source_scens' : '%(mini_benchmark)s/scens' if args.mini_test else '%(benchmark)s/scens',
+        'constant_npz' : '%(mini_benchmark)s/constant_npzs' if args.mini_test else '%(benchmark)s/constant_npzs',
+        'initial_paths' : '%(mini_benchmark)s/initial_paths' if args.mini_test else '%(benchmark)s/initial_paths',
+        'init_eecbs' : '%(initial_paths)s/eecbs_outputs',
+        'init_eecbs_npz' : '%(initial_paths)s/eecbs_npzs',
+        'init_processed' : '%(initial_paths)s/processed',
+        'init_model' : '%(initial_paths)s/models',
+        'experiment_logs' : '%(logs)s/EXP'+str(args.expnum),
+        'iter_logs' : '%(experiment_logs)s/iter' + get_iternum(),
+        'eecbs_outputs' : '%(iter_logs)s/eecbs_outputs',
+        'eecbs_npzs': '%(iter_logs)s/eecbs_npzs',
+        'processed' : '%(iter_logs)s/processed',
+        'models' : '%(iter_logs)s/models',
+        'encountered_scens' : '%(iter_logs)s/encountered_scens',
+        'timing' : '%(experiment_logs)s/timing_folder/'
+    })  
+    return file_path_master
+
+def log_time(file_path_master, event_name):
     global last_recorded_time
     cur_time = datetime.now()
-    with open(f"./timing_folder/master_timing.txt", mode='a') as file:
+    with open(file_path_master["timing"]+"/master_timing.txt", mode='a') as file:
         file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
     last_recorded_time  = cur_time
 
@@ -29,15 +62,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     expnum, mini_test, generate_initial, num_samples, max_samples = args.expnum, args.mini_test, args.generate_initial, args.num_samples, args.max_samples
     print(args.expnum)
-
+    global iternum
     iternum = 0
+    file_path_master = create_file_paths(args)
+
+    pdb.set_trace()
     if mini_test:
         source_maps_scens = "./data_collection/data/mini_benchmark_data"
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    LE = f"data_collection/data/logs/EXP{expnum}"
-    os.makedirs(LE, exist_ok=True)
+    os.makedirs(file_path_master["experiment_folder"], exist_ok=True)
     
     num_cores = multiprocessing.cpu_count()
     first_iteration = "true"
@@ -47,7 +82,7 @@ if __name__ == "__main__":
     #                     f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
     #                     f"--num_parallel={args.num_parallel}", "--cutoffTime=20"])
     # print(command)
-    command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens", 
+    command = " ".join(["python", "./data_collection/eecbs_batchrunner2.py", f"--mapFolder={file_path_master["source_maps"]}",  f"--scenFolder={file_path_master["source_scens"]}", 
                             f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
                             f"--num_parallel_runs={args.num_parallel}", "--cutoffTime=20"])
     print(command)
