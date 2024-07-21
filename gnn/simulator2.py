@@ -306,33 +306,41 @@ def main(args: argparse.ArgumentParser):
     model = torch.load(args.modelPath)
     model.eval()
 
+    # Set seeds
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
     # Simulate
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(model, 
             k, args.m, map_grid, bd, start_locations, goal_locations, 
             args.maxSteps, args.shieldType, args.seed)
     
     # Save the statistics into the csv file
-    if os.path.exists(args.outputCSVFile):
-        df = pd.read_csv(args.outputCSVFile)
-    else:
-        # df = pd.DataFrame(columns=['map', 'scen', 'agentNum', 'seed', 'shieldType', 
-        #                            'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
-        #                            'num_agents_at_goal'])
-        with open(args.outputCSVFile, 'w') as f:
-            writer = csv.writer(f, delimiter=',')
-            writer.writerow(['map', 'scen', 'agentNum', 'seed', 'shieldType', 
-                             'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
-                             'num_agents_at_goal'])
-    
+    # if os.path.exists(args.outputCSVFile):
+    #     df = pd.read_csv(args.outputCSVFile)
+    # else:
+    #     df = pd.DataFrame(columns=['map', 'scen', 'agentNum', 'seed', 'shieldType', 
+    #                                'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
+    #                                'num_agents_at_goal'])
     # new_df = pd.DataFrame.from_dict({"map": [args.mapName], 'scen': [args.scenFile], 'agentNum': [args.agentNum],
     #                                 'seed': [args.seed], 'shieldType': [args.shieldType], 'success': [success],
     #                                 'total_cost_true': [total_cost_true], 'total_cost_not_resting_at_goal': [total_cost_not_resting_at_goal],
     #                                 'num_agents_at_goal': [num_agents_at_goal]})
     # df = pd.concat([df, new_df], ignore_index=True)
     # df.to_csv(args.outputCSVFile, index=False)
+
+    if not os.path.exists(args.outputCSVFile):
+        with open(args.outputCSVFile, 'w') as f:
+            writer = csv.writer(f, delimiter=',')
+            writer.writerow(['map', 'scen', 'agentNum', 'seed', 'shieldType',
+                             'modelPath', 'k', 'm', 'maxSteps', 
+                             'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
+                             'num_agents_at_goal'])
+            
     with open(args.outputCSVFile, 'a') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow([args.mapName, args.scenFile, args.agentNum, args.seed, args.shieldType, 
+                         args.modelPath, args.k, args.m, args.maxSteps,
                          success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal])
 
     # Save the paths
@@ -341,7 +349,7 @@ def main(args: argparse.ArgumentParser):
 
 ### Example run
 # python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/constant_npzs/all_maps.npz
-#       --mapName den520d.map --scenFile data_collection/data/benchmark_data/scens/den520d-random-1.scen
+#       --mapName den520d --scenFile data_collection/data/benchmark_data/scens/den520d-random-1.scen
 #       --agentNum 100 --bdNpzFile data_collection/data/benchmark_data/constant_npzs/den520d_bds.npz
 #       --modelPath data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt 
 #       --k=4 --m=5
@@ -365,12 +373,11 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--shieldType', type=str, default='CS-PIBT')
     # Output parameters
-    parser.add_argument('--outputCSVFile', type=str, required=True)
-    parser.add_argument('--outputPathsFile', type=str, required=True)
+    parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
+    parser.add_argument('--outputPathsFile', type=str, help="where to output path", required=True)
     args = parser.parse_args()
-    # assert(args.mapName.endswith('.map'))
-    # tmp = "abc"
-    # tmp.removesuffix()
+
     if args.mapName.endswith('.map'): # Remove ending .map
         args.mapName = args.mapName.removesuffix('.map')
+    
     main(args)
