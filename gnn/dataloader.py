@@ -86,7 +86,7 @@ def apply_masks(data_len, curdata):
     tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
     # tr_mask[:int((3/4)*data_len)] = 1
     # te_mask[int((3/4)*data_len):] = 1
-    indices = torch.randperm(data_len)
+    indices = torch.randperm(data_len) # (N)
     tr_mask[indices[:int((3/4)*data_len)]] = 1
     te_mask[indices[int((3/4)*data_len):]] = 1
     curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)

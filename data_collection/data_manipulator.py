@@ -196,12 +196,19 @@ class PipelineDataset(Dataset):
         #     tn2ind += 1
         # # so now tn2ind holds the index to the (t,n,2) matrix containing the data we want
         # mapname, bdname = items[tn2ind][0].split(",")
-        mapname, bdname = key_to_use.split(",")
-        bdname = translate_bd_name(bdname)
-        bd = self.bds[bdname]      # (N,W,H) # TODO: need to chop of the "custom" part
+        if len(key_to_use.split(",")) != 3:
+            raise KeyError(f"Badly formatted paths key: {key_to_use}, should check parse_paths and \
+                            make sure that keys are in mapName,scenName,numAgents format")
+        mapname, scenname, num_agents = key_to_use.split(",")
+        num_agents = int(num_agents)
+        # bdname = translate_bd_name(bdname)
+        # scenname, num_agents = bdname.split(",")
+        # bd = self.bds[bdname]      # (N,W,H) # TODO: need to chop of the "custom" part
         grid = self.maps[mapname]  # (W,H)
         paths = self.tn2[key_to_use] + self.k # (T,N,2)
         max_timesteps = paths.shape[0]
+        assert(self.bds[scenname].shape[0] >= num_agents)
+        bd = self.bds[scenname][:num_agents] # (N,W,H)
         # pad bds (for all agents), grid (for all agents) with empty 0 window(s), k in all directions
 
         # get the location, dir to next location
@@ -526,13 +533,12 @@ def batch_bd(dir, num_parallel):
         if os.path.isfile(f):
             # parse the bd file and add to a global dictionary (or some class variable dictionary)
             # val = parse_bd(f)
-            bdname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. "Paris_1_256-random-110, where 1 is instance, 10 is agents"
-            # res[bdname + agents] = val # TODO make sure that filename doesn't have weird chars you don't want in the npz
+            scenname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. "Paris_1_256-random-110, where 1 is instance, 10 is agents"
             if num_parallel == 1:
-                res[bdname + agents] = parse_bd(f)
+                res[scenname] = parse_bd(f)
             else:
                 inputs_list.append((f,))  # Note, need to pass in as tuple for use with starmap
-                filenames_list.append(bdname + agents)
+                filenames_list.append(scenname)
         else:
             raise RuntimeError("bad bd dir")
     
@@ -545,7 +551,6 @@ def batch_bd(dir, num_parallel):
     for i in range(len(inputs_list)):
         filename = filenames_list[i]
         res[filename] = results[i]
-        
     return res
 
 def batch_path(dir):
@@ -577,18 +582,19 @@ def batch_path(dir):
         if os.path.isfile(f):
             # parse the path file, index out its map name, seed, agent number, and bd that it was formed from based on file name,
             # and add the resulting triplet to a global dictionary (or some class variable dictionary)
-            raw = filename.split(".txt")[0].split(".scen") # remove .txt
-            raw = raw[0]+raw[1]
+            # Example filename: 'empty_8_8-random-9.scen32.txt'
+            scen, numAgents = filename.split(".txt")[0].split(".scen") # remove .txt, e.g. empty_8_8-random-9, 32
+            # raw = raw[0]+","+raw[1]
             # raw = raw[:-1]
-            mapname = raw.split("-")[0] + ".map"
-            bdname = raw
+            mapname = scen.split("-")[0] + ".map" # e.g. empty_8_8.map
+            # bdname = raw
             val = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             # print("___________________________\n")
             # if idx in valFiles:
             #     res2[mapname + "," + bdname] = val
             # else:
-            res1[mapname + "," + bdname] = val
+            res1[f"{mapname},{scen},{numAgents}"] = val
             # res2[mapname + "," + bdname + "," + seed + ",twh"] = val2
             # print(f)
             idx += 1
@@ -641,17 +647,20 @@ def main():
     if os.path.exists(args.bdOutFile):
         # print("BD file already exists, skipping bd parsing")
         pass
-    else:
-        with ct("Parsing bds"):
-            bds = batch_bd(args.bdIn, args.num_parallel)
-        np.savez_compressed(args.bdOutFile, **bds)
-        ct.printTimes("Parsing bds")
+    # else:
+    with ct("Parsing bds"):
+        bds = batch_bd(args.bdIn, args.num_parallel)
+    np.savez_compressed(args.bdOutFile, **bds)
+    ct.printTimes("Parsing bds")
 
     # parse each path, add to global list
     assert(args.pathOutFile.endswith(".npz"))
     if os.path.exists(args.pathOutFile):
         print(f"Path file {args.pathOutFile} already exists, skipping path parsing")
     else:
+        if not os.listdir(args.pathsIn):
+            print("WARNING: pathsIn folder is empty")
+            return
         with ct("Parsing paths"):
             data1train, data1val = batch_path(args.pathsIn)
         ct.printTimes("Parsing paths")
@@ -686,5 +695,6 @@ def main():
 #       --mapOutFile=./data_collection/data/benchmark_data/constant_npzs/final_test8_map.npz 
 #       --mapIn=./data_collection/data/benchmark_data/maps --trainOut=./data_collection/data/logs/EXP0/labels/raw/train_final_test8_0 
 #       --num_parallel=1
+# python -m data_collection.data_manipulator --pathsIn=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs/empty_8_8/paths/ --pathOutFile=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_npzs/empty_8_8_paths.npz --bdIn=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs/empty_8_8/bd --bdOutFile=data_collection/data/benchmark_data/constant_npzs2/empty_8_8_bds.npz --mapIn=data_collection/data/benchmark_data/maps --mapOutFile=data_collection/data/benchmark_data/constant_npzs2/empty_8_8_map.npz --num_parallel=1
 if __name__ == "__main__":
     main()

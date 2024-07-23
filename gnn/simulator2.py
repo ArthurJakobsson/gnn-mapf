@@ -21,10 +21,13 @@ def parse_scene(scen_file):
         # if line[0] == 'v':  # Nathan's benchmark
         start_locations = list()
         goal_locations = list()
-        sep = "\t"
+        # sep = "\t"
         for line in f:
             line = line.rstrip() #remove the new line
-            tokens = line.split(sep)
+            # line = line.replace("\t", " ") # Most instances have tabs, but some have spaces
+            # tokens = line.split(" ")
+            tokens = line.split("\t") # Everything is tab separated
+            assert(len(tokens) == 9) 
             # num_of_cols = int(tokens[2])
             # num_of_rows = int(tokens[3])
             tokens = tokens[4:]  # Skip the first four elements
@@ -97,10 +100,10 @@ def testGetCosts():
     print("getCosts test passed!")
 
 
-def simulate(model, k, m, grid_map, bd, start_locations, goal_locations, 
+def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
              max_steps, shield_type, seed):
     cur_locs = start_locations # (N,2)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     agent_priorities = np.random.permutation(len(cur_locs)) # (N)
     solution_path = [cur_locs.copy()]
@@ -270,6 +273,7 @@ def lacam(lacam_or_cspibt, grid_map, action_preferences, current_locs,
 
 
 def main(args: argparse.ArgumentParser):
+    k = args.k
     # Load the map
     if not os.path.exists(args.mapNpzFile):
         raise FileNotFoundError('Map file: {} not found.'.format(args.mapNpzFile))
@@ -277,6 +281,7 @@ def main(args: argparse.ArgumentParser):
     if args.mapName+".map" not in map_npz:
         raise ValueError('Map name not found in the map file.')
     map_grid = map_npz[args.mapName+".map"] # (H,W)
+    map_grid = np.pad(map_grid, k, 'constant', constant_values=1) # Add padding
 
     # Load the scen
     if not os.path.exists(args.scenFile):
@@ -285,25 +290,26 @@ def main(args: argparse.ArgumentParser):
     num_agents = args.agentNum # This is N
     if start_locations.shape[0] < num_agents:
         raise ValueError('Not enough agents in the scen file.')
-    start_locations = start_locations[:num_agents] # (N,2)
-    goal_locations = goal_locations[:num_agents] # (N,2)
+    start_locations = start_locations[:num_agents] + k # (N,2)
+    goal_locations = goal_locations[:num_agents] + k # (N,2)
 
     # Load the bd
     # pdb.set_trace()
     if not os.path.exists(args.bdNpzFile):
         raise FileNotFoundError('BD file: {} not found.'.format(args.bdNpzFile))
     scen_num = args.scenFile.split('-')[-1].split('.')[0]
-    bd_key = f"{args.mapName}-random-{scen_num}{num_agents}"
+    bd_key = f"{args.mapName}-random-{scen_num}"
     bd_npz = np.load(args.bdNpzFile)
     if bd_key not in bd_npz:
         raise ValueError('BD key {} not found in the bd file'.format(bd_key))
-    bd = bd_npz[bd_key] # (max agents,H,W)
+    bd = bd_npz[bd_key][:num_agents] # (max agents,H,W)->(N,H,W)
+    bd = np.pad(bd, k, 'constant', constant_values=12345678) # Add padding
 
     # Load the model
-    k = args.k
+    device = torch.device("cpu")
     if not os.path.exists(args.modelPath):
         raise FileNotFoundError('Model file: {} not found.'.format(args.modelPath))
-    model = torch.load(args.modelPath)
+    model = torch.load(args.modelPath, map_location=device)
     model.eval()
 
     # Set seeds
@@ -311,9 +317,10 @@ def main(args: argparse.ArgumentParser):
     torch.manual_seed(args.seed)
 
     # Simulate
-    solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(model, 
-            k, args.m, map_grid, bd, start_locations, goal_locations, 
+    solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
+            model, k, args.m, map_grid, bd, start_locations, goal_locations, 
             args.maxSteps, args.shieldType, args.seed)
+    solution_path = solution_path - k # (T,N,2) Removes padding
     
     # Save the statistics into the csv file
     # if os.path.exists(args.outputCSVFile):
@@ -332,7 +339,7 @@ def main(args: argparse.ArgumentParser):
     if not os.path.exists(args.outputCSVFile):
         with open(args.outputCSVFile, 'w') as f:
             writer = csv.writer(f, delimiter=',')
-            writer.writerow(['map', 'scen', 'agentNum', 'seed', 'shieldType',
+            writer.writerow(['mapName', 'scenFile', 'agentNum', 'seed', 'shieldType',
                              'modelPath', 'k', 'm', 'maxSteps', 
                              'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
                              'num_agents_at_goal'])
@@ -374,7 +381,7 @@ if __name__ == '__main__':
     parser.add_argument('--shieldType', type=str, default='CS-PIBT')
     # Output parameters
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
-    parser.add_argument('--outputPathsFile', type=str, help="where to output path", required=True)
+    parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", required=True)
     args = parser.parse_args()
 
     if args.mapName.endswith('.map'): # Remove ending .map

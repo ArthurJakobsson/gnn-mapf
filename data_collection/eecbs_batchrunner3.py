@@ -32,50 +32,40 @@ def killTmuxSession(i):
     subprocess.run(["tmux", "kill-session", "-t", tmux_session_name], check=True)
 ###############################################################
 
-mapsToMaxNumAgents = { #TODO change this to 100 for all
-    "Berlin_1_256": 101,
-    "lt_gallowstemplar_n": 101, 
-    "final_test9": 101,
-    "empty_8_8": 20,
-    "den312d": 101, 
-    "final_test2": 101,
-    "final_test6": 101,
-    "random_32_32_10": 101,
-    "brc202d": 101,
-    "room_64_64_8": 101,
-    "maze_128_128_1": 101,
-    "warehouse_20_40_10_2_2": 101,
-    "final_test3": 101,
-    "Paris_1_256": 101,
-    "final_test8": 101,
-    "maze_128_128_10": 101, 
-    "w_woundedcoast": 101,
-    "maze_32_32_4": 101,
-    "maze_32_32_2": 101,
-    "ht_chantry": 101,
-    "final_test1": 101,
-    "empty_48_48": 101,
-    "random_64_64_20": 101,
-    "room_64_64_16": 101,
-    "final_test4": 101,
-    "empty_32_32": 101,
-    "final_test7": 101,
-    "Boston_0_256": 101,
-    "random_64_64_10": 101,
-    "empty_16_16": 101,
-    "warehouse_10_20_10_2_2": 101,
-    "room_32_32_4": 101,
-    "final_test5": 101,
-    "warehouse_10_20_10_2_1": 101,
-    "warehouse_20_40_10_2_1": 101, 
-    "ht_mansion_n": 101, 
-    "maze_128_128_2": 101,
-    "ost003d": 101,
-    "orz900d": 101,
-    "final_test0": 101,
-    "random_32_32_20": 101,
-    "lak303d": 101,
-    "den520d": 101
+mapsToMaxNumAgents = {
+    "Berlin_1_256": 1000,
+    "Boston_0_256": 1000,
+    "Paris_1_256": 1000,
+    "brc202d": 1000,
+    "den312d": 1000, 
+    "den520d": 1000,
+    "empty_8_8": 32,
+    "empty_16_16": 128,
+    "empty_32_32": 512,
+    "empty_48_48": 1000,
+    "ht_chantry": 1000,
+    "ht_mansion_n": 1000,
+    "lak303d": 1000,
+    "lt_gallowstemplar_n": 1000,
+    "maze_128_128_1": 1000,
+    "maze_128_128_10": 1000,
+    "maze_128_128_2": 1000,
+    "maze_32_32_2": 333,
+    "maze_32_32_4": 395,
+    "orz900d": 1000,
+    "ost003d": 1000,
+    "random_32_32_10": 461,
+    "random_32_32_20": 409,
+    "random_64_64_10": 1000,
+    "random_64_64_20": 1000,
+    "room_32_32_4": 341,
+    "room_64_64_16": 1000,
+    "room_64_64_8": 1000,
+    "w_woundedcoast": 1000,
+    "warehouse_10_20_10_2_1": 1000,
+    "warehouse_10_20_10_2_2": 1000,
+    "warehouse_20_40_10_2_1": 1000,
+    "warehouse_20_40_10_2_2": 1000,
 }
 
 def str2bool(v):
@@ -103,17 +93,21 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     """Command for running Python model"""
     scenname = (scenfile.split("/")[-1])
     mapname = mapfile.split("/")[-1].split(".")[0]
-    command = f"python -m gnn.simulator2"
+    command = f"conda activate pytorchfun && python -m gnn.simulator2"
 
+    # Simulator parameters
     for aKey in runnerArgs:
         command += " --{}={}".format(aKey, runnerArgs[aKey])
     
+    # command += f" --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz"
+    command += f" --mapNpzFile=data_collection/data/benchmark_data/constant_npzs2/Berlin_1_256_map.npz"
     command += f" --mapName={mapname} --scenFile={scenfile} --agentNum={numAgents}"
-    bdFile = f"data_collection/data/benchmark_data/constant_npzs/{mapname}_bds.npz"
+    # bdFile = f"data_collection/data/benchmark_data/constant_npzs/{mapname}_bds.npz"
+    bdFile = f"data_collection/data/benchmark_data/constant_npzs2/{mapname}_bds.npz"
     command += f" --bdNpzFile={bdFile}"
     command += f" --outputCSVFile={outputfile}"
-    tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.npz"
-    command += f" --outputPathNpzFile={tempOutPath}"
+    tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.npy"
+    command += f" --outputPathsFile={tempOutPath}"
     return command
 
 def getCommandForSingleInstance(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
@@ -138,20 +132,34 @@ def detectExistingStatus(runnerArgs, mapfile, aNum, scenfile, df): # TODO update
     # print(df)
     assert(isinstance(df, pd.DataFrame))
 
-    ### Checks if the corresponding runs in the df have been completed already
+    ### Grabs the correct row from the dataframe based on arguments
     for aKey, aValue in runnerArgs["args"].items():
-        if aKey == "output":
-            continue
+        # if aKey == "output":
+        #     continue
         if aKey not in df.columns:
             raise KeyError("Error: {} not in the columns of the dataframe".format(aKey))
         df = df[df[aKey] == aValue]  # Filter the dataframe to only include the runs with the same parameters
-    df = df[(df["map"] == mapfile) & (df["agents"] == scenfile) & (df["agentNum"] == aNum)]
+    
+    # EECBS and pymodel have different commands for inputting map, agents, and agentNum
+    if runnerArgs["command"] == "eecbs":
+        df = df[(df["map"] == mapfile) & (df["agents"] == scenfile) & (df["agentNum"] == aNum)]
+    elif runnerArgs["command"] == "pymodel":
+        pymodel_map_name = mapfile.split("/")[-1].removesuffix(".map")
+        assert(pymodel_map_name in mapsToMaxNumAgents.keys())
+        df = df[(df["mapName"] == pymodel_map_name) & (df["scenFile"] == scenfile) & (df["agentNum"] == aNum)]
+    else:
+        raise KeyError("Unknown command: {}".format(runnerArgs["command"]))
+    
+    ### Checks if the corresponding runs in the df have been completed already
     if len(df) > 0:
         # assert(len(df) == 1)
         if len(df) > 1:
             print("Warning, multiple runs with the same parameters, likely due to a previous crash")
             print("Map: {}, NumAgents: {}, Scen: {}, # Found: {}".format(mapfile, aNum, scenfile, len(df)))
-        success = df["solution cost"].values[-1] != -1
+        if runnerArgs["command"] == "eecbs":
+            success = df["solution cost"].values[-1] != -1
+        elif runnerArgs["command"] == "pymodel":
+            success = df["success"].values[0] == 1
         # success = df["overall_solution"].values[0] == 1
         return True, success
     else:
@@ -343,13 +351,17 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
     for mapFile in mapsToScens.keys(): # mapFile is just the map name without the path or .map extension
         mapOutputFolder = static_dict[mapFile]["outputFolder"]
         pathsIn = f"{mapOutputFolder}/paths/"
-        if not os.path.exists(pathsIn) or not os.listdir(pathsIn): # if the pathsIn folder doesn't exist or is empty
-            print("Skipping: {} as all failed".format(mapFile))
-            continue
+        # if not os.path.exists(pathsIn) or not os.listdir(pathsIn): # if the pathsIn folder doesn't exist or is empty
+        #     print("Skipping: {} as all failed".format(mapFile))
+        #     continue
+
         # mapOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_map.npz"
         # bdOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_bds.npz"
-        mapOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_map.npz"
-        bdOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_bds.npz"
+        # mapOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_map.npz"
+        # mapOutputNpz = f"{args.constantMapAndBDFolder}/all_maps.npz"
+        # bdOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_bds.npz"
+        mapOutputNpz = f"data_collection/data/benchmark_data/constant_npzs2/{mapFile}_map.npz"
+        bdOutputNpz = f"data_collection/data/benchmark_data/constant_npzs2/{mapFile}_bds.npz"
         pathOutputNpz = f"{outputPathNpzFolder}/{mapFile}_paths.npz"
         if os.path.exists(pathOutputNpz):
             print("Skipping: {} as paths npz already exists".format(mapFile))
@@ -358,9 +370,10 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
         command = " ".join(["python", "-m", "data_collection.data_manipulator", 
                         f"--pathsIn={pathsIn}", f"--pathOutFile={pathOutputNpz}",
                         f"--bdIn={mapOutputFolder}/bd", f"--bdOutFile={bdOutputNpz}", 
-                        f"--mapIn={mapsInputFolder}", f"--mapOutFile={args.constantMapAndBDFolder}/all_maps.npz", #f"--mapOutFile={mapOutputNpz}",
+                        f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
         input_list.append((command,))
+        # pdb.set_trace()
     
     if len(input_list) > 0:
         with multiprocessing.Pool(processes=min(len(input_list), num_workers//numWorkersParallelForDataManipulator)) as pool:
@@ -437,8 +450,10 @@ def eecbs_runner(args):
 
         ### Get the number of agents to run for each scen
         if "benchmark" in scenInputFolder: # pre-loop run
-            increment = min(100,  mapsToMaxNumAgents[mapFile]-1)
-            agentNumbers = list(range(increment, mapsToMaxNumAgents[mapFile]+1, increment))
+            increment = min(100,  mapsToMaxNumAgents[mapFile])
+            maximumAgents = min(101, mapsToMaxNumAgents[mapFile]+1) # mapsToMaxNumAgents[mapFile]
+            agentNumbers = list(range(increment, maximumAgents, increment))
+            # agentNumbers = [mapsToMaxNumAgents[mapFile]] # Only do this to collect bds
             static_dict[mapFile]["agentRange"] = agentNumbers
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
         else: # we are somewhere in the training loop
@@ -504,18 +519,18 @@ def eecbs_runner(args):
     print("------------ Finished EECBS Calls in :{:.3f} seconds".format(ct.getTimes("EECBS Calls")))
 
     ### Clean up the bds, csvs, and paths folders
-    for mapFile in mapsToScens:
-        mapOutputFolder = static_dict[mapFile]["outputFolder"]
-        if os.path.exists(f"{mapOutputFolder}/bd/"):
-            shutil.rmtree(f"{mapOutputFolder}/bd/") # Delete the bd folder
-        if os.path.exists(f"{mapOutputFolder}/paths/"):
-            shutil.rmtree(f"{mapOutputFolder}/paths/") # Delete the paths folder
-        # Keep the csvs folder, it should just contain the combined.csv file
+    # for mapFile in mapsToScens:
+    #     mapOutputFolder = static_dict[mapFile]["outputFolder"]
+    #     if os.path.exists(f"{mapOutputFolder}/bd/"):
+    #         shutil.rmtree(f"{mapOutputFolder}/bd/") # Delete the bd folder
+    #     if os.path.exists(f"{mapOutputFolder}/paths/"):
+    #         shutil.rmtree(f"{mapOutputFolder}/paths/") # Delete the paths folder
+    #     # Keep the csvs folder, it should just contain the combined.csv file
     
     # Run data manipulator if running eecbs
     if args.command == "eecbs":
-        runDataManipulator(args, ct)
-    
+        runDataManipulator(args, ct, mapsToScens, static_dict, 
+                           args.outputPathNpzFolder, mapsInputFolder, num_workers)
 
 
 # python ./data_collection/data_manipulator.py --pathsIn=data_collection/eecbs/raw_data/den520d/paths --bdIn=data_collection/eecbs/raw_data/den520d/bd/ 
@@ -529,8 +544,9 @@ def eecbs_runner(args):
 #                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs/ --outputPathNpzFolder=data_collection/data/logs/EXP_Test/iter0/eecbs_npzs
 #                  --outputFolder=data_collection/data/logs/EXP_Test/iter0/eecbs_outputs --expnum=0 --firstIter=true --iter=0 --num_parallel=10 --cutoffTime=5
 ### BatchRunner3
-# python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps --scenFolder=data_collection/data/benchmark_data/scens 
-#                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs 
+# python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps 
+#                  --scenFolder=data_collection/data/benchmark_data/scens 
+#                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2
 #                  --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/[eecbs_outputs or pymodel_outputs]
 #                  --num_parallel=50
 #  EECBS specific:
@@ -539,9 +555,17 @@ def eecbs_runner(args):
 #                  --firstIter=false --cutoffTime=5
 # Python model specific:
 #                  "pymodel"
-#                  --modelPath=data_collection/data/logs/EXP_Test_batch/iter0/models/max_test_acc.pt
+#                  --modelPath=data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt
 #                  --k=4 --m=5 --maxSteps=100 --shieldType=CS-PIBT
-
+### Collecting initial bd and map data
+# python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps
+#                  --scenFolder=data_collection/data/benchmark_data/scens 
+#                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2
+#                  --outputFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs
+#                  --num_parallel=50
+#                  "eecbs"
+#                  --outputPathNpzFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_npzs
+#                  --firstIter=true --cutoffTime=1
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 

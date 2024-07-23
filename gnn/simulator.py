@@ -375,27 +375,34 @@ class RunModel():
 
 ### Example run
 # python -m gnn.simulator --exp_folder=data_collection/data/logs/EXP_Test2 --firstIter=true 
-#           --source_maps_scens=data_collection/data/benchmark_data --iternum=0 --num_samples=100 --max_samples=1000
+#           --source_maps_scens=data_collection/data/benchmark_data --num_samples=100 --max_samples=1000
+#           --model_path=data_collection/data/logs/EXP_Test2/iter0/models/max_double_test_acc.pt
+#           --encountered_scen_folder=data_collection/data/logs/EXP_Test2/iter0/encountered_scens
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp_folder", help="experiment folder", type=str)
     parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
     parser.add_argument("--source_maps_scens", help="which map+scen folder", type=str)
-    parser.add_argument("--iternum", help="iternum", type=int)
+    # parser.add_argument("--iternum", help="iternum", type=int)
+    parser.add_argument("--model_path", help="model path", type=str, required=True)
+    parser.add_argument("--encountered_scen_folder", help="encountered scen folder to save outputs", type=str, required=True)
     parser.add_argument("--num_samples", help="number of scens to make", type=int)
     parser.add_argument("--max_samples", help="max number of scens to make", type=int)
     args = parser.parse_args()
-    exp_folder, firstIter, source_maps_scens, iternum, num_samples, max_samples= args.exp_folder, args.firstIter, args.source_maps_scens, args.iternum, args.num_samples, args.max_samples
+    exp_folder, firstIter, source_maps_scens, num_samples, max_samples = args.exp_folder, args.firstIter, args.source_maps_scens, args.num_samples, args.max_samples
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # device = "cpu"
-    model = torch.load(exp_folder+f"/iter{iternum}/models/max_double_test_acc.pt")
+    # model = torch.load(exp_folder+f"/iter{iternum}/models/max_double_test_acc.pt")
+    assert(os.path.exists(args.model_path) and args.model_path.endswith(".pt"))
+    model = torch.load(args.model_path)
     model.to(device)
     model.eval()
 
     raw_folder = exp_folder+"labels/raw"
-    scen_folder = exp_folder+f"/iter{iternum}/encountered_scens/"
-    os.mkdir(scen_folder)
+    # scen_folder = exp_folder+f"/iter{iternum}/encountered_scens/"
+    # os.mkdir(scen_folder)
+    os.makedirs(args.encountered_scen_folder, exist_ok=True)
 
     # map_files = ['warehouse_10_20_10_2_2.map']
     # scen_files = ['warehouse_10_20_10_2_2-random-1.scen','warehouse_10_20_10_2_2-random-2.scen', 'warehouse_10_20_10_2_2-random-3.scen']
