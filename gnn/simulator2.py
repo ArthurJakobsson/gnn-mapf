@@ -100,52 +100,6 @@ def testGetCosts():
     assert(num_agents_at_goal == 2)
     print("getCosts test passed!")
 
-
-def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
-             max_steps, shield_type):
-    cur_locs = start_locations # (N,2)
-    # Ensure no start/goal locations are on obstacles
-    assert(grid_map[start_locations[:,0], start_locations[:,1]].sum() == 0)
-    assert(grid_map[goal_locations[:,0], goal_locations[:,1]].sum() == 0)
-
-    agent_priorities = np.random.permutation(len(cur_locs)) # (N)
-    solution_path = [cur_locs.copy()]
-    success = False
-    for step in range(max_steps):
-        # Create the data object
-        data = create_data_object(cur_locs, bd, grid_map, k, m)
-        data = normalize_graph_data(data, k)
-        data = data.to(device)
-
-        # Forward pass
-        _, predictions = model(data)
-        probabilities = torch.softmax(predictions, dim=1) # More general version
-
-        # Get the action preferences
-        probs = probabilities.cpu().detach().numpy() # (N,5)
-        action_preferences = convertProbsToPreferences(probs, "sampled") # (N,5)
-
-        # Run the shield
-        new_move, cspibt_worked = lacamOrPibt(shield_type, grid_map, action_preferences, cur_locs, 
-                                        agent_priorities, [])
-        if not cspibt_worked:
-            raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
-        # cur_locs = cur_locs + new_move # (N,2)
-        cur_locs += new_move # (N,2)
-        solution_path.append(cur_locs.copy())
-
-        # Check if all agents have reached their goals
-        if np.all(np.equal(cur_locs, goal_locations)):
-            success = True
-            break
-    
-    # pdb.set_trace()
-    solution_path = np.array(solution_path) # (T<=max_steps+1,N,2)
-    total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal = getCosts(solution_path, goal_locations)
-
-    return solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success
-
-
 def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_matrix, 
          occupied_nodes, occupied_edges, current_locs, current_locs_to_agent,
          constrained_agents):
@@ -275,6 +229,68 @@ def lacamOrPibt(lacam_or_cspibt, grid_map, action_preferences, current_locs,
     return move_matrix, cspibt_worked
     
 
+def createScenFile(locs, goal_locs, map_name, scenFilepath):
+    """Input: 
+        locs: (N,2)
+        goal_locs: (N,2)
+        map_name: name of the map
+        scenFilepath: filepath to save scen
+    """
+    assert(locs.min() >= 0 and goal_locs.min() >= 0)
+
+    ### Write scen file with the locs and goal_locs
+    with open(scenFilepath, 'w') as f:
+        f.write(f"version {len(locs)}\n")
+        for i in range(locs.shape[0]):
+            f.write(f"0\t{map_name}\t{0}\t{0}\t{locs[i,0]}\t{locs[i,1]}\t{goal_locs[i,0]}\t{goal_locs[i,1]}\t0\n")
+    print("Scen file created at: {}".format(scenFilepath))
+
+
+def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
+             max_steps, shield_type):
+    cur_locs = start_locations # (N,2)
+    # Ensure no start/goal locations are on obstacles
+    assert(grid_map[start_locations[:,0], start_locations[:,1]].sum() == 0)
+    assert(grid_map[goal_locations[:,0], goal_locations[:,1]].sum() == 0)
+
+    agent_priorities = np.random.permutation(len(cur_locs)) # (N)
+    solution_path = [cur_locs.copy()]
+    success = False
+    for step in range(max_steps):
+        # Create the data object
+        data = create_data_object(cur_locs, bd, grid_map, k, m)
+        data = normalize_graph_data(data, k)
+        data = data.to(device)
+
+        # Forward pass
+        _, predictions = model(data)
+        probabilities = torch.softmax(predictions, dim=1) # More general version
+
+        # Get the action preferences
+        probs = probabilities.cpu().detach().numpy() # (N,5)
+        action_preferences = convertProbsToPreferences(probs, "sampled") # (N,5)
+
+        # Run the shield
+        new_move, cspibt_worked = lacamOrPibt(shield_type, grid_map, action_preferences, cur_locs, 
+                                        agent_priorities, [])
+        if not cspibt_worked:
+            raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
+        # cur_locs = cur_locs + new_move # (N,2)
+        cur_locs += new_move # (N,2)
+        solution_path.append(cur_locs.copy())
+        assert(np.all(grid_map[cur_locs[:,0], cur_locs[:,1]] == 0)) # Ensure no agents are on obstacles
+
+        # Check if all agents have reached their goals
+        if np.all(np.equal(cur_locs, goal_locations)):
+            success = True
+            break
+    
+    # pdb.set_trace()
+    solution_path = np.array(solution_path) # (T<=max_steps+1,N,2)
+    total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal = getCosts(solution_path, goal_locations)
+
+    return solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success
+
 
 def main(args: argparse.ArgumentParser):
     k = args.k
@@ -346,15 +362,26 @@ def main(args: argparse.ArgumentParser):
     assert(args.outputPathsFile.endswith('.npy'))
     np.save(args.outputPathsFile, solution_path)
 
-### Example run
-# python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/constant_npzs/all_maps.npz
-#       --mapName den520d --scenFile data_collection/data/benchmark_data/scens/den520d-random-1.scen
-#       --agentNum=100 --bdNpzFile data_collection/data/benchmark_data/constant_npzs/den520d_bds.npz
-#       --modelPath=data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt --useGPU=False
-#       --k=4 --m=5
-#       --maxSteps=200 --seed 0 --shieldType CS-PIBT
-#       --outputCSVFile data_collection/data/logs/EXP_Test2/iter0/results.csv
-#       --outputPathsFile data_collection/data/logs/EXP_Test2/iter0/paths.npy
+    # Create the scen files
+    numToCreate = args.numScensToCreate
+    sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False)
+    for t in sampled_timesteps:
+        scenFilepath = args.outputScenPrefix + f"-{t}.scen"
+        # pdb.set_trace()
+        createScenFile(solution_path[t], goal_locations, args.mapName, scenFilepath)
+
+### Example command
+"""
+python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
+      --mapName den520d --scenFile data_collection/data/benchmark_data/scens/den520d-random-1.scen \
+      --agentNum=100 --bdNpzFile data_collection/data/benchmark_data/constant_npzs/den520d_bds.npz \
+      --modelPath=data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt --useGPU=False \
+      --k=4 --m=5 \
+      --maxSteps=200 --seed 0 --shieldType CS-PIBT \
+      --outputCSVFile data_collection/data/logs/EXP_Test2/iter0/results.csv \
+      --outputPathsFile data_collection/data/logs/EXP_Test2/iter0/paths.npy \
+      --numScensToCreate 10 --outputScenPrefix data_collection/data/logs/EXP_Test2/iter0/encountered_scens/den520d/den520d-random-1
+"""
 if __name__ == '__main__':
     # testGetCosts()
     parser = argparse.ArgumentParser()
@@ -375,9 +402,14 @@ if __name__ == '__main__':
     # Output parameters
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
     parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", required=True)
+    parser.add_argument('--numScensToCreate', type=int, help="how many scens to create", required=True)
+    parser.add_argument('--outputScenPrefix', type=str, help="output prefix to create scens", required=False)
+
     args = parser.parse_args()
 
     if args.mapName.endswith('.map'): # Remove ending .map
         args.mapName = args.mapName.removesuffix('.map')
+    if args.outputScenPrefix is None:
+        args.outputScenPrefix = args.outputPathsFile.removesuffix('.npy')
     
     main(args)

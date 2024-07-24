@@ -79,8 +79,8 @@ def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, sce
     # command = f".{file_home}/eecbs/build_release2/eecbs"
     command = f"{eecbsPath}"
 
-    for aKey in eecbsArgs:
-        command += " --{}={}".format(aKey, eecbsArgs[aKey])
+    for aKey in eecbsArgs["args"]:
+        command += " --{}={}".format(aKey, eecbsArgs["args"][aKey])
     tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.txt"
     command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --bd_file={}".format(
                 numAgents, scenfile, tempOutPath, firstIter, bd_path)
@@ -96,8 +96,8 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     command = f"conda activate pytorchfun && python -m gnn.simulator2"
 
     # Simulator parameters
-    for aKey in runnerArgs:
-        command += " --{}={}".format(aKey, runnerArgs[aKey])
+    for aKey in runnerArgs["args"]:
+        command += " --{}={}".format(aKey, runnerArgs["args"][aKey])
     
     command += f" --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz"
     command += f" --mapName={mapname} --scenFile={scenfile} --agentNum={numAgents}"
@@ -106,13 +106,14 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     command += f" --outputCSVFile={outputfile}"
     tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.npy" # Note scenname ends with a .scen
     command += f" --outputPathsFile={tempOutPath}"
+    command += f" --numScensToCreate={runnerArgs['numScensToCreate']}"
     return command
 
 def getCommandForSingleInstance(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     if runnerArgs["command"] == "eecbs":
-        return getEECBSCommand(runnerArgs["args"], outputFolder, outputfile, mapfile, numAgents, scenfile)
+        return getEECBSCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile)
     elif runnerArgs["command"] == "pymodel":
-        return getPyModelCommand(runnerArgs["args"], outputFolder, outputfile, mapfile, numAgents, scenfile)
+        return getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile)
     else:
         raise ValueError("Unknown command: {}".format(runnerArgs["command"]))
 
@@ -319,6 +320,7 @@ def specificRunnerDictSetup(args):
                 "maxSteps": args.maxSteps,
                 "shieldType": args.shieldType,
             },
+            "numScensToCreate": args.numScensToCreate
         }
     else:
         raise ValueError("Unknown command: {}".format(args.command))
@@ -375,7 +377,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
     print("------------ Finished Data Manipulator in :{:.3f} seconds".format(ct.getTimes("Data Manipulator")))
 
 
-def eecbs_runner(args):
+def generic_batch_runner(args):
     """
     Generic batch runner for EECBS and Python ML model
     """
@@ -407,10 +409,13 @@ def eecbs_runner(args):
 
     ### Collect scens for each map
     mapsToScens = defaultdict(list)
-    for dir_path in os.listdir(scenInputFolder):
-        mapFile = dir_path.split("-")[0]
-        if mapFile == ".DS_Store":
+    # mapsToScens = dict()
+    all_scen_files = list(os.listdir(scenInputFolder))
+    for dir_path in all_scen_files:
+        if dir_path == ".DS_Store" or not dir_path.endswith(".scen"):
             continue 
+        mapFile = dir_path.split("-")[0]
+        # if mapFile not in mapsToScens:
         mapsToScens[mapFile].append(scenInputFolder+"/"+dir_path)
 
     ### For each map, get the static information
@@ -448,16 +453,17 @@ def eecbs_runner(args):
             static_dict[mapFile]["agentRange"] = agentNumbers
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
         else: # we are somewhere in the training loop
-            agentNumbers = []
-            scenlist = os.listdir(scenInputFolder)
-            for scen in scenlist:
+            # scenlist = os.listdir(scenInputFolder)
+            for scen in all_scen_files:
+                if mapFile not in scen or not mapFile.endswith(".scen"):
+                    continue
                 # open the file
                 with open(f'{scenInputFolder}/{scen}', 'r') as fh: # TODO get the path to scene file right
                     firstLine = fh.readline()
                     assert(firstLine.startswith("version "))
                     num = firstLine.split(" ")[1]
-                    agentNumbers.append(int(num))
-            static_dict[mapFile]["agentsPerScen"] = agentNumbers
+                    # agentNumbers.append(int(num))
+                    static_dict[mapFile]["agentsPerScen"].append(int(num))
         
         assert(len(static_dict[mapFile]["agentsPerScen"]) > 0)
         nameToNumRun[mapFile] = len(mapsToScens[mapFile])
@@ -578,11 +584,9 @@ if __name__ == "__main__":
     pymodel_parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
     pymodel_parser.add_argument('--maxSteps', type=int, required=True)
     pymodel_parser.add_argument('--shieldType', type=str, default='CS-PIBT')
+    # Output parameters
+    pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)
 
+    ### Parse arguments and run the batch runner
     args = parser.parse_args()
-    # scenInputFolder = args.scenFolder
-    # mapsInputFolder = args.mapFolder
-    # firstIter = args.firstIter
-    # file_home = "/data_collection"
-    # print("iternum: " + str(args.iter))
-    eecbs_runner(args)
+    generic_batch_runner(args)

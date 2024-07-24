@@ -159,7 +159,8 @@ if __name__ == "__main__":
                         "--useGPU=False",
                         "--k=4",
                         "--m=5",
-                        "--maxSteps=200"])
+                        "--maxSteps=200",
+                        "--numScensToCreate=10",])
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: simulator")
