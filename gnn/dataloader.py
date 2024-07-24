@@ -242,7 +242,7 @@ class MyOwnDataset(Dataset):
 
     def load_status_data(self):
         # self.df_path = osp.join(self.processed_dir, f"../status_data.csv")
-        self.df_path = f"{self.processed_dir}/status_data.csv"
+        self.df_path = f"{self.processed_dir}/../status_data.csv"
         if osp.isfile(self.df_path):
             self.df = pd.read_csv(self.df_path)
         else:

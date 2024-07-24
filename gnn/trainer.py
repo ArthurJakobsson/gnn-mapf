@@ -13,13 +13,13 @@ from tqdm import tqdm
 import os
 import argparse
 
-import networkx as nx
+# import networkx as nx
 import numpy as np
 
-from torch_geometric.datasets import TUDataset
+# from torch_geometric.datasets import TUDataset
 # from dataloader import MyOwnDataset
 from gnn.dataloader import MyOwnDataset
-from torch_geometric.datasets import Planetoid
+# from torch_geometric.datasets import Planetoid
 # from torch_geometric.data import DataLoader
 from torch_geometric.loader import DataLoader
 
@@ -129,7 +129,7 @@ def train(dataset, task, writer):
     patience = 10
     no_improvement = 0
 
-    for epoch in range(6):
+    for epoch in range(10+1):
         total_loss = 0
         correct = 0
         second_correct = 0
@@ -172,7 +172,7 @@ def train(dataset, task, writer):
         writer.add_scalar("train_top2_accuracy", train_top2_acc, epoch)
         scheduler.step(total_loss)
 
-        if epoch % 1 == 0:
+        if epoch % 5 == 0:
             test_acc, double_test_acc = test(test_loader, model)
             print(f"Epoch {epoch}. Loss: {total_loss:.4f}. Train accuracy: {train_acc:.2f}%. Train Top2 accuracy: {train_top2_acc:.2f}%. Test accuracy: {test_acc:.4f}. Top2 Test accuracy: {double_test_acc:.4f}")
             writer.add_scalar("test_accuracy", test_acc, epoch)
