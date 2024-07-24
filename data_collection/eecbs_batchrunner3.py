@@ -398,7 +398,7 @@ def eecbs_runner(args):
     
     ### Start multiprocessing logic
     ct = CustomTimer()
-    ct.start("EECBS Calls")
+    ct.start("MAPF Calls")
     manager = multiprocessing.Manager()
     lock = manager.Lock()
     queue = multiprocessing.JoinableQueue()
@@ -502,8 +502,8 @@ def eecbs_runner(args):
             if os.path.exists(filename):
                 os.remove(filename)
     
-    ct.stop("EECBS Calls")
-    print("------------ Finished EECBS Calls in :{:.3f} seconds".format(ct.getTimes("EECBS Calls")))
+    ct.stop("MAPF Calls")
+    print("------------ Finished {} Calls in :{:.3f} seconds".format(args.command, ct.getTimes("MAPF Calls")))
 
     ### Clean up the bds, csvs, and paths folders
     # for mapFile in mapsToScens:

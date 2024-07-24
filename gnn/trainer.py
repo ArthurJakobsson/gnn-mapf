@@ -32,7 +32,7 @@ import random
 import multiprocessing
 
 
-multiprocessing.set_start_method('spawn', force=True)
+# multiprocessing.set_start_method('spawn', force=True)
 
 class GNNStack(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, task='node'):
@@ -58,6 +58,15 @@ class GNNStack(nn.Module):
         return pyg_nn.SAGEConv(input_dim, hidden_dim)
 
     def forward(self, data):
+        """
+        Input: data -- a torch_geometric.data.Data object with the following attributes:
+            x -- node features
+            edge_index -- graph connectivity
+            batch -- batch assignment
+            y -- node labels
+        Output:
+            F.log_softmax(x, dim=1) -- node score logits, we can do exp() to get probabilities
+            """
         x, edge_index, batch = data.x, data.edge_index, data.batch
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
@@ -77,6 +86,8 @@ class GNNStack(nn.Module):
         return emb, F.log_softmax(x, dim=1)
 
     def loss(self, pred, label):
+        # This combined with log_softmax in forward() is equivalent to cross entropy
+        # as stated in https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
         return F.nll_loss(pred, label)
 
 class CustomConv(pyg_nn.MessagePassing):
@@ -113,13 +124,21 @@ def save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test
     if double_test_acc > max_double_test_acc:
         torch.save(model, model_path + '/max_double_test_acc.pt')
 
-def train(dataset, task, writer):
-    # pdb.set_trace()
-    data_size = len(dataset)
-    loader = DataLoader(dataset[:int(data_size * 0.8)], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
-    test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+def train(combined_dataset, writer):
 
-    model = GNNStack(max(dataset.num_node_features, 1), 128, dataset.num_classes, task=task).to(device)
+    # data_size = len(dataset)
+    # loader = DataLoader(dataset[:int(data_size * 0.8)], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    # test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+
+    train_size = int(0.8 * len(combined_dataset))
+    test_size = len(combined_dataset) - train_size
+    train_dataset, test_dataset = torch.utils.data.random_split(combined_dataset, [train_size, test_size])
+    loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+
+    num_node_features = combined_dataset.datasets[0].num_node_features # datasets[0] is the first dataset in the combined dataset
+    num_classes = combined_dataset.datasets[0].num_classes
+    model = GNNStack(num_node_features, 128, num_classes, task='node').to(device)
     opt = optim.AdamW(model.parameters(), lr=0.005, weight_decay=5e-4)
     scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5, min_lr=1e-5)
@@ -140,15 +159,14 @@ def train(dataset, task, writer):
         for batch in tqdm(loader):
             batch = batch.to(device)
             opt.zero_grad()
-            with autocast():
-                embedding, pred = model(batch)
-                label = batch.y
-                if task == 'node':
-                    pred = pred[batch.train_mask]
-                    label = label[batch.train_mask]
+            # with autocast():
+            embedding, pred = model(batch)
+            label = batch.y
+            pred = pred[batch.train_mask]
+            label = label[batch.train_mask]
 
-                label_maxes = torch.argmax(label, dim=1).to(device)
-                loss = model.loss(pred, label_maxes)
+            label_maxes = torch.argmax(label, dim=1).to(device)
+            loss = model.loss(pred, label_maxes)
 
             scaler.scale(loss).backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
@@ -245,10 +263,9 @@ def visualize():
   xs, ys = zip(*TSNE().fit_transform(embs.detach().numpy()))
   plt.scatter(xs, ys, color=colors)
 
-def str2bool(v):
-  return v.lower() in ("yes", "true", "t", "1")
-
-# python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4 --generate_initial=True
+### Example run
+# python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4
+#   --processedFolders=data_collection/data/logs/EXP_Test3/iter0/processed 
 #   --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz
 #   --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs
 #   --pathNpzFolders=data_collection/data/logs/EXP_Test/iter0/eecbs_npzs
@@ -259,11 +276,11 @@ if __name__ == "__main__":
     parser.add_argument("--experiment", help="experiment name", type=str)
     parser.add_argument("--iternum", help="iteration name", type=int)
     parser.add_argument("--num_cores", help="num_cores", type=int)
-    parser.add_argument('--generate_initial', type=lambda x: bool(str2bool(x)))
 
-    parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
-    parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
-    parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
+    # parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
+    # parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
+    parser.add_argument("--processedFolders", help="processed npz folders, comma seperated!", type=str, required=True)
+    # parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
 
     args = parser.parse_args()
     exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
@@ -279,15 +296,18 @@ if __name__ == "__main__":
     os.makedirs(model_path, exist_ok=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
-    # device = "cpu"
-    # print('Current cuda device: ',torch.cuda.get_device_name(0))
 
+    ### Load the dataset
+    # Each processed folder is a dataset
+    dataset_list = []
+    for folder in args.processedFolders.split(','):
+        if not os.path.exists(folder):
+            raise Exception(f"Folder {folder} does not exist!")
+        dataset = MyOwnDataset(mapNpzFile=None, bdNpzFolder=None, pathNpzFolder=None,
+                            processedOutputFolder=folder, num_cores=1)
+        dataset_list.append(dataset)
+    # Combine into single large dataset
+    dataset = torch.utils.data.ConcatDataset(dataset_list)
+    print(f"Combined {len(dataset_list)} datasets for a combined size of {len(dataset)}")
     
-
-    dataset = MyOwnDataset(root=None, exp_folder=exp_folder, iternum=iternum, 
-                        mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, pathNpzFolders=args.pathNpzFolders.split(','),
-                           num_cores=args.num_cores, generate_initial=args.generate_initial)
-    dataset = dataset.shuffle()
-    task = 'node'
-
-    model = train(dataset, task, writer)
+    model = train(dataset, writer)

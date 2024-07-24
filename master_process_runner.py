@@ -17,7 +17,7 @@ def log_time(event_name):
 
 
 ### Example command for full benchmark
-# python -m master_process_runner 0 f t 100 1000 --num_parallel=50
+# python -m master_process_runner 0 t t 100 1000 --num_parallel=50
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("expnum", help="experiment number", type=int)
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    LE = f"data_collection/data/logs/EXP_Test3"
+    LE = f"data_collection/data/logs/EXP_Test4"
     os.makedirs(LE, exist_ok=True)
     
     num_cores = multiprocessing.cpu_count()
@@ -54,61 +54,105 @@ if __name__ == "__main__":
     constantMapAndBDFolder = "data_collection/data/benchmark_data/constant_npzs"
     constantMapNpz = f"{constantMapAndBDFolder}/all_maps.npz"
     
-    if generate_initial:
-        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
-                        f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
-                        f"--constantMapAndBDFolder={constantMapAndBDFolder}",
-                        f"--outputFolder={LE}/iter0/eecbs_outputs", 
-                        f"--num_parallel_runs={args.num_parallel}",
-                        "\"eecbs\"",
-                        f"--outputPathNpzFolder={LE}/iter0/eecbs_npzs",
-                        f"--firstIter={first_iteration}",
-                        f"--cutoffTime=20",
-                        f"--suboptimality=2"])
-        ### Example command for minibenchmark
-        # python ./data_collection/eecbs_batchrunner2.py --mapFolder=./data_collection/data/mini_benchmark_data/maps 
-        #           --scenFolder=./data_collection/data/mini_benchmark_data/scens --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ 
-        #           --expnum=0 --firstIter=true --iter=0 --num_parallel=50 --cutoffTime=20
-        ### Example command for benchmark
-        # python ./data_collection/eecbs_batchrunner2.py --mapFolder=./data_collection/data/benchmark_data/maps 
-        #           --scenFolder=./data_collection/data/benchmark_data/scens --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ 
-        #           --expnum=0 --firstIter=true --iter=0 --num_parallel=50 --cutoffTime=20
-        print(command)
-        subprocess.run(command, shell=True, check=True)
-    else:
-        assert(os.path.exists(f"{LE}/iter0/eecbs_npzs/warehouse_10_20_10_2_2_paths.npz"))
+    # if generate_initial:
+    #     command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+    #                     f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
+    #                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
+    #                     f"--outputFolder={LE}/iter0/eecbs_outputs", 
+    #                     f"--num_parallel_runs={args.num_parallel}",
+    #                     "\"eecbs\"",
+    #                     f"--outputPathNpzFolder={LE}/iter0/eecbs_npzs",
+    #                     f"--firstIter={first_iteration}",
+    #                     f"--cutoffTime=20",
+    #                     f"--suboptimality=2"])
+    #     ### Example command for minibenchmark
+    #     # python ./data_collection/eecbs_batchrunner2.py --mapFolder=./data_collection/data/mini_benchmark_data/maps 
+    #     #           --scenFolder=./data_collection/data/mini_benchmark_data/scens --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ 
+    #     #           --expnum=0 --firstIter=true --iter=0 --num_parallel=50 --cutoffTime=20
+    #     ### Example command for benchmark
+    #     # python ./data_collection/eecbs_batchrunner2.py --mapFolder=./data_collection/data/benchmark_data/maps 
+    #     #           --scenFolder=./data_collection/data/benchmark_data/scens --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ 
+    #     #           --expnum=0 --firstIter=true --iter=0 --num_parallel=50 --cutoffTime=20
+    #     print(command)
+    #     subprocess.run(command, shell=True, check=True)
+    # else:
+    #     assert(os.path.exists(f"{LE}/iter0/eecbs_npzs/warehouse_10_20_10_2_2_paths.npz"))
     
-    log_time("initial generation")
-    print("Done with first eecbs run")
-    # pdb.set_trace()
+    # log_time("initial generation")
+    # print("Done with first eecbs run")
+    # # pdb.set_trace()
 
-    while True:        
-        # if not os.path.exists(f"./{LE}/iter{iternum}"):
-        #     os.makedirs(f"./{LE}/iter{iternum}")
+    processed_folders = []
+    for iternum in range(100):
         iterFolder = f"{LE}/iter{iternum}"
-        nextIterFolder = f"{LE}/iter{iternum+1}"
         if not os.path.exists(iterFolder):
             os.makedirs(iterFolder)
+        eecbs_outputs_folder = f"{iterFolder}/eecbs_outputs"
+        eecbs_path_npzs_folder = f"{iterFolder}/eecbs_npzs"
+        processed_folder = f"{iterFolder}/processed"
+        model_folder = f"{iterFolder}/models"
+        encountered_scens = f"{iterFolder}/encountered_scens"
 
-        # train the naive model
-        # python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4 --generate_initial=True
-        command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{expnum}", 
-                            f"--iternum={iternum}", f"--num_cores={num_cores}", f"--generate_initial={generate_initial}",
-                            f"--mapNpzFile={constantMapNpz}", f"--bdNpzFolder={constantMapAndBDFolder}",
-                            f"--pathNpzFolders={LE}/iter{iternum}/eecbs_npzs"])
+        ### Run EECBS labeller
+        if iternum == 0: # Special logic in the first iteration
+            if args.generate_initial:
+                # Run initial data collection
+                command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+                                f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
+                                f"--constantMapAndBDFolder={constantMapAndBDFolder}",
+                                f"--outputFolder={eecbs_outputs_folder}", 
+                                f"--num_parallel_runs={args.num_parallel}",
+                                "\"eecbs\"",
+                                f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
+                                "--firstIter=true",
+                                "--cutoffTime=20",
+                                "--suboptimality=2"])
+                print(command)
+                subprocess.run(command, shell=True, check=True)
+            else:
+                # Make sure that the initial data was created
+                assert(os.path.exists(f"{LE}/iter0/eecbs_npzs/warehouse_10_20_10_2_2_paths.npz"))
+        else:
+            ### Run eecbs labeler on encountered scens
+            previous_encountered_scens = f"{LE}/iter{iternum-1}/encountered_scens"
+            command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+                        f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={previous_encountered_scens}",
+                        f"--constantMapAndBDFolder={constantMapAndBDFolder}",
+                        f"--outputFolder={eecbs_outputs_folder}", 
+                        f"--num_parallel_runs={args.num_parallel}",
+                        "\"eecbs\"",
+                        f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
+                        f"--firstIter=false",
+                        f"--cutoffTime=20",
+                        f"--suboptimality=2"])
+            print(command)
+            subprocess.run(command, shell=True, check=True)
+        log_time(f"Iter {iternum}: Finished eecbs")
+
+        ### Process the data, i.e. create pt files from path npzs
+        command = " ".join(["python", "-m", "gnn.dataloader", 
+                            f"--mapNpzFile={constantMapNpz}", 
+                            f"--bdNpzFolder={constantMapAndBDFolder}",
+                            f"--pathNpzFolder={eecbs_path_npzs_folder}",
+                            f"--processedFolder={processed_folder}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
+        log_time(f"Iter {iternum}: dataloader")
+
+        ### Train the model
+        command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{expnum}", 
+                            f"--iternum={iternum}", f"--num_cores={num_cores}", 
+                            f"--processedFolders={processed_folder}"])
+        print(command)
+        subprocess.run(command, shell=True, check=True)
+        log_time(f"Iter {iternum}: trainer")
         # pdb.set_trace()
 
-        # subprocess.run(["python", "./gnn/trainer.py", f"--exp_folder=./{LE}", f"--experiment=exp{expnum}", f"--iternum={iternum}", f"--num_cores={num_cores}", f"--generate_initial={generate_initial}"])
-        log_time(f"Iter {iternum}: trainer")
-        # run cs-pibt new maps to create new scenes
-        # tmp = ["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}"]
-        # subprocess.run(["python", "./gnn/simulator.py", f"--exp_folder=./{LE}", f"--firstIter={first_iteration}",f"--source_maps_scens={source_maps_scens}", f"--iternum={iternum}", f"--num_samples={num_samples}", f"--max_samples={max_samples}"])
+        ### Run best model on simulator on scens to create new scenes
         command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
                         f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
-                        f"--outputFolder={iterFolder}/eecbs_outputs", 
+                        f"--outputFolder={encountered_scens}", 
                         f"--num_parallel_runs={min(20, args.num_parallel)}",
                         "\"pymodel\"",
                         f"--modelPath={iterFolder}/models/max_test_acc.pt",
@@ -116,21 +160,22 @@ if __name__ == "__main__":
                         "--k=4",
                         "--m=5",
                         "--maxSteps=200"])
-        first_iteration = "false"
+        print(command)
+        subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: simulator")
         
         # feed failures into eecbs
-        iternum+=1
-        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
-                        f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
-                        f"--constantMapAndBDFolder={constantMapAndBDFolder}",
-                        f"--outputFolder={nextIterFolder}/eecbs_outputs", 
-                        f"--num_parallel_runs={args.num_parallel}",
-                        "\"eecbs\"",
-                        f"--outputPathNpzFolder={nextIterFolder}/eecbs_npzs",
-                        f"--firstIter={first_iteration}",
-                        f"--cutoffTime=20",
-                        f"--suboptimality=2"])
+        # iternum+=1
+        # command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+        #                 f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
+        #                 f"--constantMapAndBDFolder={constantMapAndBDFolder}",
+        #                 f"--outputFolder={nextIterFolder}/eecbs_outputs", 
+        #                 f"--num_parallel_runs={args.num_parallel}",
+        #                 "\"eecbs\"",
+        #                 f"--outputPathNpzFolder={nextIterFolder}/eecbs_npzs",
+        #                 f"--firstIter={first_iteration}",
+        #                 f"--cutoffTime=20",
+        #                 f"--suboptimality=2"])
         # Note: scen's should be taken from previous iteration but npz should be saved this next iteration number (since npzs have an extra)
         # subprocess.run(["python", "./data_collection/eecbs_batchrunner.py", f"--mapFolder={source_maps_scens}/maps", f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens", 
         #                 f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}"]) # TODO figure out where eecbs is outputting files
@@ -141,4 +186,4 @@ if __name__ == "__main__":
         #                 f"--scenFolder=./{LE}/iter{iternum-1}/encountered_scens", 
         #                 f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
         #                 f"--num_parallel_runs={args.num_parallel}", "--cutoffTime=20"]) # TODO figure out where eecbs is outputting files
-        log_time(f"Iter {iternum}: eecbs")
+        # log_time(f"Iter {iternum}: eecbs")

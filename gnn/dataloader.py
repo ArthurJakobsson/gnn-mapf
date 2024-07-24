@@ -265,69 +265,73 @@ class MyOwnDataset(Dataset):
     def custom_process(self):
         self.load_status_data() # This loads self.df which is used for checking if should process or skip
 
-        idx = 0
-        print(f"Num cores: {self.num_cores}")
-        for npz_path in self.raw_paths: #TODO check if new npzs are read
-            # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
-            # if "maps" in raw_path or "bds" in raw_path:
-            #     continue
-            if not npz_path.endswith(".npz"):
-                continue
-            # pdb.set_trace()
-            map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
-            # cur_path_iter = raw_path.split("_")[-1][:-4]
-            # if not (int(cur_path_iter)==self.iternum):
-            #     continue
-            df_row = self.df.loc[self.df['npz_path'] == npz_path]
-            assert(len(df_row) <= 1)
-            if len(df_row) == 1:
-                if df_row.iloc[0]["status"] == "processed":
-                    print(f"Skipping: {npz_path}")
-                    idx+=df_row.iloc[0]["num_pts"]
+        if self.pathNpzFolder is not None: # Run process
+            # idx = 0
+            print(f"Num cores: {self.num_cores}")
+            for npz_path in self.raw_paths: #TODO check if new npzs are read
+                # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
+                # if "maps" in raw_path or "bds" in raw_path:
+                #     continue
+                if not npz_path.endswith(".npz"):
                     continue
+                # pdb.set_trace()
+                map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
+                # cur_path_iter = raw_path.split("_")[-1][:-4]
+                # if not (int(cur_path_iter)==self.iternum):
+                #     continue
+                df_row = self.df.loc[self.df['npz_path'] == npz_path]
+                assert(len(df_row) <= 1)
+                if len(df_row) == 1:
+                    if df_row.iloc[0]["status"] == "processed":
+                        print(f"Skipping: {npz_path}")
+                        # idx+=df_row.iloc[0]["num_pts"]
+                        continue
 
-            # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
-            bdNpzFile = f"{self.bdNpzFolder}/{map_name}_bds.npz"
-            self.ct.start("Loading")
-            cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
-            print(f"Loading: {npz_path} of size {len(cur_dataset)}")
-            # idx_list = np.array(range(len(cur_dataset)))+int(idx)
+                # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
+                bdNpzFile = f"{self.bdNpzFolder}/{map_name}_bds.npz"
+                self.ct.start("Loading")
+                cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
+                print(f"Loading: {npz_path} of size {len(cur_dataset)}")
+                # idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
-            self.ct.stop("Loading")
-            self.ct.start("Processing")
-            # pr = cProfile.Profile()
-            # pr.enable()
-            # tmp = []
-            for t in tqdm(range(len(cur_dataset))):
-                time_instance = cur_dataset[t]
-                torch.save(self.create_and_save_graph(t, time_instance),
-                            osp.join(self.processed_dir, f"data_{map_name}_{t}.pt"))
-            # Save tmp to pt
-            # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
-            idx += len(cur_dataset)
-            self.ct.stop("Processing")
-            # pr.disable()
-            # ps = pstats.Stats(pr).sort_stats('cumtime')
-            # ps.print_stats(10)
-            # self.ct.start("Parallel Processing")
-            ### Note: Multiprocessing seems slower than single processing
-            # with Pool(self.num_cores) as p: #change number of workers later
-            #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
-            # self.ct.stop("Parallel Processing")
+                self.ct.stop("Loading")
+                self.ct.start("Processing")
+                # pr = cProfile.Profile()
+                # pr.enable()
+                # tmp = []
+                for t in tqdm(range(len(cur_dataset))):
+                    time_instance = cur_dataset[t]
+                    torch.save(self.create_and_save_graph(t, time_instance),
+                                osp.join(self.processed_dir, f"data_{map_name}_{t}.pt"))
+                # Save tmp to pt
+                # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
+                # idx += len(cur_dataset)
+                self.ct.stop("Processing")
+                # pr.disable()
+                # ps = pstats.Stats(pr).sort_stats('cumtime')
+                # ps.print_stats(10)
+                # self.ct.start("Parallel Processing")
+                ### Note: Multiprocessing seems slower than single processing
+                # with Pool(self.num_cores) as p: #change number of workers later
+                #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
+                # self.ct.stop("Parallel Processing")
 
-            self.ct.printTimes()
-            new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                            "pt_path": [f"data_{map_name}"],
-                                            "status": ["processed"], 
-                                            "num_pts": [len(cur_dataset)],
-                                            "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                            "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
-            if len(self.df) == 0:
-                self.df = new_df
-            else:
-                self.df = pd.concat([self.df, new_df], ignore_index=True)
-            self.df.to_csv(self.df_path, index=False)
-        self.length = idx
+                self.ct.printTimes()
+                new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                                "pt_path": [f"data_{map_name}"],
+                                                "status": ["processed"], 
+                                                "num_pts": [len(cur_dataset)],
+                                                "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+                                                "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+                if len(self.df) == 0:
+                    self.df = new_df
+                else:
+                    self.df = pd.concat([self.df, new_df], ignore_index=True)
+                self.df.to_csv(self.df_path, index=False)
+            # self.length = idx
+        
+        self.length = self.df["num_pts"].sum()
+        print("Loading dataset with length: ", self.length)
 
         ### Get indices and files
         # self.order_of_indices looks like [0, 213, 457, 990, 1405, ...]
