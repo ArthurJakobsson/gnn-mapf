@@ -1,86 +1,22 @@
-import os.path as osp
-
-import math
-from scipy.spatial.distance import cdist
 import torch
-from torch_geometric.data import Dataset, download_url
+from torch_geometric.data import Data, Dataset, download_url
 import numpy as np
 import pdb
 import pandas as pd # for loading status df
 
-from torch_geometric.data import Data
 from tqdm import tqdm
 import os
+import os.path as osp
+import argparse
 import sys
-from multiprocessing import Pool
+from multiprocessing import Pool # This uses processes
+# from multiprocessing.dummy import Pool # This uses threads instead of processes
 import cProfile
 import pstats
-# from multiprocessing.dummy import Pool
 
-# print(os.path.abspath(os.getcwd()))
-# sys.path.insert(0, './data_collection/')
-# import data_manipulator
 from data_collection import data_manipulator
 from custom_utils.custom_timer import CustomTimer
 
-# def slice_maps(pos, curmap, k):
-#     """
-#     Turns a full size bd into a 2k+1, 2k+1
-#     param: pos, bd (current position and bd)
-#     output: sliced bd
-#     """
-#     r,c = pos[0], pos[1]
-#     return curmap[r-k:r+k+1,c-k:c+k+1] 
-
-# def get_neighbors(m, pos, pos_list, k):
-#     """
-#     Gets the m closest neighbors *within* 2k+1 bounding
-#     param: m, pos, pos_list
-#     output: list of indices of 5 closest
-#     """
-#     closest_5_in_box = []
-
-#     distances = cdist([pos], pos_list, 'cityblock')[0]
-#     zipped_lists = zip(distances, pos_list, list(range(0,len(pos_list)))) #knit distances, pos, and idxs
-#     sorted_lists = sorted(zipped_lists, key = lambda t: t[0])
-#     count, i = 0,0
-#     while count<m and i<len(pos_list):
-#         xdif = pos_list[i][0]-pos[0]
-#         ydif = pos_list[i][1]-pos[1]
-#         if abs(xdif) <= k and abs(ydif)<=k and (xdif!=0 and ydif!=0):
-#             count+=1
-#             closest_5_in_box.append(sorted_lists[i][2])
-#             # add to list if within bounding box
-#         i+=1
-#     return closest_5_in_box
-
-# def convert_neighbors_to_edge_list(num_agents, closest_neighbors_idx):
-#     edge_index = [] # edge list source, destination
-
-#     for i in range(0,num_agents):
-#         for j in closest_neighbors_idx[i]:
-#             edge_index.append([i,j])
-
-#     return torch.tensor(edge_index, dtype=torch.long).t().contiguous() #transpose
-
-# def get_edge_attributes(edge_index, pos_list):
-#     edge_attributes = []
-
-#     for source_idx, dest_idx in zip(edge_index[0], edge_index[1]):
-#         source_pos = pos_list[source_idx]
-#         dest_pos = pos_list[dest_idx]
-#         edge_attributes.append(np.array([source_pos[0]-dest_pos[0], source_pos[1]-dest_pos[1]]))
-
-#     return edge_attributes
-
-
-# def get_idx_name(raw_path):
-#     if 'val' in raw_path:
-#         return 'val'
-#     elif 'train' in raw_path:
-#         return 'train'
-#     else:
-#         return 'unknownNPZ'
 
 def apply_masks(data_len, curdata):
     tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
@@ -92,23 +28,6 @@ def apply_masks(data_len, curdata):
     curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)
     curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
     return curdata
-
-# def apply_edge_normalization(edge_weights):
-#     """ edge_weights: (num_edges,2), the deltas in each direction
-#     Note: These deltas can be negative, so exp(-edge_weights) does NOT work
-#     """
-#     # TODO have an option to choose method based on flags
-#     edge_weights = torch.exp(-edge_weights)
-#     return edge_weights
-
-# def apply_bd_normalization(bd_grid, k, device):
-#     center = bd_grid[:, 1, k, k].unsqueeze(1).unsqueeze(2)
-#     bd_grid[:, 1, :, :] -= center
-#     bd_grid[:, 1, :, :] *= (1 - bd_grid[:, 0, :, :])
-#     bd_grid[:, 1, :, :] /= k
-#     bd_grid[:, 1, :, :] = torch.clamp(bd_grid[:, 1, :, :], min=-10.0, max=10.0)
-
-#     return bd_grid
 
 def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
     """Modifies data in place"""
@@ -132,7 +51,6 @@ def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
 
     data.x = bd_grid
     return data
-
 
 def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     """
@@ -201,13 +119,19 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
                 edge_attr=torch.tensor(edge_features, dtype=torch.float), 
                 y = torch.tensor(labels, dtype=torch.int8))
 
+
 class MyOwnDataset(Dataset):
-    def __init__(self, root, exp_folder, iternum, 
-                mapNpzFile, bdNpzFolder, pathNpzFolders,
-                num_cores=20, transform=None, pre_transform=None, pre_filter=None, generate_initial=True):
+    def __init__(self, mapNpzFile, bdNpzFolder, pathNpzFolder,
+                processedOutputFolder, num_cores):
+        if num_cores != 1:
+            raise NotImplementedError("Multiprocessing not supported yet")
+        
         self.mapNpzFile = mapNpzFile
         self.bdNpzFolder = bdNpzFolder
-        self.pathNpzFolders = pathNpzFolders
+        self.pathNpzFolder = pathNpzFolder
+        self.processedOutputFolder = processedOutputFolder
+        if not osp.exists(self.processedOutputFolder):
+            os.makedirs(self.processedOutputFolder)
         self._raw_file_names = None # Use this to avoid recomputing raw_file_names everytime
 
         self.ct = CustomTimer()
@@ -217,32 +141,22 @@ class MyOwnDataset(Dataset):
         self.m = 5 # number of agents considered close
         self.size = float('inf')
         self.max_agents = 500
-        self.exp_folder = exp_folder
-        self.iternum = iternum
-        self.current_iter_folder = f"{self.exp_folder}/iter{self.iternum}"
+
         # self.data_dictionaries = []
         self.length = 0
-        # self.device = device
-        self.generate_initial = generate_initial
         self.df = None
-        super().__init__(root, transform, pre_transform, pre_filter) # this automatically calls process()
-        # self.load_metadata()
-
-    # def load_metadata(self):
-    #     if osp.isfile(osp.join(self.processed_dir, f"meta_data.pt")):
-    #         self.length = torch.load(osp.join(self.processed_dir, f"meta_data.pt"))[0]
-    #     else:
-    #         self.length = 0 
-    #     return self.length
+        super().__init__() # this automatically calls process()
+        self.custom_process()
 
     @property
     def processed_dir(self) -> str:
         # return osp.join(self.exp_folder, 'processed')
-        return osp.join(self.current_iter_folder, 'processed')
+        # return osp.join(self.current_iter_folder, 'processed')
+        return self.processedOutputFolder
 
     def load_status_data(self):
-        # self.df_path = osp.join(self.processed_dir, f"../status_data.csv")
-        self.df_path = f"{self.processed_dir}/../status_data.csv"
+        folder_name = osp.basename(osp.normpath(self.processedOutputFolder)) # Gets the name of processed folder
+        self.df_path = f"{self.processed_dir}/../status_data_{folder_name}.csv"
         if osp.isfile(self.df_path):
             self.df = pd.read_csv(self.df_path)
         else:
@@ -264,25 +178,26 @@ class MyOwnDataset(Dataset):
     @property
     def raw_file_names(self):
         if self._raw_file_names is None:
-            # npz_paths = os.listdir(self.exp_folder+"/labels/raw/")
-            # npz_paths = os.listdir(f"{self.exp_folder}/iter{self.iternum}/eecbs_npzs/")
-            # return npz_paths
-            # pdb.set_trace()
-            npz_paths = []
-            for folder in self.pathNpzFolders:
-            #     npz_paths.extend(os.listdir(folder))
-                npz_paths.extend([os.path.join(folder, file) for file in os.listdir(folder)])
-            self._raw_file_names = npz_paths
-        # pdb.set_trace()
-        print(len(self._raw_file_names))
+            # npz_paths = []
+            # for folder in self.pathNpzFolders:
+            # #     npz_paths.extend(os.listdir(folder))
+            #     npz_paths.extend([os.path.join(folder, file) for file in os.listdir(folder)])
+            # self._raw_file_names = npz_paths
+            self._raw_file_names = [os.path.join(self.pathNpzFolder, file) for file in os.listdir(self.pathNpzFolder)]
+        # print("Num npz paths to process: ", len(self._raw_file_names))
         return self._raw_file_names
 
+    # @property
+    # def processed_file_names(self):
+    #     file_names = []
+    #     for i in range(self.length):
+    #         file_names.append(f"data_{i}.pt")
+    #     return file_names 
+
     @property
-    def processed_file_names(self):
-        file_names = []
-        for i in range(self.length):
-            file_names.append(f"data_{i}.pt")
-        return file_names 
+    def has_process(self) -> bool:
+        """Need to define as parent Dataset checks this"""
+        return False
 
     @property
     def has_download(self) -> bool:
@@ -347,11 +262,9 @@ class MyOwnDataset(Dataset):
         raise NotImplementedError("Not implemented yet")
 
 
-    def process(self):
-        self.load_status_data()
-        if self.iternum==0 and not self.generate_initial:
-            return #if pt's are made already skip the first iteration of pt making
-        # idx = self.load_metadata()
+    def custom_process(self):
+        self.load_status_data() # This loads self.df which is used for checking if should process or skip
+
         idx = 0
         print(f"Num cores: {self.num_cores}")
         for npz_path in self.raw_paths: #TODO check if new npzs are read
@@ -462,5 +375,35 @@ class MyOwnDataset(Dataset):
 
         return normalize_graph_data(curdata, self.k, edge_normalize="k", bd_normalize="center")
 
-# john = MyOwnDataset('map_data_big2d_new')
-# john.get(5)
+
+def processDataset():
+    pass
+
+
+### Example run
+# python -m gnn.dataloader --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz 
+#       --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs 
+#       --pathNpzFolder=data_collection/data/logs/EXP_Test3/iter0/eecbs_npzs 
+#       --processedFolder=data_collection/data/logs/EXP_Test3/iter0/processed
+if __name__ == "__main__":
+    """
+    This file takes in npzs and processes them into pt files.
+
+    We assume the following file structure:
+    Inputs:
+    - mapNpzFile: e.g. all_maps.npz with all_maps[MAPNAME] = grid_map (H,W)
+    - bdNpzFolder: Folder containing [MAPNAME]_bds.npz    
+    - pathNpzFolder: Folder containing [MAPNAME]_paths.npz
+    Outputs:
+    - processedFolder: Folder to save processed data, will contain [MAPNAME]_[idx].pt
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
+    parser.add_argument("--bdNpzFolder", help="bd npz folder", type=str, required=True)
+    parser.add_argument("--pathNpzFolder", help="path npz folder", type=str, required=True)
+    parser.add_argument("--processedFolder", help="processed folder to save pt", type=str, required=True)
+    args = parser.parse_args()
+
+    dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
+                        pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
+                        num_cores=1)
