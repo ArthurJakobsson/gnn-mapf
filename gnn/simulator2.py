@@ -8,7 +8,7 @@ import csv # For saving the results
 
 from gnn.dataloader import create_data_object, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
-from custom_utils.common_helper import str2bool
+from custom_utils.common_helper import str2bool, getMapBDScenAgents
 
 def parse_scene(scen_file):
     """Input: scenfile
@@ -239,10 +239,11 @@ def createScenFile(locs, goal_locs, map_name, scenFilepath):
     assert(locs.min() >= 0 and goal_locs.min() >= 0)
 
     ### Write scen file with the locs and goal_locs
+    # Note we need to swap row:[0],col:[1] and save it as col,row
     with open(scenFilepath, 'w') as f:
         f.write(f"version {len(locs)}\n")
         for i in range(locs.shape[0]):
-            f.write(f"0\t{map_name}\t{0}\t{0}\t{locs[i,0]}\t{locs[i,1]}\t{goal_locs[i,0]}\t{goal_locs[i,1]}\t0\n")
+            f.write(f"0\t{map_name}\t{0}\t{0}\t{locs[i,1]}\t{locs[i,0]}\t{goal_locs[i,1]}\t{goal_locs[i,0]}\t0\n")
     print("Scen file created at: {}".format(scenFilepath))
 
 
@@ -341,6 +342,7 @@ def main(args: argparse.ArgumentParser):
             model, k, args.m, map_grid, bd, start_locations, goal_locations, 
             args.maxSteps, args.shieldType)
     solution_path = solution_path - k # (T,N,2) Removes padding
+    goal_locations = goal_locations - k # (N,2) Removes padding
     
     # Save the statistics into the csv file
     if not os.path.exists(args.outputCSVFile):
@@ -366,7 +368,11 @@ def main(args: argparse.ArgumentParser):
     numToCreate = args.numScensToCreate
     sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False)
     for t in sampled_timesteps:
-        scenFilepath = args.outputScenPrefix + f"-{t}.scen"
+        # scenFilepath = args.outputScenPrefix + f".{t}.scen"
+        mapname, bdname, scenname, _ = getMapBDScenAgents(args.scenFile)
+        custom_scenname = f"{scenname}_t{t}"
+        prefix = os.path.dirname(args.outputPathsFile)
+        scenFilepath = f"{prefix}/{bdname}.{custom_scenname}.{num_agents}.scen"
         # pdb.set_trace()
         createScenFile(solution_path[t], goal_locations, args.mapName, scenFilepath)
 
@@ -380,7 +386,7 @@ python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/consta
       --maxSteps=200 --seed 0 --shieldType CS-PIBT \
       --outputCSVFile data_collection/data/logs/EXP_Test2/iter0/results.csv \
       --outputPathsFile data_collection/data/logs/EXP_Test2/iter0/paths.npy \
-      --numScensToCreate 10 --outputScenPrefix data_collection/data/logs/EXP_Test2/iter0/encountered_scens/den520d/den520d-random-1
+      --numScensToCreate 10 --outputScenPrefix data_collection/data/logs/EXP_Test2/iter0/encountered_scens/den520d/den520d-random-1.scen100
 """
 if __name__ == '__main__':
     # testGetCosts()
@@ -410,6 +416,6 @@ if __name__ == '__main__':
     if args.mapName.endswith('.map'): # Remove ending .map
         args.mapName = args.mapName.removesuffix('.map')
     if args.outputScenPrefix is None:
-        args.outputScenPrefix = args.outputPathsFile.removesuffix('.npy')
+        tmp = args.outputPathsFile.removesuffix('.npy')
     
     main(args)

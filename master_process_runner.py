@@ -17,7 +17,8 @@ def log_time(event_name):
 
 
 ### Example command for full benchmark
-# python -m master_process_runner 0 t t 100 1000 --num_parallel=50
+""" python -m master_process_runner 0 t t 100 1000 --num_parallel=50
+"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("expnum", help="experiment number", type=int)
@@ -36,7 +37,7 @@ if __name__ == "__main__":
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    LE = f"data_collection/data/logs/EXP_Test4"
+    LE = f"data_collection/data/logs/EXP_Test5"
     os.makedirs(LE, exist_ok=True)
     
     num_cores = multiprocessing.cpu_count()
@@ -91,6 +92,7 @@ if __name__ == "__main__":
         eecbs_path_npzs_folder = f"{iterFolder}/eecbs_npzs"
         processed_folder = f"{iterFolder}/processed"
         model_folder = f"{iterFolder}/models"
+        pymodel_outputs_folder = f"{iterFolder}/pymodel_outputs"
         encountered_scens = f"{iterFolder}/encountered_scens"
 
         ### Run EECBS labeller
@@ -152,7 +154,7 @@ if __name__ == "__main__":
         command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
                         f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
-                        f"--outputFolder={encountered_scens}", 
+                        f"--outputFolder={pymodel_outputs_folder}", 
                         f"--num_parallel_runs={min(20, args.num_parallel)}",
                         "\"pymodel\"",
                         f"--modelPath={iterFolder}/models/max_test_acc.pt",
@@ -164,7 +166,19 @@ if __name__ == "__main__":
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: simulator")
+
+
+        ### Create a folder with scen files for the next iteration
+        os.makedirs(encountered_scens, exist_ok=True)
+        for mapfolder in os.listdir(pymodel_outputs_folder):
+            folder_path = f"{pymodel_outputs_folder}/{mapfolder}"
+            if os.path.isdir(folder_path):
+                assert(os.path.exists(f"{folder_path}/paths"))
+                for file in os.listdir(f"{folder_path}/paths"):
+                    if file.endswith(".scen"):
+                        shutil.copy(f"{folder_path}/paths/{file}", f"{encountered_scens}/{file}")
         
+        # pdb.set_trace()
         # feed failures into eecbs
         # iternum+=1
         # command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 

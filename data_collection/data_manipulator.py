@@ -14,6 +14,7 @@ import multiprocessing
 # sys.path.insert(0, './data_collection/')
 # sys.path.append(os.path.abspath(os.getcwd())+"/custom_utils/")
 from custom_utils.custom_timer import CustomTimer
+from custom_utils.common_helper import getMapBDScenAgents
 
 '''
 0. parse bd (fix eecbs by having it make another txt output, parse it here)
@@ -121,13 +122,6 @@ class PipelineDataset(Dataset):
         '''
         returns the backward dijkstra, map, and path arrays, and indices to get into the path array
         '''
-        def translate_bd_name(bdname):
-            if "-custom-" in bdname:
-                split_name = bdname.split("-custom-")
-                front = split_name[0] # scen name
-                back = (split_name[1].split("-"))[-1] # number of agents
-                bdname = front+back
-            return bdname
 
         assert(idx < self.length)
         # pdb.set_trace()
@@ -147,26 +141,16 @@ class PipelineDataset(Dataset):
         if len(key_to_use.split(",")) != 3:
             raise KeyError(f"Badly formatted paths key: {key_to_use}, should check parse_paths and \
                             make sure that keys are in mapName,scenName,numAgents format")
-        mapname, scenname, num_agents = key_to_use.split(",")
-        num_agents = int(num_agents)
-        # bdname = translate_bd_name(bdname)
-        # scenname, num_agents = bdname.split(",")
-        # bd = self.bds[bdname]      # (N,W,H) # TODO: need to chop of the "custom" part
+        # mapname, scenname, num_agents = key_to_use.split(",")
+        # num_agents = int(num_agents)
+        mapname, bdname, custom_scenname = key_to_use.split(",")
+        # num_agents = int(num_agents)
         grid = self.maps[mapname]  # (W,H)
         paths = self.tn2[key_to_use] + self.k # (T,N,2)
         max_timesteps = paths.shape[0]
-        assert(self.bds[scenname].shape[0] >= num_agents)
-        bd = self.bds[scenname][:num_agents] # (N,W,H)
-        # pad bds (for all agents), grid (for all agents) with empty 0 window(s), k in all directions
-
-        # get the location, dir to next location
-        # newidx = idx - tracker # index within the matrix to get
-        # paths = items[tn2ind][1][1].copy() # (t,n,2) paths matrix
-        # paths += self.k # adjust for padding
-        # bd *= (1-grid) 
-        # t, n, _ = np.shape(paths)
-        # timestep = newidx // n
-        # return bd, grid, paths, timestep, t
+        num_agents = paths.shape[1]
+        assert(self.bds[bdname].shape[0] >= num_agents)
+        bd = self.bds[bdname][:num_agents] # (N,W,H)
 
         return bd, grid, paths, timestep_to_use, max_timesteps
 
@@ -376,6 +360,7 @@ def batch_bd(dir, num_parallel):
     input: directory of backward djikstras (string)
     output: dictionary mapping filenames to backward djikstras
     '''
+    assert(1 + 1 == 3)
     res = {} # string->np
     inputs_list = []
     filenames_list = []
@@ -386,7 +371,8 @@ def batch_bd(dir, num_parallel):
         if os.path.isfile(f):
             # parse the bd file and add to a global dictionary (or some class variable dictionary)
             # val = parse_bd(f)
-            scenname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. "Paris_1_256-random-110, where 1 is instance, 10 is agents"
+            scenname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. Paris_1_256-random-1.scen10.txt, where 1 is scen, 10 is agents
+            # scenname, agents = filename.split("."")[:2] # e.g. Paris_1_256-random-1.10.txt, where 1 is scen, 10 is agents
             if num_parallel == 1:
                 res[scenname] = parse_bd(f)
             else:
@@ -431,15 +417,17 @@ def batch_path(dir):
             # parse the path file, index out its map name, seed, agent number, and bd that it was formed from based on file name,
             # and add the resulting triplet to a global dictionary (or some class variable dictionary)
             # Example filename: 'empty_8_8-random-9.scen32.txt'
-            scen, numAgents = filename.split(".txt")[0].split(".scen") # remove .txt, e.g. empty_8_8-random-9, 32
-            mapname = scen.split("-")[0] + ".map" # e.g. empty_8_8.map
+            # Prior: [SCENNAME].scen[AGENTNUM].[extra].txt   [extra] is used for encountered scens and is optional
+            # scen, numAgents = filename.split(".txt")[0].split(".scen") # remove .txt, e.g. empty_8_8-random-9, 32
+            # mapname = scen.split("-")[0] + ".map" # e.g. empty_8_8.map
+            mapname, bdname, scen, numAgents = getMapBDScenAgents(filename)
             val = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             # print("___________________________\n")
             # if idx in valFiles:
             #     res2[mapname + "," + bdname] = val
             # else:
-            res1[f"{mapname},{scen},{numAgents}"] = val
+            res1[f"{mapname}.map,{bdname},{scen}"] = val
             idx += 1
         else:
             raise RuntimeError("bad path dir")

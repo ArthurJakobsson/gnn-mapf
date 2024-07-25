@@ -11,6 +11,7 @@ import shutil
 import multiprocessing
 # from custom_utils.custom_timer import CustomTimer
 from custom_utils.custom_timer import CustomTimer
+from custom_utils.common_helper import str2bool, getMapBDScenAgents
 # from custom_utils.multirunner import createTmuxSession, runCommandWithTmux, killTmuxSession
 
 ###############################################################
@@ -68,22 +69,23 @@ mapsToMaxNumAgents = {
     "warehouse_20_40_10_2_2": 1000,
 }
 
-def str2bool(v):
-  return v.lower() in ("yes", "true", "t", "1")
 
 def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     """Command for running EECBS"""
-    scenname = (scenfile.split("/")[-1])
-    mapname = mapfile.split("/")[-1].split(".")[0]
-    bd_path = f"{outputFolder}/bd/{scenname}{numAgents}.txt"
+    mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
+    bd_path = f"{outputFolder}/bd/{bdname}.{numAgents}.txt"
+    # scenname = (scenfile.split("/")[-1])
+    # mapname = mapfile.split("/")[-1].split(".")[0]
+    # bd_path = f"{outputFolder}/bd/{scenname}{numAgents}.txt"
     # command = f".{file_home}/eecbs/build_release2/eecbs"
     command = f"{eecbsPath}"
 
     for aKey in eecbsArgs["args"]:
         command += " --{}={}".format(aKey, eecbsArgs["args"][aKey])
-    tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.txt"
+    # tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.txt"
+    outputPathFile = f"{outputFolder}/paths/{bdname}.{scenname}.{numAgents}.txt"
     command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --bd_file={}".format(
-                numAgents, scenfile, tempOutPath, firstIter, bd_path)
+                numAgents, scenfile, outputPathFile, firstIter, bd_path)
     # command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
     command += " --output={} --map={}".format(outputfile, mapfile)
     # print(command.split("suboptimality=1")[1])
@@ -91,8 +93,9 @@ def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, sce
     
 def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     """Command for running Python model"""
-    scenname = (scenfile.split("/")[-1])
-    mapname = mapfile.split("/")[-1].split(".")[0]
+    # scenname = (scenfile.split("/")[-1])
+    # mapname = mapfile.split("/")[-1].split(".")[0]
+    mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
     command = f"conda activate pytorchfun && python -m gnn.simulator2"
 
     # Simulator parameters
@@ -104,8 +107,9 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     bdFile = f"data_collection/data/benchmark_data/constant_npzs/{mapname}_bds.npz"
     command += f" --bdNpzFile={bdFile}"
     command += f" --outputCSVFile={outputfile}"
-    tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.npy" # Note scenname ends with a .scen
-    command += f" --outputPathsFile={tempOutPath}"
+    # tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.npy" # Note scenname ends with a .scen
+    outputPathNpy = f"{outputFolder}/paths/{bdname}.{scenname}.npy"
+    command += f" --outputPathsFile={outputPathNpy}"
     command += f" --numScensToCreate={runnerArgs['numScensToCreate']}"
     return command
 
@@ -455,7 +459,7 @@ def generic_batch_runner(args):
         else: # we are somewhere in the training loop
             # scenlist = os.listdir(scenInputFolder)
             for scen in all_scen_files:
-                if mapFile not in scen or not mapFile.endswith(".scen"):
+                if mapFile not in scen or not scen.endswith(".scen"):
                     continue
                 # open the file
                 with open(f'{scenInputFolder}/{scen}', 'r') as fh: # TODO get the path to scene file right
