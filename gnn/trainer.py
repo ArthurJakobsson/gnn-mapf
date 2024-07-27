@@ -167,6 +167,7 @@ def train(combined_dataset, writer):
 
             label_maxes = torch.argmax(label, dim=1).to(device)
             loss = model.loss(pred, label_maxes)
+            # pdb.set_trace()
 
             scaler.scale(loss).backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)

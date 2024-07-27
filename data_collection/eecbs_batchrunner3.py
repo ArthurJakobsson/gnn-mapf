@@ -371,6 +371,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
                         f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
         input_list.append((command,))
+        # pdb.set_trace()
     
     if len(input_list) > 0:
         with multiprocessing.Pool(processes=min(len(input_list), num_workers//numWorkersParallelForDataManipulator)) as pool:

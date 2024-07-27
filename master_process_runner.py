@@ -17,7 +17,9 @@ def log_time(event_name):
 
 
 ### Example command for full benchmark
-""" python -m master_process_runner 0 t t 100 1000 --num_parallel=50
+""" 
+Small run: python -m master_process_runner 0 t t 100 1000 --num_parallel=50
+Big run: python -m master_process_runner 0 f t 100 1000 --num_parallel=50
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -37,7 +39,7 @@ if __name__ == "__main__":
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    LE = f"data_collection/data/logs/EXP_Test5"
+    LE = f"data_collection/data/logs/EXP_Small"
     os.makedirs(LE, exist_ok=True)
     
     num_cores = multiprocessing.cpu_count()
@@ -83,8 +85,8 @@ if __name__ == "__main__":
     # print("Done with first eecbs run")
     # # pdb.set_trace()
 
-    processed_folders = []
-    for iternum in range(100):
+    processed_folders_list = []
+    for iternum in range(30):
         iterFolder = f"{LE}/iter{iternum}"
         if not os.path.exists(iterFolder):
             os.makedirs(iterFolder)
@@ -139,12 +141,13 @@ if __name__ == "__main__":
                             f"--processedFolder={processed_folder}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
+        processed_folders_list.append(processed_folder)
         log_time(f"Iter {iternum}: dataloader")
 
         ### Train the model
         command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{expnum}", 
                             f"--iternum={iternum}", f"--num_cores={num_cores}", 
-                            f"--processedFolders={processed_folder}"])
+                            f"--processedFolders={','.join(processed_folders_list)}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: trainer")

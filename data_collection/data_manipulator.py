@@ -91,7 +91,7 @@ class PipelineDataset(Dataset):
         # num_agent = paths.shape[1]
         # for agent in range(0,num_agent): # TODO: numpyify this
         #     curloc = paths[timestep, agent]
-        #     nextloc = paths[timestep+1, agent] if timestep < t-1 else curloc
+        #     nextloc = paths[timestep+1, agent] if timestep < max_timesteps-1 else curloc
         #     label = nextloc - curloc # get the label: where did the agent go next?
         #     # create one-hot vector
         #     index = None
@@ -104,6 +104,7 @@ class PipelineDataset(Dataset):
         #     finallabel[index] = 1
         #     labels.append(finallabel)
         #     locs.append(curloc)
+        # slow_labels = np.array(labels)
         # return np.array(locs), np.array(labels), bd, grid
         cur_locs = paths[timestep] # (N,2)
         next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
@@ -115,6 +116,8 @@ class PipelineDataset(Dataset):
         indices = np.argmax(np.all(deltas[:, None] == direction_labels, axis=2), axis=1)
         # Create a one-hot encoded array using np.eye
         labels = np.eye(direction_labels.shape[0])[indices]
+        # pdb.set_trace()
+        # assert(np.all(labels == slow_labels))
         return cur_locs, labels, bd, grid
 
 
@@ -145,12 +148,12 @@ class PipelineDataset(Dataset):
         # num_agents = int(num_agents)
         mapname, bdname, custom_scenname = key_to_use.split(",")
         # num_agents = int(num_agents)
-        grid = self.maps[mapname]  # (W,H)
+        grid = self.maps[mapname]  # (H,W)
         paths = self.tn2[key_to_use] + self.k # (T,N,2)
         max_timesteps = paths.shape[0]
         num_agents = paths.shape[1]
         assert(self.bds[bdname].shape[0] >= num_agents)
-        bd = self.bds[bdname][:num_agents] # (N,W,H)
+        bd = self.bds[bdname][:num_agents] # (N,H,W)
 
         return bd, grid, paths, timestep_to_use, max_timesteps
 
@@ -183,7 +186,6 @@ class PipelineDataset(Dataset):
         npads = ((0,0),(self.k, self.k), (self.k, self.k))
         for key in self.bds:
             self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
-            # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
         for key in self.maps:
             self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
 
@@ -298,7 +300,7 @@ def parse_bd(bdfile):
     '''
     parses a txt file of bd info for each agent
     input: bdfile (string)
-    output: (N,H,W) NOTE: this is a transposed bd compared to the map! (fixed in npz parsing logic in dataloader)
+    output: (N,H,W)
     '''
     agent_to_bd = []
     w, h = None, None

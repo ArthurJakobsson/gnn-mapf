@@ -380,10 +380,6 @@ class MyOwnDataset(Dataset):
         return normalize_graph_data(curdata, self.k, edge_normalize="k", bd_normalize="center")
 
 
-def processDataset():
-    pass
-
-
 ### Example run
 # python -m gnn.dataloader --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz 
 #       --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs 
