@@ -1,0 +1,147 @@
+start_eecbs_runner recorded at 2024-07-19 01:51:31.294477. 		 Duration: 	 0.000656 
+eecbs preprocessing recorded at 2024-07-19 01:51:31.345317. 		 Duration: 	 0.05084 
+eecbs done recorded at 2024-07-19 01:52:09.776601. 		 Duration: 	 38.431284 
+delete csvs recorded at 2024-07-19 01:52:09.781912. 		 Duration: 	 0.005311 
+done creating npzs recorded at 2024-07-19 01:54:31.535418. 		 Duration: 	 141.753506 
+start_eecbs_runner recorded at 2024-07-19 03:31:24.601035. 		 Duration: 	 0.000575 
+eecbs preprocessing recorded at 2024-07-19 03:31:24.650298. 		 Duration: 	 0.049263 
+eecbs done recorded at 2024-07-19 03:32:02.364307. 		 Duration: 	 37.714009 
+delete csvs recorded at 2024-07-19 03:32:02.370447. 		 Duration: 	 0.00614 
+done creating npzs recorded at 2024-07-19 03:34:23.226225. 		 Duration: 	 140.855778 
+start_eecbs_runner recorded at 2024-07-19 05:47:22.122431. 		 Duration: 	 0.00058 
+eecbs preprocessing recorded at 2024-07-19 05:47:22.171895. 		 Duration: 	 0.049464 
+eecbs done recorded at 2024-07-19 05:48:00.022390. 		 Duration: 	 37.850495 
+delete csvs recorded at 2024-07-19 05:48:00.027138. 		 Duration: 	 0.004748 
+done creating npzs recorded at 2024-07-19 05:50:20.658927. 		 Duration: 	 140.631789 
+start_eecbs_runner recorded at 2024-07-19 08:02:28.869742. 		 Duration: 	 0.000607 
+eecbs preprocessing recorded at 2024-07-19 08:02:28.918047. 		 Duration: 	 0.048305 
+eecbs done recorded at 2024-07-19 08:03:07.230847. 		 Duration: 	 38.3128 
+delete csvs recorded at 2024-07-19 08:03:07.235954. 		 Duration: 	 0.005107 
+done creating npzs recorded at 2024-07-19 08:05:26.889579. 		 Duration: 	 139.653625 
+start_eecbs_runner recorded at 2024-07-19 10:18:29.624912. 		 Duration: 	 0.000594 
+eecbs preprocessing recorded at 2024-07-19 10:18:29.673856. 		 Duration: 	 0.048944 
+eecbs done recorded at 2024-07-19 10:19:08.275918. 		 Duration: 	 38.602062 
+delete csvs recorded at 2024-07-19 10:19:08.281813. 		 Duration: 	 0.005895 
+done creating npzs recorded at 2024-07-19 10:21:28.686881. 		 Duration: 	 140.405068 
+start_eecbs_runner recorded at 2024-07-19 12:34:20.538454. 		 Duration: 	 0.00067 
+eecbs preprocessing recorded at 2024-07-19 12:34:20.589568. 		 Duration: 	 0.051114 
+eecbs done recorded at 2024-07-19 12:34:59.230779. 		 Duration: 	 38.641211 
+delete csvs recorded at 2024-07-19 12:34:59.235704. 		 Duration: 	 0.004925 
+done creating npzs recorded at 2024-07-19 12:37:20.891429. 		 Duration: 	 141.655725 
+start_eecbs_runner recorded at 2024-07-19 14:50:59.876310. 		 Duration: 	 0.000587 
+eecbs preprocessing recorded at 2024-07-19 14:50:59.925892. 		 Duration: 	 0.049582 
+eecbs done recorded at 2024-07-19 14:51:38.353585. 		 Duration: 	 38.427693 
+delete csvs recorded at 2024-07-19 14:51:38.363918. 		 Duration: 	 0.010333 
+done creating npzs recorded at 2024-07-19 14:54:00.683979. 		 Duration: 	 142.320061 
+start_eecbs_runner recorded at 2024-07-19 17:10:27.600600. 		 Duration: 	 0.000602 
+eecbs preprocessing recorded at 2024-07-19 17:10:27.649317. 		 Duration: 	 0.048717 
+eecbs done recorded at 2024-07-19 17:11:06.561852. 		 Duration: 	 38.912535 
+delete csvs recorded at 2024-07-19 17:11:06.566934. 		 Duration: 	 0.005082 
+done creating npzs recorded at 2024-07-19 17:13:33.070381. 		 Duration: 	 146.503447 
+start_eecbs_runner recorded at 2024-07-19 19:28:32.833044. 		 Duration: 	 0.000591 
+eecbs preprocessing recorded at 2024-07-19 19:28:32.881517. 		 Duration: 	 0.048473 
+eecbs done recorded at 2024-07-19 19:29:12.047674. 		 Duration: 	 39.166157 
+delete csvs recorded at 2024-07-19 19:29:12.052247. 		 Duration: 	 0.004573 
+done creating npzs recorded at 2024-07-19 19:31:33.537494. 		 Duration: 	 141.485247 
+start_eecbs_runner recorded at 2024-07-19 21:44:24.285044. 		 Duration: 	 0.000598 
+eecbs preprocessing recorded at 2024-07-19 21:44:24.334194. 		 Duration: 	 0.04915 
+eecbs done recorded at 2024-07-19 21:45:03.109639. 		 Duration: 	 38.775445 
+delete csvs recorded at 2024-07-19 21:45:03.114528. 		 Duration: 	 0.004889 
+done creating npzs recorded at 2024-07-19 21:47:24.918185. 		 Duration: 	 141.803657 
+start_eecbs_runner recorded at 2024-07-20 00:00:03.850599. 		 Duration: 	 0.000582 
+eecbs preprocessing recorded at 2024-07-20 00:00:03.901370. 		 Duration: 	 0.050771 
+eecbs done recorded at 2024-07-20 00:00:42.508671. 		 Duration: 	 38.607301 
+delete csvs recorded at 2024-07-20 00:00:42.514082. 		 Duration: 	 0.005411 
+done creating npzs recorded at 2024-07-20 00:03:05.289046. 		 Duration: 	 142.774964 
+start_eecbs_runner recorded at 2024-07-20 02:15:11.701170. 		 Duration: 	 0.0006 
+eecbs preprocessing recorded at 2024-07-20 02:15:11.750014. 		 Duration: 	 0.048844 
+eecbs done recorded at 2024-07-20 02:15:50.775126. 		 Duration: 	 39.025112 
+delete csvs recorded at 2024-07-20 02:15:50.780176. 		 Duration: 	 0.00505 
+done creating npzs recorded at 2024-07-20 02:18:12.374197. 		 Duration: 	 141.594021 
+start_eecbs_runner recorded at 2024-07-20 04:32:30.869493. 		 Duration: 	 0.000594 
+eecbs preprocessing recorded at 2024-07-20 04:32:30.918631. 		 Duration: 	 0.049138 
+eecbs done recorded at 2024-07-20 04:33:09.906087. 		 Duration: 	 38.987456 
+delete csvs recorded at 2024-07-20 04:33:09.910887. 		 Duration: 	 0.0048 
+done creating npzs recorded at 2024-07-20 04:35:32.766588. 		 Duration: 	 142.855701 
+start_eecbs_runner recorded at 2024-07-20 06:47:58.792636. 		 Duration: 	 0.00059 
+eecbs preprocessing recorded at 2024-07-20 06:47:58.841381. 		 Duration: 	 0.048745 
+eecbs done recorded at 2024-07-20 06:48:38.018826. 		 Duration: 	 39.177445 
+delete csvs recorded at 2024-07-20 06:48:38.023525. 		 Duration: 	 0.004699 
+done creating npzs recorded at 2024-07-20 06:50:59.451952. 		 Duration: 	 141.428427 
+start_eecbs_runner recorded at 2024-07-20 08:26:45.814167. 		 Duration: 	 0.000601 
+eecbs preprocessing recorded at 2024-07-20 08:26:45.865163. 		 Duration: 	 0.050996 
+eecbs done recorded at 2024-07-20 08:27:24.774231. 		 Duration: 	 38.909068 
+delete csvs recorded at 2024-07-20 08:27:24.778922. 		 Duration: 	 0.004691 
+done creating npzs recorded at 2024-07-20 08:29:46.222904. 		 Duration: 	 141.443982 
+start_eecbs_runner recorded at 2024-07-20 09:00:40.398202. 		 Duration: 	 0.000604 
+start_eecbs_runner recorded at 2024-07-20 10:16:51.122496. 		 Duration: 	 0.000587 
+eecbs preprocessing recorded at 2024-07-20 10:16:51.170810. 		 Duration: 	 0.048314 
+eecbs done recorded at 2024-07-20 10:17:29.726381. 		 Duration: 	 38.555571 
+delete csvs recorded at 2024-07-20 10:17:29.731249. 		 Duration: 	 0.004868 
+done creating npzs recorded at 2024-07-20 10:19:51.266148. 		 Duration: 	 141.534899 
+start_eecbs_runner recorded at 2024-07-20 11:55:42.909298. 		 Duration: 	 0.000596 
+eecbs preprocessing recorded at 2024-07-20 11:55:42.958409. 		 Duration: 	 0.049111 
+eecbs done recorded at 2024-07-20 11:56:21.731809. 		 Duration: 	 38.7734 
+delete csvs recorded at 2024-07-20 11:56:21.736591. 		 Duration: 	 0.004782 
+done creating npzs recorded at 2024-07-20 11:58:44.560807. 		 Duration: 	 142.824216 
+start_eecbs_runner recorded at 2024-07-20 13:34:15.675656. 		 Duration: 	 0.000596 
+eecbs preprocessing recorded at 2024-07-20 13:34:15.724911. 		 Duration: 	 0.049255 
+eecbs done recorded at 2024-07-20 13:34:54.958984. 		 Duration: 	 39.234073 
+delete csvs recorded at 2024-07-20 13:34:54.963929. 		 Duration: 	 0.004945 
+done creating npzs recorded at 2024-07-20 13:37:15.079198. 		 Duration: 	 140.115269 
+start_eecbs_runner recorded at 2024-07-20 15:49:01.485244. 		 Duration: 	 0.0006 
+eecbs preprocessing recorded at 2024-07-20 15:49:01.533392. 		 Duration: 	 0.048148 
+eecbs done recorded at 2024-07-20 15:49:41.555114. 		 Duration: 	 40.021722 
+delete csvs recorded at 2024-07-20 15:49:41.560776. 		 Duration: 	 0.005662 
+done creating npzs recorded at 2024-07-20 15:52:01.783475. 		 Duration: 	 140.222699 
+start_eecbs_runner recorded at 2024-07-20 17:28:25.189158. 		 Duration: 	 0.000592 
+eecbs preprocessing recorded at 2024-07-20 17:28:25.239002. 		 Duration: 	 0.049844 
+eecbs done recorded at 2024-07-20 17:29:05.250058. 		 Duration: 	 40.011056 
+delete csvs recorded at 2024-07-20 17:29:05.255897. 		 Duration: 	 0.005839 
+done creating npzs recorded at 2024-07-20 17:31:27.538438. 		 Duration: 	 142.282541 
+start_eecbs_runner recorded at 2024-07-20 18:02:54.681385. 		 Duration: 	 0.000606 
+start_eecbs_runner recorded at 2024-07-20 19:55:40.374685. 		 Duration: 	 0.000598 
+eecbs preprocessing recorded at 2024-07-20 19:55:40.425670. 		 Duration: 	 0.050985 
+eecbs done recorded at 2024-07-20 19:56:20.149992. 		 Duration: 	 39.724322 
+delete csvs recorded at 2024-07-20 19:56:20.155023. 		 Duration: 	 0.005031 
+done creating npzs recorded at 2024-07-20 19:58:42.472098. 		 Duration: 	 142.317075 
+start_eecbs_runner recorded at 2024-07-20 22:12:03.703681. 		 Duration: 	 0.000591 
+eecbs preprocessing recorded at 2024-07-20 22:12:03.754146. 		 Duration: 	 0.050465 
+eecbs done recorded at 2024-07-20 22:12:43.579080. 		 Duration: 	 39.824934 
+delete csvs recorded at 2024-07-20 22:12:43.588361. 		 Duration: 	 0.009281 
+done creating npzs recorded at 2024-07-20 22:15:06.365098. 		 Duration: 	 142.776737 
+start_eecbs_runner recorded at 2024-07-20 23:51:24.286025. 		 Duration: 	 0.000602 
+eecbs preprocessing recorded at 2024-07-20 23:51:24.335867. 		 Duration: 	 0.049842 
+eecbs done recorded at 2024-07-20 23:52:04.305241. 		 Duration: 	 39.969374 
+delete csvs recorded at 2024-07-20 23:52:04.310267. 		 Duration: 	 0.005026 
+done creating npzs recorded at 2024-07-20 23:54:25.183107. 		 Duration: 	 140.87284 
+start_eecbs_runner recorded at 2024-07-21 02:07:36.034333. 		 Duration: 	 0.000666 
+eecbs preprocessing recorded at 2024-07-21 02:07:36.085004. 		 Duration: 	 0.050671 
+eecbs done recorded at 2024-07-21 02:08:15.643369. 		 Duration: 	 39.558365 
+delete csvs recorded at 2024-07-21 02:08:15.648341. 		 Duration: 	 0.004972 
+done creating npzs recorded at 2024-07-21 02:10:39.386276. 		 Duration: 	 143.737935 
+start_eecbs_runner recorded at 2024-07-21 03:46:09.396880. 		 Duration: 	 0.000585 
+eecbs preprocessing recorded at 2024-07-21 03:46:09.446613. 		 Duration: 	 0.049733 
+eecbs done recorded at 2024-07-21 03:46:49.386141. 		 Duration: 	 39.939528 
+delete csvs recorded at 2024-07-21 03:46:49.390866. 		 Duration: 	 0.004725 
+done creating npzs recorded at 2024-07-21 03:49:10.318425. 		 Duration: 	 140.927559 
+start_eecbs_runner recorded at 2024-07-21 05:24:57.088296. 		 Duration: 	 0.000595 
+eecbs preprocessing recorded at 2024-07-21 05:24:57.137675. 		 Duration: 	 0.049379 
+eecbs done recorded at 2024-07-21 05:25:37.409070. 		 Duration: 	 40.271395 
+delete csvs recorded at 2024-07-21 05:25:37.413766. 		 Duration: 	 0.004696 
+done creating npzs recorded at 2024-07-21 05:27:58.368628. 		 Duration: 	 140.954862 
+start_eecbs_runner recorded at 2024-07-21 07:03:59.232977. 		 Duration: 	 0.000591 
+eecbs preprocessing recorded at 2024-07-21 07:03:59.281849. 		 Duration: 	 0.048872 
+eecbs done recorded at 2024-07-21 07:04:39.844678. 		 Duration: 	 40.562829 
+delete csvs recorded at 2024-07-21 07:04:39.849967. 		 Duration: 	 0.005289 
+done creating npzs recorded at 2024-07-21 07:07:00.676547. 		 Duration: 	 140.82658 
+start_eecbs_runner recorded at 2024-07-21 08:43:09.038549. 		 Duration: 	 0.000612 
+eecbs preprocessing recorded at 2024-07-21 08:43:09.088918. 		 Duration: 	 0.050369 
+eecbs done recorded at 2024-07-21 08:43:49.610278. 		 Duration: 	 40.52136 
+delete csvs recorded at 2024-07-21 08:43:49.614884. 		 Duration: 	 0.004606 
+done creating npzs recorded at 2024-07-21 08:46:11.079485. 		 Duration: 	 141.464601 
+start_eecbs_runner recorded at 2024-07-21 19:37:17.229075. 		 Duration: 	 0.000585 
+eecbs preprocessing recorded at 2024-07-21 19:37:17.250358. 		 Duration: 	 0.021283 
+eecbs done recorded at 2024-07-21 19:37:18.157937. 		 Duration: 	 0.907579 
+delete csvs recorded at 2024-07-21 19:37:18.158461. 		 Duration: 	 0.000524 
+done creating npzs recorded at 2024-07-21 19:37:20.065050. 		 Duration: 	 1.906589 

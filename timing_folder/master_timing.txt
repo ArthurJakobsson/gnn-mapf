@@ -1,0 +1,156 @@
+begin recorded at 2024-07-18 22:55:32.933046. 		 Duration: 	 0.001095 
+initial generation recorded at 2024-07-18 22:55:32.939948. 		 Duration: 	 0.006902 
+training for iteration: 0 recorded at 2024-07-18 22:55:35.385640. 		 Duration: 	 2.445692 
+begin recorded at 2024-07-18 22:55:44.197333. 		 Duration: 	 0.001125 
+initial generation recorded at 2024-07-18 22:55:44.197399. 		 Duration: 	 6.6e-05 
+.pt creation recorded at 2024-07-19 01:03:59.483359. 		 Duration: 	 7693.394767 
+training recorded at 2024-07-19 01:07:30.798462. 		 Duration: 	 211.315103 
+training for iteration: 0 recorded at 2024-07-19 01:07:31.317706. 		 Duration: 	 7907.120307 
+simulating for iteration: 0 recorded at 2024-07-19 01:51:30.892425. 		 Duration: 	 2639.574719 
+eecbs running for iteration: 1 recorded at 2024-07-19 01:54:31.607627. 		 Duration: 	 180.715202 
+.pt creation recorded at 2024-07-19 02:14:51.840592. 		 Duration: 	 1218.324105 
+training recorded at 2024-07-19 03:10:09.994971. 		 Duration: 	 3318.154379 
+training for iteration: 1 recorded at 2024-07-19 03:10:10.754720. 		 Duration: 	 4539.147093 
+simulating for iteration: 1 recorded at 2024-07-19 03:31:24.203833. 		 Duration: 	 1273.449113 
+eecbs running for iteration: 2 recorded at 2024-07-19 03:34:23.309389. 		 Duration: 	 179.105556 
+.pt creation recorded at 2024-07-19 03:54:32.943338. 		 Duration: 	 1207.732933 
+training recorded at 2024-07-19 05:25:41.749600. 		 Duration: 	 5468.806262 
+training for iteration: 2 recorded at 2024-07-19 05:25:42.737073. 		 Duration: 	 6679.427684 
+simulating for iteration: 2 recorded at 2024-07-19 05:47:21.723792. 		 Duration: 	 1298.986719 
+eecbs running for iteration: 3 recorded at 2024-07-19 05:50:20.731363. 		 Duration: 	 179.007571 
+.pt creation recorded at 2024-07-19 06:10:37.184052. 		 Duration: 	 1214.550564 
+training recorded at 2024-07-19 07:41:17.172226. 		 Duration: 	 5439.988174 
+training for iteration: 3 recorded at 2024-07-19 07:41:18.161695. 		 Duration: 	 6657.430332 
+simulating for iteration: 3 recorded at 2024-07-19 08:02:28.470765. 		 Duration: 	 1270.30907 
+eecbs running for iteration: 4 recorded at 2024-07-19 08:05:26.973661. 		 Duration: 	 178.502896 
+.pt creation recorded at 2024-07-19 08:25:38.765136. 		 Duration: 	 1209.895288 
+training recorded at 2024-07-19 09:56:51.375859. 		 Duration: 	 5472.610723 
+training for iteration: 4 recorded at 2024-07-19 09:56:52.361124. 		 Duration: 	 6685.387463 
+simulating for iteration: 4 recorded at 2024-07-19 10:18:29.224591. 		 Duration: 	 1296.863467 
+eecbs running for iteration: 5 recorded at 2024-07-19 10:21:28.761993. 		 Duration: 	 179.537402 
+.pt creation recorded at 2024-07-19 10:41:39.202279. 		 Duration: 	 1208.516161 
+training recorded at 2024-07-19 12:13:08.754064. 		 Duration: 	 5489.551785 
+training for iteration: 5 recorded at 2024-07-19 12:13:09.729828. 		 Duration: 	 6700.967835 
+simulating for iteration: 5 recorded at 2024-07-19 12:34:20.128722. 		 Duration: 	 1270.398894 
+eecbs running for iteration: 6 recorded at 2024-07-19 12:37:20.964117. 		 Duration: 	 180.835395 
+.pt creation recorded at 2024-07-19 12:57:52.491962. 		 Duration: 	 1229.627839 
+training recorded at 2024-07-19 14:29:13.626012. 		 Duration: 	 5481.13405 
+training for iteration: 6 recorded at 2024-07-19 14:29:14.644737. 		 Duration: 	 6713.68062 
+simulating for iteration: 6 recorded at 2024-07-19 14:50:59.473357. 		 Duration: 	 1304.82862 
+eecbs running for iteration: 7 recorded at 2024-07-19 14:54:00.757586. 		 Duration: 	 181.284229 
+.pt creation recorded at 2024-07-19 15:14:18.914844. 		 Duration: 	 1216.243356 
+training recorded at 2024-07-19 16:48:10.384520. 		 Duration: 	 5631.469676 
+training for iteration: 7 recorded at 2024-07-19 16:48:11.363077. 		 Duration: 	 6850.605491 
+simulating for iteration: 7 recorded at 2024-07-19 17:10:27.196073. 		 Duration: 	 1335.832996 
+eecbs running for iteration: 8 recorded at 2024-07-19 17:13:33.163609. 		 Duration: 	 185.967536 
+.pt creation recorded at 2024-07-19 17:34:57.172880. 		 Duration: 	 1282.102965 
+training recorded at 2024-07-19 19:07:15.866741. 		 Duration: 	 5538.693861 
+training for iteration: 8 recorded at 2024-07-19 19:07:16.864919. 		 Duration: 	 6823.70131 
+simulating for iteration: 8 recorded at 2024-07-19 19:28:32.430505. 		 Duration: 	 1275.565586 
+eecbs running for iteration: 9 recorded at 2024-07-19 19:31:33.609840. 		 Duration: 	 181.179335 
+.pt creation recorded at 2024-07-19 19:51:41.150999. 		 Duration: 	 1205.632332 
+training recorded at 2024-07-19 21:23:14.375790. 		 Duration: 	 5493.224791 
+training for iteration: 9 recorded at 2024-07-19 21:23:15.353752. 		 Duration: 	 6701.743912 
+simulating for iteration: 9 recorded at 2024-07-19 21:44:23.885945. 		 Duration: 	 1268.532193 
+eecbs running for iteration: 10 recorded at 2024-07-19 21:47:24.990860. 		 Duration: 	 181.104915 
+.pt creation recorded at 2024-07-19 22:07:28.907167. 		 Duration: 	 1202.025261 
+training recorded at 2024-07-19 23:38:38.324965. 		 Duration: 	 5469.417798 
+training for iteration: 10 recorded at 2024-07-19 23:38:39.316798. 		 Duration: 	 6674.325938 
+simulating for iteration: 10 recorded at 2024-07-20 00:00:03.440760. 		 Duration: 	 1284.123962 
+eecbs running for iteration: 11 recorded at 2024-07-20 00:03:05.360867. 		 Duration: 	 181.920107 
+.pt creation recorded at 2024-07-20 00:23:12.677752. 		 Duration: 	 1205.401892 
+training recorded at 2024-07-20 01:54:15.442306. 		 Duration: 	 5462.764554 
+training for iteration: 11 recorded at 2024-07-20 01:54:16.426870. 		 Duration: 	 6671.066003 
+simulating for iteration: 11 recorded at 2024-07-20 02:15:11.300589. 		 Duration: 	 1254.873719 
+eecbs running for iteration: 12 recorded at 2024-07-20 02:18:12.446495. 		 Duration: 	 181.145906 
+.pt creation recorded at 2024-07-20 02:39:49.711423. 		 Duration: 	 1295.366549 
+training recorded at 2024-07-20 04:11:02.570709. 		 Duration: 	 5472.859286 
+training for iteration: 12 recorded at 2024-07-20 04:11:03.546002. 		 Duration: 	 6771.099507 
+simulating for iteration: 12 recorded at 2024-07-20 04:32:30.470287. 		 Duration: 	 1286.924285 
+eecbs running for iteration: 13 recorded at 2024-07-20 04:35:32.838909. 		 Duration: 	 182.368622 
+.pt creation recorded at 2024-07-20 04:55:43.590621. 		 Duration: 	 1208.830647 
+training recorded at 2024-07-20 06:26:49.712697. 		 Duration: 	 5466.122076 
+training for iteration: 13 recorded at 2024-07-20 06:26:50.688296. 		 Duration: 	 6677.849387 
+simulating for iteration: 13 recorded at 2024-07-20 06:47:58.393531. 		 Duration: 	 1267.705235 
+eecbs running for iteration: 14 recorded at 2024-07-20 06:50:59.524992. 		 Duration: 	 181.131461 
+.pt creation recorded at 2024-07-20 07:10:55.396804. 		 Duration: 	 1193.965144 
+training recorded at 2024-07-20 08:05:20.017575. 		 Duration: 	 3264.620771 
+training for iteration: 14 recorded at 2024-07-20 08:05:20.777757. 		 Duration: 	 4461.252765 
+simulating for iteration: 14 recorded at 2024-07-20 08:26:45.414532. 		 Duration: 	 1284.636775 
+eecbs running for iteration: 15 recorded at 2024-07-20 08:29:46.297606. 		 Duration: 	 180.883074 
+.pt creation recorded at 2024-07-20 08:49:49.413667. 		 Duration: 	 1201.204959 
+training for iteration: 15 recorded at 2024-07-20 09:00:37.588951. 		 Duration: 	 1851.291345 
+simulating for iteration: 15 recorded at 2024-07-20 09:00:39.995198. 		 Duration: 	 2.406247 
+eecbs running for iteration: 16 recorded at 2024-07-20 09:00:40.519203. 		 Duration: 	 0.524005 
+.pt creation recorded at 2024-07-20 09:00:42.448624. 		 Duration: 	 0.019794 
+training recorded at 2024-07-20 09:55:23.505213. 		 Duration: 	 3281.056589 
+training for iteration: 16 recorded at 2024-07-20 09:55:24.280340. 		 Duration: 	 3283.761137 
+simulating for iteration: 16 recorded at 2024-07-20 10:16:50.726312. 		 Duration: 	 1286.445972 
+eecbs running for iteration: 17 recorded at 2024-07-20 10:19:51.339189. 		 Duration: 	 180.612877 
+.pt creation recorded at 2024-07-20 10:39:52.597962. 		 Duration: 	 1199.346338 
+training recorded at 2024-07-20 11:34:15.981033. 		 Duration: 	 3263.383071 
+training for iteration: 17 recorded at 2024-07-20 11:34:16.735456. 		 Duration: 	 4465.396267 
+simulating for iteration: 17 recorded at 2024-07-20 11:55:42.510513. 		 Duration: 	 1285.775057 
+eecbs running for iteration: 18 recorded at 2024-07-20 11:58:44.632527. 		 Duration: 	 182.122014 
+.pt creation recorded at 2024-07-20 12:18:48.943555. 		 Duration: 	 1202.387007 
+training recorded at 2024-07-20 13:13:13.603699. 		 Duration: 	 3264.660144 
+training for iteration: 18 recorded at 2024-07-20 13:13:14.367641. 		 Duration: 	 4469.735114 
+simulating for iteration: 18 recorded at 2024-07-20 13:34:15.275674. 		 Duration: 	 1260.908033 
+eecbs running for iteration: 19 recorded at 2024-07-20 13:37:15.151325. 		 Duration: 	 179.875651 
+.pt creation recorded at 2024-07-20 13:57:09.332024. 		 Duration: 	 1192.26337 
+training recorded at 2024-07-20 15:27:30.165656. 		 Duration: 	 5420.833632 
+training for iteration: 19 recorded at 2024-07-20 15:27:31.140935. 		 Duration: 	 6615.98961 
+simulating for iteration: 19 recorded at 2024-07-20 15:49:01.084356. 		 Duration: 	 1289.943421 
+eecbs running for iteration: 20 recorded at 2024-07-20 15:52:01.855884. 		 Duration: 	 180.771528 
+.pt creation recorded at 2024-07-20 16:12:02.278494. 		 Duration: 	 1198.50894 
+training recorded at 2024-07-20 17:06:58.241334. 		 Duration: 	 3295.96284 
+training for iteration: 20 recorded at 2024-07-20 17:06:59.011810. 		 Duration: 	 4497.155926 
+simulating for iteration: 20 recorded at 2024-07-20 17:28:24.790164. 		 Duration: 	 1285.778354 
+eecbs running for iteration: 21 recorded at 2024-07-20 17:31:27.609277. 		 Duration: 	 182.819113 
+.pt creation recorded at 2024-07-20 17:51:42.028828. 		 Duration: 	 1212.513175 
+training for iteration: 21 recorded at 2024-07-20 18:02:51.895756. 		 Duration: 	 1884.286479 
+simulating for iteration: 21 recorded at 2024-07-20 18:02:54.282664. 		 Duration: 	 2.386908 
+eecbs running for iteration: 22 recorded at 2024-07-20 18:02:54.796380. 		 Duration: 	 0.513716 
+.pt creation recorded at 2024-07-20 18:02:56.721827. 		 Duration: 	 0.021237 
+training recorded at 2024-07-20 19:34:23.132727. 		 Duration: 	 5486.4109 
+training for iteration: 22 recorded at 2024-07-20 19:34:24.124958. 		 Duration: 	 5489.328578 
+simulating for iteration: 22 recorded at 2024-07-20 19:55:39.972727. 		 Duration: 	 1275.847769 
+eecbs running for iteration: 23 recorded at 2024-07-20 19:58:42.544905. 		 Duration: 	 182.572178 
+.pt creation recorded at 2024-07-20 20:18:53.902699. 		 Duration: 	 1209.435797 
+training recorded at 2024-07-20 21:50:17.401813. 		 Duration: 	 5483.499114 
+training for iteration: 23 recorded at 2024-07-20 21:50:18.377225. 		 Duration: 	 6695.83232 
+simulating for iteration: 23 recorded at 2024-07-20 22:12:03.296372. 		 Duration: 	 1304.919147 
+eecbs running for iteration: 24 recorded at 2024-07-20 22:15:06.438068. 		 Duration: 	 183.141696 
+.pt creation recorded at 2024-07-20 22:35:10.121737. 		 Duration: 	 1201.773407 
+training recorded at 2024-07-20 23:29:59.099358. 		 Duration: 	 3288.977621 
+training for iteration: 24 recorded at 2024-07-20 23:29:59.852200. 		 Duration: 	 4493.414132 
+simulating for iteration: 24 recorded at 2024-07-20 23:51:23.886405. 		 Duration: 	 1284.034205 
+eecbs running for iteration: 25 recorded at 2024-07-20 23:54:25.255798. 		 Duration: 	 181.369393 
+.pt creation recorded at 2024-07-21 00:14:39.653620. 		 Duration: 	 1212.486122 
+training recorded at 2024-07-21 01:45:56.030661. 		 Duration: 	 5476.377041 
+training for iteration: 25 recorded at 2024-07-21 01:45:57.018348. 		 Duration: 	 6691.76255 
+simulating for iteration: 25 recorded at 2024-07-21 02:07:35.630619. 		 Duration: 	 1298.612271 
+eecbs running for iteration: 26 recorded at 2024-07-21 02:10:39.459424. 		 Duration: 	 183.828805 
+.pt creation recorded at 2024-07-21 02:30:43.624252. 		 Duration: 	 1202.2447 
+training recorded at 2024-07-21 03:25:00.889066. 		 Duration: 	 3257.264814 
+training for iteration: 26 recorded at 2024-07-21 03:25:01.648929. 		 Duration: 	 4462.189505 
+simulating for iteration: 26 recorded at 2024-07-21 03:46:08.997115. 		 Duration: 	 1267.348186 
+eecbs running for iteration: 27 recorded at 2024-07-21 03:49:10.390566. 		 Duration: 	 181.393451 
+.pt creation recorded at 2024-07-21 04:09:08.478042. 		 Duration: 	 1196.188382 
+training recorded at 2024-07-21 05:03:35.875945. 		 Duration: 	 3267.397903 
+training for iteration: 27 recorded at 2024-07-21 05:03:36.637580. 		 Duration: 	 4466.247014 
+simulating for iteration: 27 recorded at 2024-07-21 05:24:56.690960. 		 Duration: 	 1280.05338 
+eecbs running for iteration: 28 recorded at 2024-07-21 05:27:58.440273. 		 Duration: 	 181.749313 
+.pt creation recorded at 2024-07-21 05:47:56.268345. 		 Duration: 	 1195.91926 
+training recorded at 2024-07-21 06:42:35.946376. 		 Duration: 	 3279.678031 
+training for iteration: 28 recorded at 2024-07-21 06:42:36.759922. 		 Duration: 	 4478.319649 
+simulating for iteration: 28 recorded at 2024-07-21 07:03:58.835967. 		 Duration: 	 1282.076045 
+eecbs running for iteration: 29 recorded at 2024-07-21 07:07:00.747698. 		 Duration: 	 181.911731 
+.pt creation recorded at 2024-07-21 07:27:02.641898. 		 Duration: 	 1200.001249 
+training recorded at 2024-07-21 08:22:03.002881. 		 Duration: 	 3300.360983 
+training for iteration: 29 recorded at 2024-07-21 08:22:03.786937. 		 Duration: 	 4503.039239 
+simulating for iteration: 29 recorded at 2024-07-21 08:43:08.638734. 		 Duration: 	 1264.851797 
+eecbs running for iteration: 30 recorded at 2024-07-21 08:46:11.152150. 		 Duration: 	 182.513416 
+.pt creation recorded at 2024-07-21 09:06:23.962079. 		 Duration: 	 1210.903413 
+training recorded at 2024-07-21 10:37:42.870306. 		 Duration: 	 5478.908227 
+training for iteration: 30 recorded at 2024-07-21 10:37:43.855358. 		 Duration: 	 6692.703208 

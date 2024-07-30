@@ -119,9 +119,12 @@ class CustomConv(pyg_nn.MessagePassing):
 def save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc):
     if total_loss < min_loss:
         torch.save(model, model_path + '/min_train_loss.pt')
+        print("new min train")
     if test_acc > max_test_acc:
+        print("new max test")
         torch.save(model, model_path + '/max_test_acc.pt')
     if double_test_acc > max_double_test_acc:
+        print("new max_dbl")
         torch.save(model, model_path + '/max_double_test_acc.pt')
 
 def train(combined_dataset, writer):
@@ -148,7 +151,7 @@ def train(combined_dataset, writer):
     patience = 10
     no_improvement = 0
 
-    for epoch in range(10+1):
+    for epoch in range(100+1):
         total_loss = 0
         correct = 0
         second_correct = 0

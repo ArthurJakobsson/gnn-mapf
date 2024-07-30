@@ -96,7 +96,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     # scenname = (scenfile.split("/")[-1])
     # mapname = mapfile.split("/")[-1].split(".")[0]
     mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
-    command = f"conda activate pytorchfun && python -m gnn.simulator2"
+    command = f"python -m gnn.simulator2" #f"conda activate pytorchfun && python -m gnn.simulator2"
 
     # Simulator parameters
     for aKey in runnerArgs["args"]:
@@ -180,7 +180,7 @@ def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputFi
     runBefore, status = detectExistingStatus(runnerArgs, mapFile, curAgentNum, scen, combined_filename) # check in combinedDf
     if not runBefore:
         command = getCommandForSingleInstance(runnerArgs, outputFolder, workerOutputCSV, mapFile, curAgentNum, scen)
-        # print(command)
+        print(command)
         runCommandWithTmux(worker_id, command)
         runBefore, status = detectExistingStatus(runnerArgs, mapFile, curAgentNum, scen, workerOutputCSV)  # check in worker's df
         if not runBefore:

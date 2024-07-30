@@ -1,0 +1,576 @@
+start loading npzs recorded at 2024-07-18 22:55:46.106570. 		 Duration: 	 0.311763 
+loading npzs recorded at 2024-07-18 22:55:46.107861. 		 Duration: 	 0.001291 
+before calling parse_npz recorded at 2024-07-18 22:55:46.107893. 		 Duration: 	 3.2e-05 
+after calling parse_npz recorded at 2024-07-18 22:55:46.386110. 		 Duration: 	 0.278217 
+start loading npzs recorded at 2024-07-18 22:55:58.547170. 		 Duration: 	 12.16106 
+loading npzs recorded at 2024-07-18 22:55:58.547760. 		 Duration: 	 0.00059 
+before calling parse_npz recorded at 2024-07-18 22:55:58.547793. 		 Duration: 	 3.3e-05 
+after calling parse_npz recorded at 2024-07-18 22:56:04.891783. 		 Duration: 	 6.34399 
+start loading npzs recorded at 2024-07-18 23:07:47.194939. 		 Duration: 	 702.303156 
+loading npzs recorded at 2024-07-18 23:07:47.195469. 		 Duration: 	 0.00053 
+before calling parse_npz recorded at 2024-07-18 23:07:47.195501. 		 Duration: 	 3.2e-05 
+after calling parse_npz recorded at 2024-07-18 23:07:47.880997. 		 Duration: 	 0.685496 
+start loading npzs recorded at 2024-07-18 23:08:27.596185. 		 Duration: 	 39.715188 
+loading npzs recorded at 2024-07-18 23:08:27.596782. 		 Duration: 	 0.000597 
+before calling parse_npz recorded at 2024-07-18 23:08:27.596814. 		 Duration: 	 3.2e-05 
+after calling parse_npz recorded at 2024-07-18 23:08:28.734411. 		 Duration: 	 1.137597 
+start loading npzs recorded at 2024-07-18 23:09:34.652251. 		 Duration: 	 65.91784 
+loading npzs recorded at 2024-07-18 23:09:34.652856. 		 Duration: 	 0.000605 
+before calling parse_npz recorded at 2024-07-18 23:09:34.652889. 		 Duration: 	 3.3e-05 
+after calling parse_npz recorded at 2024-07-18 23:09:35.906604. 		 Duration: 	 1.253715 
+start loading npzs recorded at 2024-07-18 23:11:12.530160. 		 Duration: 	 96.623556 
+loading npzs recorded at 2024-07-18 23:11:12.530764. 		 Duration: 	 0.000604 
+before calling parse_npz recorded at 2024-07-18 23:11:12.530796. 		 Duration: 	 3.2e-05 
+after calling parse_npz recorded at 2024-07-18 23:11:13.163837. 		 Duration: 	 0.633041 
+start loading npzs recorded at 2024-07-18 23:11:41.719974. 		 Duration: 	 28.556137 
+loading npzs recorded at 2024-07-18 23:11:41.720588. 		 Duration: 	 0.000614 
+before calling parse_npz recorded at 2024-07-18 23:11:41.720624. 		 Duration: 	 3.6e-05 
+after calling parse_npz recorded at 2024-07-18 23:11:41.772681. 		 Duration: 	 0.052057 
+start loading npzs recorded at 2024-07-18 23:11:49.518410. 		 Duration: 	 7.745729 
+loading npzs recorded at 2024-07-18 23:11:49.519214. 		 Duration: 	 0.000804 
+before calling parse_npz recorded at 2024-07-18 23:11:49.519259. 		 Duration: 	 4.5e-05 
+after calling parse_npz recorded at 2024-07-18 23:11:49.599275. 		 Duration: 	 0.080016 
+start loading npzs recorded at 2024-07-18 23:11:58.036483. 		 Duration: 	 8.437208 
+loading npzs recorded at 2024-07-18 23:11:58.037079. 		 Duration: 	 0.000596 
+before calling parse_npz recorded at 2024-07-18 23:11:58.037113. 		 Duration: 	 3.4e-05 
+after calling parse_npz recorded at 2024-07-18 23:11:58.528486. 		 Duration: 	 0.491373 
+start loading npzs recorded at 2024-07-18 23:12:29.720818. 		 Duration: 	 31.192332 
+loading npzs recorded at 2024-07-18 23:12:29.721418. 		 Duration: 	 0.0006 
+before calling parse_npz recorded at 2024-07-18 23:12:29.721454. 		 Duration: 	 3.6e-05 
+after calling parse_npz recorded at 2024-07-18 23:12:29.800457. 		 Duration: 	 0.079003 
+start loading npzs recorded at 2024-07-18 23:12:38.343883. 		 Duration: 	 8.543426 
+loading npzs recorded at 2024-07-18 23:12:38.344491. 		 Duration: 	 0.000608 
+before calling parse_npz recorded at 2024-07-18 23:12:38.344526. 		 Duration: 	 3.5e-05 
+after calling parse_npz recorded at 2024-07-18 23:12:40.207889. 		 Duration: 	 1.863363 
+start loading npzs recorded at 2024-07-18 23:15:12.356599. 		 Duration: 	 152.14871 
+loading npzs recorded at 2024-07-18 23:15:12.364271. 		 Duration: 	 0.007672 
+before calling parse_npz recorded at 2024-07-18 23:15:12.364418. 		 Duration: 	 0.000147 
+after calling parse_npz recorded at 2024-07-18 23:15:12.463620. 		 Duration: 	 0.099202 
+start loading npzs recorded at 2024-07-18 23:15:21.707680. 		 Duration: 	 9.24406 
+loading npzs recorded at 2024-07-18 23:15:21.708306. 		 Duration: 	 0.000626 
+before calling parse_npz recorded at 2024-07-18 23:15:21.708340. 		 Duration: 	 3.4e-05 
+after calling parse_npz recorded at 2024-07-18 23:15:44.611313. 		 Duration: 	 22.902973 
+start loading npzs recorded at 2024-07-19 00:29:28.971767. 		 Duration: 	 4424.360454 
+loading npzs recorded at 2024-07-19 00:29:28.972330. 		 Duration: 	 0.000563 
+before calling parse_npz recorded at 2024-07-19 00:29:28.972367. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 00:29:29.045597. 		 Duration: 	 0.07323 
+start loading npzs recorded at 2024-07-19 00:29:37.562866. 		 Duration: 	 8.517269 
+loading npzs recorded at 2024-07-19 00:29:37.563686. 		 Duration: 	 0.00082 
+before calling parse_npz recorded at 2024-07-19 00:29:37.563733. 		 Duration: 	 4.7e-05 
+after calling parse_npz recorded at 2024-07-19 00:29:38.500617. 		 Duration: 	 0.936884 
+start loading npzs recorded at 2024-07-19 00:30:30.869987. 		 Duration: 	 52.36937 
+loading npzs recorded at 2024-07-19 00:30:30.870623. 		 Duration: 	 0.000636 
+before calling parse_npz recorded at 2024-07-19 00:30:30.870661. 		 Duration: 	 3.8e-05 
+after calling parse_npz recorded at 2024-07-19 00:30:30.977114. 		 Duration: 	 0.106453 
+start loading npzs recorded at 2024-07-19 00:30:41.098540. 		 Duration: 	 10.121426 
+loading npzs recorded at 2024-07-19 00:30:41.099176. 		 Duration: 	 0.000636 
+before calling parse_npz recorded at 2024-07-19 00:30:41.099213. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 00:30:41.148466. 		 Duration: 	 0.049253 
+start loading npzs recorded at 2024-07-19 00:30:48.408363. 		 Duration: 	 7.259897 
+loading npzs recorded at 2024-07-19 00:30:48.408989. 		 Duration: 	 0.000626 
+before calling parse_npz recorded at 2024-07-19 00:30:48.409026. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 00:30:50.303340. 		 Duration: 	 1.894314 
+start loading npzs recorded at 2024-07-19 00:33:09.995389. 		 Duration: 	 139.692049 
+loading npzs recorded at 2024-07-19 00:33:09.996558. 		 Duration: 	 0.001169 
+before calling parse_npz recorded at 2024-07-19 00:33:09.996602. 		 Duration: 	 4.4e-05 
+after calling parse_npz recorded at 2024-07-19 00:33:11.979099. 		 Duration: 	 1.982497 
+start loading npzs recorded at 2024-07-19 00:38:02.625937. 		 Duration: 	 290.646838 
+loading npzs recorded at 2024-07-19 00:38:02.626848. 		 Duration: 	 0.000911 
+before calling parse_npz recorded at 2024-07-19 00:38:02.626884. 		 Duration: 	 3.6e-05 
+after calling parse_npz recorded at 2024-07-19 00:38:03.101603. 		 Duration: 	 0.474719 
+start loading npzs recorded at 2024-07-19 00:38:35.135281. 		 Duration: 	 32.033678 
+loading npzs recorded at 2024-07-19 00:38:35.135911. 		 Duration: 	 0.00063 
+before calling parse_npz recorded at 2024-07-19 00:38:35.135948. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 00:38:44.190906. 		 Duration: 	 9.054958 
+start loading npzs recorded at 2024-07-19 00:55:22.812120. 		 Duration: 	 998.621214 
+loading npzs recorded at 2024-07-19 00:55:22.812733. 		 Duration: 	 0.000613 
+before calling parse_npz recorded at 2024-07-19 00:55:22.812767. 		 Duration: 	 3.4e-05 
+after calling parse_npz recorded at 2024-07-19 00:55:24.576999. 		 Duration: 	 1.764232 
+start loading npzs recorded at 2024-07-19 00:57:54.058756. 		 Duration: 	 149.481757 
+loading npzs recorded at 2024-07-19 00:57:54.059388. 		 Duration: 	 0.000632 
+before calling parse_npz recorded at 2024-07-19 00:57:54.059425. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 00:57:54.149339. 		 Duration: 	 0.089914 
+start loading npzs recorded at 2024-07-19 00:58:02.771544. 		 Duration: 	 8.622205 
+loading npzs recorded at 2024-07-19 00:58:02.772191. 		 Duration: 	 0.000647 
+before calling parse_npz recorded at 2024-07-19 00:58:02.772231. 		 Duration: 	 4e-05 
+after calling parse_npz recorded at 2024-07-19 00:58:03.073754. 		 Duration: 	 0.301523 
+start loading npzs recorded at 2024-07-19 00:58:20.588596. 		 Duration: 	 17.514842 
+loading npzs recorded at 2024-07-19 00:58:20.589271. 		 Duration: 	 0.000675 
+before calling parse_npz recorded at 2024-07-19 00:58:20.589310. 		 Duration: 	 3.9e-05 
+after calling parse_npz recorded at 2024-07-19 00:58:20.665896. 		 Duration: 	 0.076586 
+start loading npzs recorded at 2024-07-19 00:58:29.054032. 		 Duration: 	 8.388136 
+loading npzs recorded at 2024-07-19 00:58:29.054660. 		 Duration: 	 0.000628 
+before calling parse_npz recorded at 2024-07-19 00:58:29.054696. 		 Duration: 	 3.6e-05 
+after calling parse_npz recorded at 2024-07-19 00:58:30.061621. 		 Duration: 	 1.006925 
+start loading npzs recorded at 2024-07-19 00:59:30.881904. 		 Duration: 	 60.820283 
+loading npzs recorded at 2024-07-19 00:59:30.882536. 		 Duration: 	 0.000632 
+before calling parse_npz recorded at 2024-07-19 00:59:30.882572. 		 Duration: 	 3.6e-05 
+after calling parse_npz recorded at 2024-07-19 00:59:31.052084. 		 Duration: 	 0.169512 
+start loading npzs recorded at 2024-07-19 00:59:44.572919. 		 Duration: 	 13.520835 
+loading npzs recorded at 2024-07-19 00:59:44.573544. 		 Duration: 	 0.000625 
+before calling parse_npz recorded at 2024-07-19 00:59:44.573584. 		 Duration: 	 4e-05 
+after calling parse_npz recorded at 2024-07-19 00:59:44.747882. 		 Duration: 	 0.174298 
+start loading npzs recorded at 2024-07-19 00:59:57.051555. 		 Duration: 	 12.303673 
+loading npzs recorded at 2024-07-19 00:59:57.052194. 		 Duration: 	 0.000639 
+before calling parse_npz recorded at 2024-07-19 00:59:57.052232. 		 Duration: 	 3.8e-05 
+after calling parse_npz recorded at 2024-07-19 00:59:57.239431. 		 Duration: 	 0.187199 
+start loading npzs recorded at 2024-07-19 01:00:09.735822. 		 Duration: 	 12.496391 
+loading npzs recorded at 2024-07-19 01:00:09.736455. 		 Duration: 	 0.000633 
+before calling parse_npz recorded at 2024-07-19 01:00:09.736492. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 01:00:11.224486. 		 Duration: 	 1.487994 
+start loading npzs recorded at 2024-07-19 01:02:23.742031. 		 Duration: 	 132.517545 
+loading npzs recorded at 2024-07-19 01:02:23.742640. 		 Duration: 	 0.000609 
+before calling parse_npz recorded at 2024-07-19 01:02:23.742677. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 01:02:24.772278. 		 Duration: 	 1.029601 
+start loading npzs recorded at 2024-07-19 01:03:47.199932. 		 Duration: 	 82.427654 
+loading npzs recorded at 2024-07-19 01:03:47.200556. 		 Duration: 	 0.000624 
+before calling parse_npz recorded at 2024-07-19 01:03:47.200592. 		 Duration: 	 3.6e-05 
+after calling parse_npz recorded at 2024-07-19 01:03:47.373922. 		 Duration: 	 0.17333 
+before map bd load recorded at 2024-07-19 01:52:11.367101. 		 Duration: 	 0.000578 
+before map bd load recorded at 2024-07-19 01:52:11.369107. 		 Duration: 	 0.000588 
+after map bd load recorded at 2024-07-19 01:52:12.424191. 		 Duration: 	 1.05709 
+after map bd load recorded at 2024-07-19 01:52:12.970015. 		 Duration: 	 1.600908 
+batch paths recorded at 2024-07-19 01:53:11.406979. 		 Duration: 	 58.982788 
+save path npz recorded at 2024-07-19 01:53:16.307912. 		 Duration: 	 4.900933 
+batch paths recorded at 2024-07-19 01:54:21.299701. 		 Duration: 	 128.329686 
+save path npz recorded at 2024-07-19 01:54:31.216843. 		 Duration: 	 9.917142 
+start loading npzs recorded at 2024-07-19 01:54:33.536401. 		 Duration: 	 0.316976 
+loading npzs recorded at 2024-07-19 01:54:33.608221. 		 Duration: 	 0.07182 
+before calling parse_npz recorded at 2024-07-19 01:54:33.608320. 		 Duration: 	 9.9e-05 
+after calling parse_npz recorded at 2024-07-19 01:54:36.254708. 		 Duration: 	 2.646388 
+start loading npzs recorded at 2024-07-19 02:08:37.564181. 		 Duration: 	 841.309473 
+loading npzs recorded at 2024-07-19 02:08:37.571162. 		 Duration: 	 0.006981 
+before calling parse_npz recorded at 2024-07-19 02:08:37.571211. 		 Duration: 	 4.9e-05 
+after calling parse_npz recorded at 2024-07-19 02:08:39.094528. 		 Duration: 	 1.523317 
+before map bd load recorded at 2024-07-19 03:32:03.971367. 		 Duration: 	 0.000584 
+before map bd load recorded at 2024-07-19 03:32:03.973622. 		 Duration: 	 0.000586 
+after map bd load recorded at 2024-07-19 03:32:05.036556. 		 Duration: 	 1.062934 
+after map bd load recorded at 2024-07-19 03:32:05.584204. 		 Duration: 	 1.612837 
+batch paths recorded at 2024-07-19 03:33:02.514167. 		 Duration: 	 57.477611 
+save path npz recorded at 2024-07-19 03:33:07.100341. 		 Duration: 	 4.586174 
+batch paths recorded at 2024-07-19 03:34:12.957404. 		 Duration: 	 127.3732 
+save path npz recorded at 2024-07-19 03:34:22.894637. 		 Duration: 	 9.937233 
+start loading npzs recorded at 2024-07-19 03:34:25.219809. 		 Duration: 	 0.307773 
+loading npzs recorded at 2024-07-19 03:34:25.295348. 		 Duration: 	 0.075539 
+before calling parse_npz recorded at 2024-07-19 03:34:25.295459. 		 Duration: 	 0.000111 
+after calling parse_npz recorded at 2024-07-19 03:34:27.002340. 		 Duration: 	 1.706881 
+start loading npzs recorded at 2024-07-19 03:40:29.657868. 		 Duration: 	 362.655528 
+loading npzs recorded at 2024-07-19 03:40:29.660533. 		 Duration: 	 0.002665 
+before calling parse_npz recorded at 2024-07-19 03:40:29.660570. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 03:40:32.127091. 		 Duration: 	 2.466521 
+before map bd load recorded at 2024-07-19 05:48:01.614457. 		 Duration: 	 0.000595 
+before map bd load recorded at 2024-07-19 05:48:01.622089. 		 Duration: 	 0.000584 
+after map bd load recorded at 2024-07-19 05:48:02.678723. 		 Duration: 	 1.056634 
+after map bd load recorded at 2024-07-19 05:48:03.220242. 		 Duration: 	 1.605785 
+batch paths recorded at 2024-07-19 05:49:00.413347. 		 Duration: 	 57.734624 
+save path npz recorded at 2024-07-19 05:49:04.993506. 		 Duration: 	 4.580159 
+batch paths recorded at 2024-07-19 05:50:10.667176. 		 Duration: 	 127.446934 
+save path npz recorded at 2024-07-19 05:50:20.334600. 		 Duration: 	 9.667424 
+start loading npzs recorded at 2024-07-19 05:50:22.642835. 		 Duration: 	 0.304631 
+loading npzs recorded at 2024-07-19 05:50:22.718526. 		 Duration: 	 0.075691 
+before calling parse_npz recorded at 2024-07-19 05:50:22.718623. 		 Duration: 	 9.7e-05 
+after calling parse_npz recorded at 2024-07-19 05:50:24.423240. 		 Duration: 	 1.704617 
+start loading npzs recorded at 2024-07-19 05:56:29.254307. 		 Duration: 	 364.831067 
+loading npzs recorded at 2024-07-19 05:56:29.256996. 		 Duration: 	 0.002689 
+before calling parse_npz recorded at 2024-07-19 05:56:29.257027. 		 Duration: 	 3.1e-05 
+after calling parse_npz recorded at 2024-07-19 05:56:31.756979. 		 Duration: 	 2.499952 
+before map bd load recorded at 2024-07-19 08:03:08.834354. 		 Duration: 	 0.000808 
+before map bd load recorded at 2024-07-19 08:03:08.836884. 		 Duration: 	 0.000585 
+after map bd load recorded at 2024-07-19 08:03:09.891554. 		 Duration: 	 1.0572 
+after map bd load recorded at 2024-07-19 08:03:10.438305. 		 Duration: 	 1.601421 
+batch paths recorded at 2024-07-19 08:04:07.474586. 		 Duration: 	 57.583032 
+save path npz recorded at 2024-07-19 08:04:12.060617. 		 Duration: 	 4.586031 
+batch paths recorded at 2024-07-19 08:05:16.852527. 		 Duration: 	 126.414222 
+save path npz recorded at 2024-07-19 08:05:26.573564. 		 Duration: 	 9.721037 
+start loading npzs recorded at 2024-07-19 08:05:28.889592. 		 Duration: 	 0.314633 
+loading npzs recorded at 2024-07-19 08:05:28.968489. 		 Duration: 	 0.078897 
+before calling parse_npz recorded at 2024-07-19 08:05:28.968583. 		 Duration: 	 9.4e-05 
+after calling parse_npz recorded at 2024-07-19 08:05:30.674648. 		 Duration: 	 1.706065 
+start loading npzs recorded at 2024-07-19 08:11:34.365117. 		 Duration: 	 363.690469 
+loading npzs recorded at 2024-07-19 08:11:34.367815. 		 Duration: 	 0.002698 
+before calling parse_npz recorded at 2024-07-19 08:11:34.367852. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 08:11:36.850147. 		 Duration: 	 2.482295 
+before map bd load recorded at 2024-07-19 10:19:09.891329. 		 Duration: 	 0.000589 
+before map bd load recorded at 2024-07-19 10:19:09.905839. 		 Duration: 	 0.000591 
+after map bd load recorded at 2024-07-19 10:19:10.961264. 		 Duration: 	 1.055425 
+after map bd load recorded at 2024-07-19 10:19:11.498380. 		 Duration: 	 1.607051 
+batch paths recorded at 2024-07-19 10:20:08.009849. 		 Duration: 	 57.048585 
+save path npz recorded at 2024-07-19 10:20:12.583488. 		 Duration: 	 4.573639 
+batch paths recorded at 2024-07-19 10:21:18.652602. 		 Duration: 	 127.154222 
+save path npz recorded at 2024-07-19 10:21:28.354638. 		 Duration: 	 9.702036 
+start loading npzs recorded at 2024-07-19 10:21:30.705908. 		 Duration: 	 0.315717 
+loading npzs recorded at 2024-07-19 10:21:30.785297. 		 Duration: 	 0.079389 
+before calling parse_npz recorded at 2024-07-19 10:21:30.785394. 		 Duration: 	 9.7e-05 
+after calling parse_npz recorded at 2024-07-19 10:21:32.488200. 		 Duration: 	 1.702806 
+start loading npzs recorded at 2024-07-19 10:27:36.664145. 		 Duration: 	 364.175945 
+loading npzs recorded at 2024-07-19 10:27:36.666864. 		 Duration: 	 0.002719 
+before calling parse_npz recorded at 2024-07-19 10:27:36.666897. 		 Duration: 	 3.3e-05 
+after calling parse_npz recorded at 2024-07-19 10:27:39.127233. 		 Duration: 	 2.460336 
+before map bd load recorded at 2024-07-19 12:35:00.835216. 		 Duration: 	 0.000584 
+before map bd load recorded at 2024-07-19 12:35:00.841068. 		 Duration: 	 0.000581 
+after map bd load recorded at 2024-07-19 12:35:01.893922. 		 Duration: 	 1.052854 
+after map bd load recorded at 2024-07-19 12:35:02.442777. 		 Duration: 	 1.607561 
+batch paths recorded at 2024-07-19 12:35:59.620872. 		 Duration: 	 57.72695 
+save path npz recorded at 2024-07-19 12:36:04.295658. 		 Duration: 	 4.674786 
+batch paths recorded at 2024-07-19 12:37:10.809868. 		 Duration: 	 128.367091 
+save path npz recorded at 2024-07-19 12:37:20.572471. 		 Duration: 	 9.762603 
+start loading npzs recorded at 2024-07-19 12:37:22.883937. 		 Duration: 	 0.314047 
+loading npzs recorded at 2024-07-19 12:37:22.960117. 		 Duration: 	 0.07618 
+before calling parse_npz recorded at 2024-07-19 12:37:22.960211. 		 Duration: 	 9.4e-05 
+after calling parse_npz recorded at 2024-07-19 12:37:24.669912. 		 Duration: 	 1.709701 
+start loading npzs recorded at 2024-07-19 12:43:31.018332. 		 Duration: 	 366.34842 
+loading npzs recorded at 2024-07-19 12:43:31.020971. 		 Duration: 	 0.002639 
+before calling parse_npz recorded at 2024-07-19 12:43:31.021001. 		 Duration: 	 3e-05 
+after calling parse_npz recorded at 2024-07-19 12:43:33.478165. 		 Duration: 	 2.457164 
+before map bd load recorded at 2024-07-19 14:51:39.983110. 		 Duration: 	 0.000655 
+before map bd load recorded at 2024-07-19 14:51:40.012924. 		 Duration: 	 0.000586 
+after map bd load recorded at 2024-07-19 14:51:41.051743. 		 Duration: 	 1.068633 
+after map bd load recorded at 2024-07-19 14:51:41.638178. 		 Duration: 	 1.625254 
+batch paths recorded at 2024-07-19 14:52:38.792031. 		 Duration: 	 57.740288 
+save path npz recorded at 2024-07-19 14:52:43.397427. 		 Duration: 	 4.605396 
+batch paths recorded at 2024-07-19 14:53:50.525739. 		 Duration: 	 128.887561 
+save path npz recorded at 2024-07-19 14:54:00.363134. 		 Duration: 	 9.837395 
+start loading npzs recorded at 2024-07-19 14:54:02.680661. 		 Duration: 	 0.305764 
+loading npzs recorded at 2024-07-19 14:54:02.756427. 		 Duration: 	 0.075766 
+before calling parse_npz recorded at 2024-07-19 14:54:02.756522. 		 Duration: 	 9.5e-05 
+after calling parse_npz recorded at 2024-07-19 14:54:04.463306. 		 Duration: 	 1.706784 
+start loading npzs recorded at 2024-07-19 15:00:17.053417. 		 Duration: 	 372.590111 
+loading npzs recorded at 2024-07-19 15:00:17.056046. 		 Duration: 	 0.002629 
+before calling parse_npz recorded at 2024-07-19 15:00:17.056083. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-19 15:00:19.545595. 		 Duration: 	 2.489512 
+before map bd load recorded at 2024-07-19 17:11:08.311851. 		 Duration: 	 0.00066 
+before map bd load recorded at 2024-07-19 17:11:08.319442. 		 Duration: 	 0.000671 
+after map bd load recorded at 2024-07-19 17:11:09.501419. 		 Duration: 	 1.189568 
+after map bd load recorded at 2024-07-19 17:11:10.158418. 		 Duration: 	 1.838976 
+batch paths recorded at 2024-07-19 17:12:10.762400. 		 Duration: 	 61.260981 
+save path npz recorded at 2024-07-19 17:12:15.313757. 		 Duration: 	 4.551357 
+batch paths recorded at 2024-07-19 17:13:22.930826. 		 Duration: 	 132.772408 
+save path npz recorded at 2024-07-19 17:13:32.748692. 		 Duration: 	 9.817866 
+start loading npzs recorded at 2024-07-19 17:13:35.089667. 		 Duration: 	 0.314559 
+loading npzs recorded at 2024-07-19 17:13:35.166827. 		 Duration: 	 0.07716 
+before calling parse_npz recorded at 2024-07-19 17:13:35.166919. 		 Duration: 	 9.2e-05 
+after calling parse_npz recorded at 2024-07-19 17:13:36.889631. 		 Duration: 	 1.722712 
+start loading npzs recorded at 2024-07-19 17:20:23.996753. 		 Duration: 	 407.107122 
+loading npzs recorded at 2024-07-19 17:20:23.999474. 		 Duration: 	 0.002721 
+before calling parse_npz recorded at 2024-07-19 17:20:23.999518. 		 Duration: 	 4.4e-05 
+after calling parse_npz recorded at 2024-07-19 17:20:26.742063. 		 Duration: 	 2.742545 
+before map bd load recorded at 2024-07-19 19:29:13.651854. 		 Duration: 	 0.000585 
+before map bd load recorded at 2024-07-19 19:29:13.662528. 		 Duration: 	 0.000592 
+after map bd load recorded at 2024-07-19 19:29:14.708873. 		 Duration: 	 1.057019 
+after map bd load recorded at 2024-07-19 19:29:15.267696. 		 Duration: 	 1.605168 
+batch paths recorded at 2024-07-19 19:30:12.628569. 		 Duration: 	 57.919696 
+save path npz recorded at 2024-07-19 19:30:17.200552. 		 Duration: 	 4.571983 
+batch paths recorded at 2024-07-19 19:31:23.413225. 		 Duration: 	 128.145529 
+save path npz recorded at 2024-07-19 19:31:33.201719. 		 Duration: 	 9.788494 
+start loading npzs recorded at 2024-07-19 19:31:35.538532. 		 Duration: 	 0.318656 
+loading npzs recorded at 2024-07-19 19:31:35.615779. 		 Duration: 	 0.077247 
+before calling parse_npz recorded at 2024-07-19 19:31:35.615869. 		 Duration: 	 9e-05 
+after calling parse_npz recorded at 2024-07-19 19:31:37.335210. 		 Duration: 	 1.719341 
+start loading npzs recorded at 2024-07-19 19:37:40.388485. 		 Duration: 	 363.053275 
+loading npzs recorded at 2024-07-19 19:37:40.393269. 		 Duration: 	 0.004784 
+before calling parse_npz recorded at 2024-07-19 19:37:40.393315. 		 Duration: 	 4.6e-05 
+after calling parse_npz recorded at 2024-07-19 19:37:42.859983. 		 Duration: 	 2.466668 
+before map bd load recorded at 2024-07-19 21:45:04.697847. 		 Duration: 	 0.000632 
+before map bd load recorded at 2024-07-19 21:45:04.714169. 		 Duration: 	 0.000586 
+after map bd load recorded at 2024-07-19 21:45:05.760070. 		 Duration: 	 1.062223 
+after map bd load recorded at 2024-07-19 21:45:06.333288. 		 Duration: 	 1.619119 
+batch paths recorded at 2024-07-19 21:46:02.918684. 		 Duration: 	 57.158614 
+save path npz recorded at 2024-07-19 21:46:07.481114. 		 Duration: 	 4.56243 
+batch paths recorded at 2024-07-19 21:47:14.893988. 		 Duration: 	 128.5607 
+save path npz recorded at 2024-07-19 21:47:24.590778. 		 Duration: 	 9.69679 
+start loading npzs recorded at 2024-07-19 21:47:26.901788. 		 Duration: 	 0.314348 
+loading npzs recorded at 2024-07-19 21:47:26.980232. 		 Duration: 	 0.078444 
+before calling parse_npz recorded at 2024-07-19 21:47:26.980328. 		 Duration: 	 9.6e-05 
+after calling parse_npz recorded at 2024-07-19 21:47:28.684190. 		 Duration: 	 1.703862 
+start loading npzs recorded at 2024-07-19 21:53:32.090474. 		 Duration: 	 363.406284 
+loading npzs recorded at 2024-07-19 21:53:32.093130. 		 Duration: 	 0.002656 
+before calling parse_npz recorded at 2024-07-19 21:53:32.093164. 		 Duration: 	 3.4e-05 
+after calling parse_npz recorded at 2024-07-19 21:53:34.548783. 		 Duration: 	 2.455619 
+before map bd load recorded at 2024-07-20 00:00:44.111866. 		 Duration: 	 0.000599 
+before map bd load recorded at 2024-07-20 00:00:44.117628. 		 Duration: 	 0.000596 
+after map bd load recorded at 2024-07-20 00:00:45.180531. 		 Duration: 	 1.068665 
+after map bd load recorded at 2024-07-20 00:00:45.742859. 		 Duration: 	 1.625231 
+batch paths recorded at 2024-07-20 00:01:43.072731. 		 Duration: 	 57.8922 
+save path npz recorded at 2024-07-20 00:01:47.652325. 		 Duration: 	 4.579594 
+batch paths recorded at 2024-07-20 00:02:55.247925. 		 Duration: 	 129.505066 
+save path npz recorded at 2024-07-20 00:03:04.967149. 		 Duration: 	 9.719224 
+start loading npzs recorded at 2024-07-20 00:03:07.295239. 		 Duration: 	 0.314493 
+loading npzs recorded at 2024-07-20 00:03:07.371791. 		 Duration: 	 0.076552 
+before calling parse_npz recorded at 2024-07-20 00:03:07.371892. 		 Duration: 	 0.000101 
+after calling parse_npz recorded at 2024-07-20 00:03:09.108489. 		 Duration: 	 1.736597 
+start loading npzs recorded at 2024-07-20 00:09:11.387378. 		 Duration: 	 362.278889 
+loading npzs recorded at 2024-07-20 00:09:11.390070. 		 Duration: 	 0.002692 
+before calling parse_npz recorded at 2024-07-20 00:09:11.390110. 		 Duration: 	 4e-05 
+after calling parse_npz recorded at 2024-07-20 00:09:13.854653. 		 Duration: 	 2.464543 
+before map bd load recorded at 2024-07-20 02:15:52.374814. 		 Duration: 	 0.000579 
+before map bd load recorded at 2024-07-20 02:15:52.389347. 		 Duration: 	 0.000605 
+after map bd load recorded at 2024-07-20 02:15:53.444642. 		 Duration: 	 1.055295 
+after map bd load recorded at 2024-07-20 02:15:53.989923. 		 Duration: 	 1.615109 
+batch paths recorded at 2024-07-20 02:16:50.524993. 		 Duration: 	 57.080351 
+save path npz recorded at 2024-07-20 02:16:55.039317. 		 Duration: 	 4.514324 
+batch paths recorded at 2024-07-20 02:18:02.380933. 		 Duration: 	 128.39101 
+save path npz recorded at 2024-07-20 02:18:12.041235. 		 Duration: 	 9.660302 
+start loading npzs recorded at 2024-07-20 02:18:14.365508. 		 Duration: 	 0.317923 
+loading npzs recorded at 2024-07-20 02:18:14.442577. 		 Duration: 	 0.077069 
+before calling parse_npz recorded at 2024-07-20 02:18:14.442674. 		 Duration: 	 9.7e-05 
+after calling parse_npz recorded at 2024-07-20 02:18:16.143174. 		 Duration: 	 1.7005 
+start loading npzs recorded at 2024-07-20 02:24:18.802437. 		 Duration: 	 362.659263 
+loading npzs recorded at 2024-07-20 02:24:18.805091. 		 Duration: 	 0.002654 
+before calling parse_npz recorded at 2024-07-20 02:24:18.805128. 		 Duration: 	 3.7e-05 
+after calling parse_npz recorded at 2024-07-20 02:24:21.283510. 		 Duration: 	 2.478382 
+before map bd load recorded at 2024-07-20 04:33:11.531726. 		 Duration: 	 0.000583 
+before map bd load recorded at 2024-07-20 04:33:11.534066. 		 Duration: 	 0.000588 
+after map bd load recorded at 2024-07-20 04:33:12.588175. 		 Duration: 	 1.054109 
+after map bd load recorded at 2024-07-20 04:33:13.136959. 		 Duration: 	 1.605233 
+batch paths recorded at 2024-07-20 04:34:11.208263. 		 Duration: 	 58.620088 
+save path npz recorded at 2024-07-20 04:34:15.821750. 		 Duration: 	 4.613487 
+batch paths recorded at 2024-07-20 04:35:22.667471. 		 Duration: 	 129.530512 
+save path npz recorded at 2024-07-20 04:35:32.440619. 		 Duration: 	 9.773148 
+start loading npzs recorded at 2024-07-20 04:35:34.779817. 		 Duration: 	 0.318573 
+loading npzs recorded at 2024-07-20 04:35:34.854716. 		 Duration: 	 0.074899 
+before calling parse_npz recorded at 2024-07-20 04:35:34.854812. 		 Duration: 	 9.6e-05 
+after calling parse_npz recorded at 2024-07-20 04:35:36.582401. 		 Duration: 	 1.727589 
+start loading npzs recorded at 2024-07-20 04:41:41.387157. 		 Duration: 	 364.804756 
+loading npzs recorded at 2024-07-20 04:41:41.389829. 		 Duration: 	 0.002672 
+before calling parse_npz recorded at 2024-07-20 04:41:41.389869. 		 Duration: 	 4e-05 
+after calling parse_npz recorded at 2024-07-20 04:41:43.855461. 		 Duration: 	 2.465592 
+before map bd load recorded at 2024-07-20 06:48:39.621730. 		 Duration: 	 0.000597 
+before map bd load recorded at 2024-07-20 06:48:39.626181. 		 Duration: 	 0.000599 
+after map bd load recorded at 2024-07-20 06:48:40.691659. 		 Duration: 	 1.065478 
+after map bd load recorded at 2024-07-20 06:48:41.241168. 		 Duration: 	 1.619438 
+batch paths recorded at 2024-07-20 06:49:38.883417. 		 Duration: 	 58.191758 
+save path npz recorded at 2024-07-20 06:49:43.497661. 		 Duration: 	 4.614244 
+batch paths recorded at 2024-07-20 06:50:49.354649. 		 Duration: 	 128.113481 
+save path npz recorded at 2024-07-20 06:50:59.124459. 		 Duration: 	 9.76981 
+start loading npzs recorded at 2024-07-20 06:51:01.451408. 		 Duration: 	 0.316738 
+loading npzs recorded at 2024-07-20 06:51:01.526975. 		 Duration: 	 0.075567 
+before calling parse_npz recorded at 2024-07-20 06:51:01.527072. 		 Duration: 	 9.7e-05 
+after calling parse_npz recorded at 2024-07-20 06:51:04.151650. 		 Duration: 	 2.624578 
+start loading npzs recorded at 2024-07-20 07:04:58.796100. 		 Duration: 	 834.64445 
+loading npzs recorded at 2024-07-20 07:04:58.799512. 		 Duration: 	 0.003412 
+before calling parse_npz recorded at 2024-07-20 07:04:58.799555. 		 Duration: 	 4.3e-05 
+after calling parse_npz recorded at 2024-07-20 07:05:00.321191. 		 Duration: 	 1.521636 
+before map bd load recorded at 2024-07-20 08:27:26.369211. 		 Duration: 	 0.000579 
+before map bd load recorded at 2024-07-20 08:27:26.388012. 		 Duration: 	 0.000595 
+after map bd load recorded at 2024-07-20 08:27:27.441871. 		 Duration: 	 1.053859 
+after map bd load recorded at 2024-07-20 08:27:27.974840. 		 Duration: 	 1.605629 
+batch paths recorded at 2024-07-20 08:28:25.348441. 		 Duration: 	 57.90657 
+save path npz recorded at 2024-07-20 08:28:29.930959. 		 Duration: 	 4.582518 
+batch paths recorded at 2024-07-20 08:29:36.048998. 		 Duration: 	 128.074158 
+save path npz recorded at 2024-07-20 08:29:45.900431. 		 Duration: 	 9.851433 
+start loading npzs recorded at 2024-07-20 08:29:48.228359. 		 Duration: 	 0.315798 
+loading npzs recorded at 2024-07-20 08:29:48.303990. 		 Duration: 	 0.075631 
+before calling parse_npz recorded at 2024-07-20 08:29:48.304088. 		 Duration: 	 9.8e-05 
+after calling parse_npz recorded at 2024-07-20 08:29:50.960937. 		 Duration: 	 2.656849 
+start loading npzs recorded at 2024-07-20 08:43:48.323633. 		 Duration: 	 837.362696 
+loading npzs recorded at 2024-07-20 08:43:48.326261. 		 Duration: 	 0.002628 
+before calling parse_npz recorded at 2024-07-20 08:43:48.326302. 		 Duration: 	 4.1e-05 
+after calling parse_npz recorded at 2024-07-20 08:43:49.868625. 		 Duration: 	 1.542323 
+before map bd load recorded at 2024-07-20 10:17:31.325945. 		 Duration: 	 0.000581 
+before map bd load recorded at 2024-07-20 10:17:31.328604. 		 Duration: 	 0.000582 
+after map bd load recorded at 2024-07-20 10:17:32.380666. 		 Duration: 	 1.054721 
+after map bd load recorded at 2024-07-20 10:17:32.939223. 		 Duration: 	 1.610619 
+batch paths recorded at 2024-07-20 10:18:29.755206. 		 Duration: 	 57.37454 
+save path npz recorded at 2024-07-20 10:18:34.291861. 		 Duration: 	 4.536655 
+batch paths recorded at 2024-07-20 10:19:41.288511. 		 Duration: 	 128.349288 
+save path npz recorded at 2024-07-20 10:19:50.940500. 		 Duration: 	 9.651989 
+start loading npzs recorded at 2024-07-20 10:19:53.271118. 		 Duration: 	 0.314571 
+loading npzs recorded at 2024-07-20 10:19:53.347005. 		 Duration: 	 0.075887 
+before calling parse_npz recorded at 2024-07-20 10:19:53.347097. 		 Duration: 	 9.2e-05 
+after calling parse_npz recorded at 2024-07-20 10:19:55.970103. 		 Duration: 	 2.623006 
+start loading npzs recorded at 2024-07-20 10:33:52.262960. 		 Duration: 	 836.292857 
+loading npzs recorded at 2024-07-20 10:33:52.265196. 		 Duration: 	 0.002236 
+before calling parse_npz recorded at 2024-07-20 10:33:52.265239. 		 Duration: 	 4.3e-05 
+after calling parse_npz recorded at 2024-07-20 10:33:53.784073. 		 Duration: 	 1.518834 
+before map bd load recorded at 2024-07-20 11:56:23.323356. 		 Duration: 	 0.000587 
+before map bd load recorded at 2024-07-20 11:56:23.328104. 		 Duration: 	 0.000589 
+after map bd load recorded at 2024-07-20 11:56:24.394959. 		 Duration: 	 1.071603 
+after map bd load recorded at 2024-07-20 11:56:24.954515. 		 Duration: 	 1.626411 
+batch paths recorded at 2024-07-20 11:57:22.032418. 		 Duration: 	 57.637459 
+save path npz recorded at 2024-07-20 11:57:26.610346. 		 Duration: 	 4.577928 
+batch paths recorded at 2024-07-20 11:58:34.424912. 		 Duration: 	 129.470397 
+save path npz recorded at 2024-07-20 11:58:44.232692. 		 Duration: 	 9.80778 
+start loading npzs recorded at 2024-07-20 11:58:46.576391. 		 Duration: 	 0.317799 
+loading npzs recorded at 2024-07-20 11:58:46.656561. 		 Duration: 	 0.08017 
+before calling parse_npz recorded at 2024-07-20 11:58:46.656655. 		 Duration: 	 9.4e-05 
+after calling parse_npz recorded at 2024-07-20 11:58:49.294331. 		 Duration: 	 2.637676 
+start loading npzs recorded at 2024-07-20 12:12:49.157848. 		 Duration: 	 839.863517 
+loading npzs recorded at 2024-07-20 12:12:49.160117. 		 Duration: 	 0.002269 
+before calling parse_npz recorded at 2024-07-20 12:12:49.160151. 		 Duration: 	 3.4e-05 
+after calling parse_npz recorded at 2024-07-20 12:12:50.702903. 		 Duration: 	 1.542752 
+before map bd load recorded at 2024-07-20 13:34:56.549005. 		 Duration: 	 0.000577 
+before map bd load recorded at 2024-07-20 13:34:56.559640. 		 Duration: 	 0.000589 
+after map bd load recorded at 2024-07-20 13:34:57.618676. 		 Duration: 	 1.059036 
+after map bd load recorded at 2024-07-20 13:34:58.150821. 		 Duration: 	 1.601816 
+batch paths recorded at 2024-07-20 13:35:55.826848. 		 Duration: 	 58.208172 
+save path npz recorded at 2024-07-20 13:36:00.470231. 		 Duration: 	 4.643383 
+batch paths recorded at 2024-07-20 13:37:05.189312. 		 Duration: 	 127.038491 
+save path npz recorded at 2024-07-20 13:37:14.750835. 		 Duration: 	 9.561523 
+start loading npzs recorded at 2024-07-20 13:37:17.088551. 		 Duration: 	 0.314736 
+loading npzs recorded at 2024-07-20 13:37:17.168232. 		 Duration: 	 0.079681 
+before calling parse_npz recorded at 2024-07-20 13:37:17.168320. 		 Duration: 	 8.8e-05 
+after calling parse_npz recorded at 2024-07-20 13:37:18.878833. 		 Duration: 	 1.710513 
+start loading npzs recorded at 2024-07-20 13:43:21.386120. 		 Duration: 	 362.507287 
+loading npzs recorded at 2024-07-20 13:43:21.388792. 		 Duration: 	 0.002672 
+before calling parse_npz recorded at 2024-07-20 13:43:21.388834. 		 Duration: 	 4.2e-05 
+after calling parse_npz recorded at 2024-07-20 13:43:23.858667. 		 Duration: 	 2.469833 
+before map bd load recorded at 2024-07-20 15:49:43.177868. 		 Duration: 	 0.000587 
+before map bd load recorded at 2024-07-20 15:49:43.178461. 		 Duration: 	 0.000583 
+after map bd load recorded at 2024-07-20 15:49:44.236842. 		 Duration: 	 1.058974 
+after map bd load recorded at 2024-07-20 15:49:44.787188. 		 Duration: 	 1.608727 
+batch paths recorded at 2024-07-20 15:50:42.101287. 		 Duration: 	 57.864445 
+save path npz recorded at 2024-07-20 15:50:46.705999. 		 Duration: 	 4.604712 
+batch paths recorded at 2024-07-20 15:51:51.740879. 		 Duration: 	 126.953691 
+save path npz recorded at 2024-07-20 15:52:01.464867. 		 Duration: 	 9.723988 
+start loading npzs recorded at 2024-07-20 15:52:03.789745. 		 Duration: 	 0.317826 
+loading npzs recorded at 2024-07-20 15:52:03.865737. 		 Duration: 	 0.075992 
+before calling parse_npz recorded at 2024-07-20 15:52:03.865821. 		 Duration: 	 8.4e-05 
+after calling parse_npz recorded at 2024-07-20 15:52:06.500725. 		 Duration: 	 2.634904 
+start loading npzs recorded at 2024-07-20 16:06:03.065391. 		 Duration: 	 836.564666 
+loading npzs recorded at 2024-07-20 16:06:03.067647. 		 Duration: 	 0.002256 
+before calling parse_npz recorded at 2024-07-20 16:06:03.067683. 		 Duration: 	 3.6e-05 
+after calling parse_npz recorded at 2024-07-20 16:06:04.626436. 		 Duration: 	 1.558753 
+before map bd load recorded at 2024-07-20 17:29:06.895083. 		 Duration: 	 0.000586 
+before map bd load recorded at 2024-07-20 17:29:06.917502. 		 Duration: 	 0.000595 
+after map bd load recorded at 2024-07-20 17:29:07.961543. 		 Duration: 	 1.06646 
+after map bd load recorded at 2024-07-20 17:29:08.548231. 		 Duration: 	 1.630729 
+batch paths recorded at 2024-07-20 17:30:06.325574. 		 Duration: 	 58.364031 
+save path npz recorded at 2024-07-20 17:30:10.927905. 		 Duration: 	 4.602331 
+batch paths recorded at 2024-07-20 17:31:17.432551. 		 Duration: 	 128.88432 
+save path npz recorded at 2024-07-20 17:31:27.203544. 		 Duration: 	 9.770993 
+start loading npzs recorded at 2024-07-20 17:31:29.536276. 		 Duration: 	 0.31769 
+loading npzs recorded at 2024-07-20 17:31:29.612153. 		 Duration: 	 0.075877 
+before calling parse_npz recorded at 2024-07-20 17:31:29.612250. 		 Duration: 	 9.7e-05 
+after calling parse_npz recorded at 2024-07-20 17:31:31.321732. 		 Duration: 	 1.709482 
+start loading npzs recorded at 2024-07-20 17:37:38.680002. 		 Duration: 	 367.35827 
+loading npzs recorded at 2024-07-20 17:37:38.682680. 		 Duration: 	 0.002678 
+before calling parse_npz recorded at 2024-07-20 17:37:38.682721. 		 Duration: 	 4.1e-05 
+after calling parse_npz recorded at 2024-07-20 17:37:41.181577. 		 Duration: 	 2.498856 
+before map bd load recorded at 2024-07-20 19:56:21.763087. 		 Duration: 	 0.000824 
+before map bd load recorded at 2024-07-20 19:56:21.769402. 		 Duration: 	 0.000606 
+after map bd load recorded at 2024-07-20 19:56:22.842516. 		 Duration: 	 1.073114 
+after map bd load recorded at 2024-07-20 19:56:23.398149. 		 Duration: 	 1.635062 
+batch paths recorded at 2024-07-20 19:57:21.130341. 		 Duration: 	 58.287825 
+save path npz recorded at 2024-07-20 19:57:25.748533. 		 Duration: 	 4.618192 
+batch paths recorded at 2024-07-20 19:58:32.403159. 		 Duration: 	 129.00501 
+save path npz recorded at 2024-07-20 19:58:42.145324. 		 Duration: 	 9.742165 
+start loading npzs recorded at 2024-07-20 19:58:44.486908. 		 Duration: 	 0.320723 
+loading npzs recorded at 2024-07-20 19:58:44.560007. 		 Duration: 	 0.073099 
+before calling parse_npz recorded at 2024-07-20 19:58:44.560105. 		 Duration: 	 9.8e-05 
+after calling parse_npz recorded at 2024-07-20 19:58:46.262951. 		 Duration: 	 1.702846 
+start loading npzs recorded at 2024-07-20 20:04:51.303884. 		 Duration: 	 365.040933 
+loading npzs recorded at 2024-07-20 20:04:51.306557. 		 Duration: 	 0.002673 
+before calling parse_npz recorded at 2024-07-20 20:04:51.306601. 		 Duration: 	 4.4e-05 
+after calling parse_npz recorded at 2024-07-20 20:04:53.775819. 		 Duration: 	 2.469218 
+before map bd load recorded at 2024-07-20 22:12:45.195734. 		 Duration: 	 0.000596 
+before map bd load recorded at 2024-07-20 22:12:45.214834. 		 Duration: 	 0.000606 
+after map bd load recorded at 2024-07-20 22:12:46.267708. 		 Duration: 	 1.071974 
+after map bd load recorded at 2024-07-20 22:12:46.842448. 		 Duration: 	 1.627614 
+batch paths recorded at 2024-07-20 22:13:44.358619. 		 Duration: 	 58.090911 
+save path npz recorded at 2024-07-20 22:13:48.952190. 		 Duration: 	 4.593571 
+batch paths recorded at 2024-07-20 22:14:56.355431. 		 Duration: 	 129.512983 
+save path npz recorded at 2024-07-20 22:15:06.041453. 		 Duration: 	 9.686022 
+start loading npzs recorded at 2024-07-20 22:15:08.368876. 		 Duration: 	 0.317114 
+loading npzs recorded at 2024-07-20 22:15:08.446610. 		 Duration: 	 0.077734 
+before calling parse_npz recorded at 2024-07-20 22:15:08.446708. 		 Duration: 	 9.8e-05 
+after calling parse_npz recorded at 2024-07-20 22:15:11.078418. 		 Duration: 	 2.63171 
+start loading npzs recorded at 2024-07-20 22:29:09.639252. 		 Duration: 	 838.560834 
+loading npzs recorded at 2024-07-20 22:29:09.649397. 		 Duration: 	 0.010145 
+before calling parse_npz recorded at 2024-07-20 22:29:09.649625. 		 Duration: 	 0.000228 
+after calling parse_npz recorded at 2024-07-20 22:29:11.166627. 		 Duration: 	 1.517002 
+before map bd load recorded at 2024-07-20 23:52:05.900177. 		 Duration: 	 0.000575 
+before map bd load recorded at 2024-07-20 23:52:05.910283. 		 Duration: 	 0.000589 
+after map bd load recorded at 2024-07-20 23:52:06.962258. 		 Duration: 	 1.062081 
+after map bd load recorded at 2024-07-20 23:52:07.520794. 		 Duration: 	 1.610511 
+batch paths recorded at 2024-07-20 23:53:05.042141. 		 Duration: 	 58.079883 
+save path npz recorded at 2024-07-20 23:53:09.659214. 		 Duration: 	 4.617073 
+batch paths recorded at 2024-07-20 23:54:15.120442. 		 Duration: 	 127.599648 
+save path npz recorded at 2024-07-20 23:54:24.860105. 		 Duration: 	 9.739663 
+start loading npzs recorded at 2024-07-20 23:54:27.187299. 		 Duration: 	 0.316888 
+loading npzs recorded at 2024-07-20 23:54:27.262655. 		 Duration: 	 0.075356 
+before calling parse_npz recorded at 2024-07-20 23:54:27.262749. 		 Duration: 	 9.4e-05 
+after calling parse_npz recorded at 2024-07-20 23:54:29.004684. 		 Duration: 	 1.741935 
+start loading npzs recorded at 2024-07-21 00:00:35.507322. 		 Duration: 	 366.502638 
+loading npzs recorded at 2024-07-21 00:00:35.510111. 		 Duration: 	 0.002789 
+before calling parse_npz recorded at 2024-07-21 00:00:35.510158. 		 Duration: 	 4.7e-05 
+after calling parse_npz recorded at 2024-07-21 00:00:38.006039. 		 Duration: 	 2.495881 
+before map bd load recorded at 2024-07-21 02:08:17.254827. 		 Duration: 	 0.000594 
+before map bd load recorded at 2024-07-21 02:08:17.262338. 		 Duration: 	 0.000594 
+after map bd load recorded at 2024-07-21 02:08:18.379486. 		 Duration: 	 1.117148 
+after map bd load recorded at 2024-07-21 02:08:18.960583. 		 Duration: 	 1.705756 
+batch paths recorded at 2024-07-21 02:09:16.932978. 		 Duration: 	 58.553492 
+save path npz recorded at 2024-07-21 02:09:21.523294. 		 Duration: 	 4.590316 
+batch paths recorded at 2024-07-21 02:10:29.089738. 		 Duration: 	 130.129155 
+save path npz recorded at 2024-07-21 02:10:39.067142. 		 Duration: 	 9.977404 
+start loading npzs recorded at 2024-07-21 02:10:41.399484. 		 Duration: 	 0.319785 
+loading npzs recorded at 2024-07-21 02:10:41.483514. 		 Duration: 	 0.08403 
+before calling parse_npz recorded at 2024-07-21 02:10:41.483607. 		 Duration: 	 9.3e-05 
+after calling parse_npz recorded at 2024-07-21 02:10:44.142038. 		 Duration: 	 2.658431 
+start loading npzs recorded at 2024-07-21 02:24:41.460735. 		 Duration: 	 837.318697 
+loading npzs recorded at 2024-07-21 02:24:41.463057. 		 Duration: 	 0.002322 
+before calling parse_npz recorded at 2024-07-21 02:24:41.463104. 		 Duration: 	 4.7e-05 
+after calling parse_npz recorded at 2024-07-21 02:24:42.998767. 		 Duration: 	 1.535663 
+before map bd load recorded at 2024-07-21 03:46:50.981215. 		 Duration: 	 0.000587 
+before map bd load recorded at 2024-07-21 03:46:50.981315. 		 Duration: 	 0.000587 
+after map bd load recorded at 2024-07-21 03:46:52.033295. 		 Duration: 	 1.05208 
+after map bd load recorded at 2024-07-21 03:46:52.588399. 		 Duration: 	 1.607084 
+batch paths recorded at 2024-07-21 03:47:49.156451. 		 Duration: 	 57.123156 
+save path npz recorded at 2024-07-21 03:47:53.705030. 		 Duration: 	 4.548579 
+batch paths recorded at 2024-07-21 03:49:00.301207. 		 Duration: 	 127.712808 
+save path npz recorded at 2024-07-21 03:49:09.992763. 		 Duration: 	 9.691556 
+start loading npzs recorded at 2024-07-21 03:49:12.309339. 		 Duration: 	 0.314276 
+loading npzs recorded at 2024-07-21 03:49:12.396340. 		 Duration: 	 0.087001 
+before calling parse_npz recorded at 2024-07-21 03:49:12.396438. 		 Duration: 	 9.8e-05 
+after calling parse_npz recorded at 2024-07-21 03:49:15.020637. 		 Duration: 	 2.624199 
+start loading npzs recorded at 2024-07-21 04:03:10.997107. 		 Duration: 	 835.97647 
+loading npzs recorded at 2024-07-21 04:03:10.999388. 		 Duration: 	 0.002281 
+before calling parse_npz recorded at 2024-07-21 04:03:10.999426. 		 Duration: 	 3.8e-05 
+after calling parse_npz recorded at 2024-07-21 04:03:12.540330. 		 Duration: 	 1.540904 
+before map bd load recorded at 2024-07-21 05:25:38.999047. 		 Duration: 	 0.000586 
+before map bd load recorded at 2024-07-21 05:25:39.016068. 		 Duration: 	 0.000589 
+after map bd load recorded at 2024-07-21 05:25:40.094908. 		 Duration: 	 1.07884 
+after map bd load recorded at 2024-07-21 05:25:40.630380. 		 Duration: 	 1.631333 
+batch paths recorded at 2024-07-21 05:26:37.043337. 		 Duration: 	 56.948429 
+save path npz recorded at 2024-07-21 05:26:41.609823. 		 Duration: 	 4.566486 
+batch paths recorded at 2024-07-21 05:27:48.269027. 		 Duration: 	 127.638647 
+save path npz recorded at 2024-07-21 05:27:58.044546. 		 Duration: 	 9.775519 
+start loading npzs recorded at 2024-07-21 05:28:00.369821. 		 Duration: 	 0.320156 
+loading npzs recorded at 2024-07-21 05:28:00.444228. 		 Duration: 	 0.074407 
+before calling parse_npz recorded at 2024-07-21 05:28:00.444319. 		 Duration: 	 9.1e-05 
+after calling parse_npz recorded at 2024-07-21 05:28:03.101427. 		 Duration: 	 2.657108 
+start loading npzs recorded at 2024-07-21 05:41:56.278775. 		 Duration: 	 833.177348 
+loading npzs recorded at 2024-07-21 05:41:56.281031. 		 Duration: 	 0.002256 
+before calling parse_npz recorded at 2024-07-21 05:41:56.281062. 		 Duration: 	 3.1e-05 
+after calling parse_npz recorded at 2024-07-21 05:41:57.811472. 		 Duration: 	 1.53041 
+before map bd load recorded at 2024-07-21 07:04:41.462624. 		 Duration: 	 0.000655 
+before map bd load recorded at 2024-07-21 07:04:41.486766. 		 Duration: 	 0.0006 
+after map bd load recorded at 2024-07-21 07:04:42.521023. 		 Duration: 	 1.058399 
+after map bd load recorded at 2024-07-21 07:04:43.090102. 		 Duration: 	 1.603336 
+batch paths recorded at 2024-07-21 07:05:40.830472. 		 Duration: 	 58.309449 
+save path npz recorded at 2024-07-21 07:05:45.458845. 		 Duration: 	 4.628373 
+batch paths recorded at 2024-07-21 07:06:50.544262. 		 Duration: 	 127.45416 
+save path npz recorded at 2024-07-21 07:07:00.352340. 		 Duration: 	 9.808078 
+start loading npzs recorded at 2024-07-21 07:07:02.660719. 		 Duration: 	 0.314078 
+loading npzs recorded at 2024-07-21 07:07:02.735762. 		 Duration: 	 0.075043 
+before calling parse_npz recorded at 2024-07-21 07:07:02.735853. 		 Duration: 	 9.1e-05 
+after calling parse_npz recorded at 2024-07-21 07:07:05.358244. 		 Duration: 	 2.622391 
+start loading npzs recorded at 2024-07-21 07:21:03.062530. 		 Duration: 	 837.704286 
+loading npzs recorded at 2024-07-21 07:21:03.064770. 		 Duration: 	 0.00224 
+before calling parse_npz recorded at 2024-07-21 07:21:03.064804. 		 Duration: 	 3.4e-05 
+after calling parse_npz recorded at 2024-07-21 07:21:04.596385. 		 Duration: 	 1.531581 
+before map bd load recorded at 2024-07-21 08:43:51.210378. 		 Duration: 	 0.000582 
+before map bd load recorded at 2024-07-21 08:43:51.214623. 		 Duration: 	 0.000681 
+after map bd load recorded at 2024-07-21 08:43:52.276086. 		 Duration: 	 1.061463 
+after map bd load recorded at 2024-07-21 08:43:52.826895. 		 Duration: 	 1.616517 
+batch paths recorded at 2024-07-21 08:44:50.039978. 		 Duration: 	 57.763892 
+save path npz recorded at 2024-07-21 08:44:54.690699. 		 Duration: 	 4.650721 
+batch paths recorded at 2024-07-21 08:46:00.995285. 		 Duration: 	 128.16839 
+save path npz recorded at 2024-07-21 08:46:10.744139. 		 Duration: 	 9.748854 
+start loading npzs recorded at 2024-07-21 08:46:13.078395. 		 Duration: 	 0.314795 
+loading npzs recorded at 2024-07-21 08:46:13.154169. 		 Duration: 	 0.075774 
+before calling parse_npz recorded at 2024-07-21 08:46:13.154264. 		 Duration: 	 9.5e-05 
+after calling parse_npz recorded at 2024-07-21 08:46:14.865421. 		 Duration: 	 1.711157 
+start loading npzs recorded at 2024-07-21 08:52:21.848498. 		 Duration: 	 366.983077 
+loading npzs recorded at 2024-07-21 08:52:21.851213. 		 Duration: 	 0.002715 
+before calling parse_npz recorded at 2024-07-21 08:52:21.851252. 		 Duration: 	 3.9e-05 
+after calling parse_npz recorded at 2024-07-21 08:52:24.310009. 		 Duration: 	 2.458757 

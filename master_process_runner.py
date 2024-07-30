@@ -41,6 +41,7 @@ if __name__ == "__main__":
 
     LE = f"data_collection/data/logs/EXP_Small"
     os.makedirs(LE, exist_ok=True)
+
     
     num_cores = multiprocessing.cpu_count()
     first_iteration = "true"
@@ -151,7 +152,7 @@ if __name__ == "__main__":
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: trainer")
-        # pdb.set_trace()
+        pdb.set_trace()
 
         ### Run best model on simulator on scens to create new scenes
         command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 

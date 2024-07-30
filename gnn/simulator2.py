@@ -5,10 +5,112 @@ import numpy as np
 import torch # For the model
 import pandas as pd # For saving the results
 import csv # For saving the results
+import cv2
 
-from gnn.dataloader import create_data_object, normalize_graph_data
+
+from gnn.dataloader import create_data_object, normalize_graph_data, MyOwnDataset
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
 from custom_utils.common_helper import str2bool, getMapBDScenAgents
+from PIL import Image
+
+
+
+def save_action_pref(action_pref, action_taken):
+    with open(f"./path.txt", mode='a') as file:
+        file.write(f"{action_pref} \t : \t {action_taken}\n")
+        
+def get_moment(cur_map, agent_locs, agent_goals):
+    my_map = cur_map.copy() 
+    # print(cur_map)
+    for i, (loc,gloc) in enumerate(zip(agent_locs, agent_goals)):
+        x,y = loc
+        g_x, g_y = gloc
+        my_map[x,y] = i+3
+        my_map[g_x,g_y] = i+203
+    # print(cur_map)
+    add_cur_map(my_map)
+    
+def test_get_moment():
+    # Setup
+    cur_map = np.zeros((5, 5), dtype=int)
+    agent_locs = [(0, 0), (2, 2), (4, 4)]
+    agent_goals = [(1, 1), (3, 3), (0, 4)]
+    get_moment(cur_map, agent_locs, agent_goals)
+
+
+def add_cur_map(additional_moment):
+    global big_array
+    col_len = additional_moment.shape[1]
+    delimeter = np.zeros((col_len))+2
+    big_array = np.vstack((big_array, delimeter)) if big_array.size else delimeter
+    big_array = np.vstack((big_array, additional_moment))
+    
+def save_array_to_image(array, filename):
+    # Define the size of each cell in the image
+    cell_size = 80
+    height, width = array.shape
+    image_height = height * cell_size
+    image_width = width * cell_size
+    
+    # Create a white image
+    image = np.ones((image_height, image_width, 3), dtype=np.uint8) * 255
+
+    # Define a set of light colors for agents
+    light_colors = [
+        (200, 220, 255),  # Light blue
+        (220, 255, 200),  # Light green
+        (255, 220, 200),  # Light red
+        (255, 255, 200),  # Light yellow
+        (200, 255, 255)   # Light cyan
+    ]
+    
+    for i in range(height):
+        for j in range(width):
+            value = array[i, j]
+            top_left = (j * cell_size, i * cell_size)
+            bottom_right = ((j + 1) * cell_size, (i + 1) * cell_size)
+
+            if value == 1:
+                # Fill black cell
+                cv2.rectangle(image, top_left, bottom_right, (0, 0, 0), thickness=-1)
+            elif value == 2:
+                # Fill black cell
+                cv2.rectangle(image, top_left, bottom_right, (255, 122, 0), thickness=-1)
+            elif value == 0:
+                # Fill white cell (already white, no need to do anything)
+                pass
+            elif 3 <= value <= 200:
+                # Write the number in the cell and color the background
+                agent_id = int(value) - 3
+                text = str(agent_id)
+                light_color = light_colors[agent_id % len(light_colors)]
+                cv2.rectangle(image, top_left, bottom_right, light_color, thickness=-1)
+
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 0.5
+                thickness = 1
+                text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
+                text_x = top_left[0] + (cell_size - text_size[0]) // 2
+                text_y = top_left[1] + (cell_size + text_size[1]) // 2
+                cv2.putText(image, text, (text_x, text_y), font, font_scale, (0, 0, 0), thickness)
+            elif value > 200:
+                # Write "g" and the number in the cell and color the background
+                agent_id = int(value) - 203
+                text = f"g{agent_id}"
+                light_color = light_colors[agent_id % len(light_colors)]
+                cv2.rectangle(image, top_left, bottom_right, light_color, thickness=-1)
+                
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 0.5
+                thickness = 1
+                text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
+                text_x = top_left[0] + (cell_size - text_size[0]) // 2
+                text_y = top_left[1] + (cell_size + text_size[1]) // 2
+                cv2.putText(image, text, (text_x, text_y), font, font_scale, (0, 0, 0), thickness)
+
+    # Save the image
+    cv2.imwrite(filename, image)
+    
 
 def parse_scene(scen_file):
     """Input: scenfile
@@ -225,6 +327,8 @@ def lacamOrPibt(lacam_or_cspibt, grid_map, action_preferences, current_locs,
             raise RuntimeError('CS-PIBT failed for agent {}; should never fail without LaCAM constraints!', agent_id)
         if cspibt_worked is False:
             break
+    
+    
 
     return move_matrix, cspibt_worked
     
@@ -247,6 +351,26 @@ def createScenFile(locs, goal_locs, map_name, scenFilepath):
     print("Scen file created at: {}".format(scenFilepath))
 
 
+from torch_geometric.loader import DataLoader
+def get_dataset():
+    dataset_list = []
+    processedFolders = "data_collection/data/logs/EXP_Small/iter0/processed"
+    for folder in processedFolders.split(','):
+        if not os.path.exists(folder):
+            raise Exception(f"Folder {folder} does not exist!")
+        dataset = MyOwnDataset(mapNpzFile=None, bdNpzFolder=None, pathNpzFolder=None,
+                            processedOutputFolder=folder, num_cores=1)
+        dataset_list.append(dataset)
+    # Combine into single large dataset
+    combined_dataset = torch.utils.data.ConcatDataset(dataset_list)
+    print(f"Combined {len(dataset_list)} datasets for a combined size of {len(dataset)}")
+    train_size = int(0.8 * len(combined_dataset))
+    test_size = len(combined_dataset) - train_size
+    train_dataset, test_dataset = torch.utils.data.random_split(combined_dataset, [train_size, test_size])
+    loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    return loader
+
+
 def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
              max_steps, shield_type):
     cur_locs = start_locations # (N,2)
@@ -259,8 +383,12 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     success = False
     for step in range(max_steps):
         # Create the data object
+        loader = get_dataset()
         data = create_data_object(cur_locs, bd, grid_map, k, m)
         data = normalize_graph_data(data, k)
+        pdb.set_trace()
+        data = loader.dataset[0]
+        pdb.set_trace()
         data = data.to(device)
 
         # Forward pass
@@ -270,7 +398,8 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         # Get the action preferences
         probs = probabilities.cpu().detach().numpy() # (N,5)
         action_preferences = convertProbsToPreferences(probs, "sampled") # (N,5)
-
+        get_moment(grid_map, cur_locs, goal_locations)
+        save_array_to_image(big_array, 'output_image.png')
         # Run the shield
         new_move, cspibt_worked = lacamOrPibt(shield_type, grid_map, action_preferences, cur_locs, 
                                         agent_priorities, [])
@@ -279,12 +408,15 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         # cur_locs = cur_locs + new_move # (N,2)
         cur_locs += new_move # (N,2)
         solution_path.append(cur_locs.copy())
+        # pdb.set_trace()
         assert(np.all(grid_map[cur_locs[:,0], cur_locs[:,1]] == 0)) # Ensure no agents are on obstacles
-
+        get_moment(grid_map, cur_locs, goal_locations)
+        save_array_to_image(big_array, 'output_image.png')
         # Check if all agents have reached their goals
         if np.all(np.equal(cur_locs, goal_locations)):
             success = True
             break
+        
     
     # pdb.set_trace()
     solution_path = np.array(solution_path) # (T<=max_steps+1,N,2)
@@ -389,6 +521,9 @@ python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/consta
       --numScensToCreate 10 --outputScenPrefix data_collection/data/logs/EXP_Test2/iter0/encountered_scens/den520d/den520d-random-1.scen100
 """
 if __name__ == '__main__':
+    big_array = np.array([])
+    # test_get_moment()
+    # pdb.set_trace()
     # testGetCosts()
     parser = argparse.ArgumentParser()
     # Map / scen parameters

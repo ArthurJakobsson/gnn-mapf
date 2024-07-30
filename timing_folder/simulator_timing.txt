@@ -1,0 +1,89 @@
+before simulator preprocessing recorded at 2024-07-19 01:07:33.357462. 		 Duration: 	 0.097159 
+create_map_dict recorded at 2024-07-19 01:30:09.588665. 		 Duration: 	 1356.231203 
+save pickle recorded at 2024-07-19 01:30:44.862386. 		 Duration: 	 35.273721 
+before simulator run recorded at 2024-07-19 01:30:44.862555. 		 Duration: 	 0.000169 
+before simulation recorded at 2024-07-19 01:30:44.862599. 		 Duration: 	 4.4e-05 
+before simulator preprocessing recorded at 2024-07-19 03:10:12.762326. 		 Duration: 	 0.109371 
+before simulator run recorded at 2024-07-19 03:10:32.040729. 		 Duration: 	 19.278403 
+before simulation recorded at 2024-07-19 03:10:32.040836. 		 Duration: 	 0.000107 
+before simulator preprocessing recorded at 2024-07-19 05:25:44.753474. 		 Duration: 	 0.109568 
+before simulator run recorded at 2024-07-19 05:26:04.391001. 		 Duration: 	 19.637527 
+before simulation recorded at 2024-07-19 05:26:04.391104. 		 Duration: 	 0.000103 
+before simulator preprocessing recorded at 2024-07-19 07:41:20.195048. 		 Duration: 	 0.119568 
+before simulator run recorded at 2024-07-19 07:41:40.172278. 		 Duration: 	 19.97723 
+before simulation recorded at 2024-07-19 07:41:40.172385. 		 Duration: 	 0.000107 
+before simulator preprocessing recorded at 2024-07-19 09:56:54.382279. 		 Duration: 	 0.103047 
+before simulator run recorded at 2024-07-19 09:57:13.872037. 		 Duration: 	 19.489758 
+before simulation recorded at 2024-07-19 09:57:13.872144. 		 Duration: 	 0.000107 
+before simulator preprocessing recorded at 2024-07-19 12:13:11.753145. 		 Duration: 	 0.13721 
+before simulator run recorded at 2024-07-19 12:13:31.265824. 		 Duration: 	 19.512679 
+before simulation recorded at 2024-07-19 12:13:31.265929. 		 Duration: 	 0.000105 
+before simulator preprocessing recorded at 2024-07-19 14:29:16.702485. 		 Duration: 	 0.114127 
+before simulator run recorded at 2024-07-19 14:29:36.364189. 		 Duration: 	 19.661704 
+before simulation recorded at 2024-07-19 14:29:36.364296. 		 Duration: 	 0.000107 
+before simulator preprocessing recorded at 2024-07-19 16:48:13.399450. 		 Duration: 	 0.125916 
+before simulator run recorded at 2024-07-19 16:48:33.555055. 		 Duration: 	 20.155605 
+before simulation recorded at 2024-07-19 16:48:33.555155. 		 Duration: 	 0.0001 
+before simulator preprocessing recorded at 2024-07-19 19:07:18.882625. 		 Duration: 	 0.117588 
+before simulator run recorded at 2024-07-19 19:07:39.118281. 		 Duration: 	 20.235656 
+before simulation recorded at 2024-07-19 19:07:39.118383. 		 Duration: 	 0.000102 
+before simulator preprocessing recorded at 2024-07-19 21:23:17.353567. 		 Duration: 	 0.102187 
+before simulator run recorded at 2024-07-19 21:23:37.448866. 		 Duration: 	 20.095299 
+before simulation recorded at 2024-07-19 21:23:37.448970. 		 Duration: 	 0.000104 
+before simulator preprocessing recorded at 2024-07-19 23:38:41.317783. 		 Duration: 	 0.112401 
+before simulator run recorded at 2024-07-19 23:39:01.452809. 		 Duration: 	 20.135026 
+before simulation recorded at 2024-07-19 23:39:01.452913. 		 Duration: 	 0.000104 
+before simulator preprocessing recorded at 2024-07-20 01:54:18.453987. 		 Duration: 	 0.111679 
+before simulator run recorded at 2024-07-20 01:54:38.628893. 		 Duration: 	 20.174906 
+before simulation recorded at 2024-07-20 01:54:38.629011. 		 Duration: 	 0.000118 
+before simulator preprocessing recorded at 2024-07-20 04:11:05.576439. 		 Duration: 	 0.112799 
+before simulator run recorded at 2024-07-20 04:11:25.788295. 		 Duration: 	 20.211856 
+before simulation recorded at 2024-07-20 04:11:25.788400. 		 Duration: 	 0.000105 
+before simulator preprocessing recorded at 2024-07-20 06:26:52.685254. 		 Duration: 	 0.105365 
+before simulator run recorded at 2024-07-20 06:27:12.847756. 		 Duration: 	 20.162502 
+before simulation recorded at 2024-07-20 06:27:12.847860. 		 Duration: 	 0.000104 
+before simulator preprocessing recorded at 2024-07-20 08:05:22.802729. 		 Duration: 	 0.112206 
+before simulator run recorded at 2024-07-20 08:05:43.001615. 		 Duration: 	 20.198886 
+before simulation recorded at 2024-07-20 08:05:43.001721. 		 Duration: 	 0.000106 
+before simulator preprocessing recorded at 2024-07-20 09:55:26.298238. 		 Duration: 	 0.106116 
+before simulator run recorded at 2024-07-20 09:55:46.702813. 		 Duration: 	 20.404575 
+before simulation recorded at 2024-07-20 09:55:46.702919. 		 Duration: 	 0.000106 
+before simulator preprocessing recorded at 2024-07-20 11:34:18.758223. 		 Duration: 	 0.105791 
+before simulator run recorded at 2024-07-20 11:34:39.150833. 		 Duration: 	 20.39261 
+before simulation recorded at 2024-07-20 11:34:39.150944. 		 Duration: 	 0.000111 
+before simulator preprocessing recorded at 2024-07-20 13:13:16.391297. 		 Duration: 	 0.106736 
+before simulator run recorded at 2024-07-20 13:13:36.698985. 		 Duration: 	 20.307688 
+before simulation recorded at 2024-07-20 13:13:36.699087. 		 Duration: 	 0.000102 
+before simulator preprocessing recorded at 2024-07-20 15:27:33.172736. 		 Duration: 	 0.110017 
+before simulator run recorded at 2024-07-20 15:27:53.488499. 		 Duration: 	 20.315763 
+before simulation recorded at 2024-07-20 15:27:53.488603. 		 Duration: 	 0.000104 
+before simulator preprocessing recorded at 2024-07-20 17:07:01.003479. 		 Duration: 	 0.104446 
+before simulator run recorded at 2024-07-20 17:07:21.157152. 		 Duration: 	 20.153673 
+before simulation recorded at 2024-07-20 17:07:21.157289. 		 Duration: 	 0.000137 
+before simulator preprocessing recorded at 2024-07-20 19:34:26.151420. 		 Duration: 	 0.093254 
+before simulator run recorded at 2024-07-20 19:34:46.360800. 		 Duration: 	 20.20938 
+before simulation recorded at 2024-07-20 19:34:46.360914. 		 Duration: 	 0.000114 
+before simulator preprocessing recorded at 2024-07-20 21:50:20.388334. 		 Duration: 	 0.105111 
+before simulator run recorded at 2024-07-20 21:50:40.440957. 		 Duration: 	 20.052623 
+before simulation recorded at 2024-07-20 21:50:40.441065. 		 Duration: 	 0.000108 
+before simulator preprocessing recorded at 2024-07-20 23:30:01.906236. 		 Duration: 	 0.127917 
+before simulator run recorded at 2024-07-20 23:30:22.124949. 		 Duration: 	 20.218713 
+before simulation recorded at 2024-07-20 23:30:22.125064. 		 Duration: 	 0.000115 
+before simulator preprocessing recorded at 2024-07-21 01:45:59.089458. 		 Duration: 	 0.106299 
+before simulator run recorded at 2024-07-21 01:46:19.123475. 		 Duration: 	 20.034017 
+before simulation recorded at 2024-07-21 01:46:19.123589. 		 Duration: 	 0.000114 
+before simulator preprocessing recorded at 2024-07-21 03:25:03.658376. 		 Duration: 	 0.115487 
+before simulator run recorded at 2024-07-21 03:25:23.760662. 		 Duration: 	 20.102286 
+before simulation recorded at 2024-07-21 03:25:23.760758. 		 Duration: 	 9.6e-05 
+before simulator preprocessing recorded at 2024-07-21 05:03:38.652702. 		 Duration: 	 0.110018 
+before simulator run recorded at 2024-07-21 05:03:58.738835. 		 Duration: 	 20.086133 
+before simulation recorded at 2024-07-21 05:03:58.738938. 		 Duration: 	 0.000103 
+before simulator preprocessing recorded at 2024-07-21 06:42:38.747916. 		 Duration: 	 0.119308 
+before simulator run recorded at 2024-07-21 06:42:59.004992. 		 Duration: 	 20.257076 
+before simulation recorded at 2024-07-21 06:42:59.005100. 		 Duration: 	 0.000108 
+before simulator preprocessing recorded at 2024-07-21 08:22:05.785762. 		 Duration: 	 0.107732 
+before simulator run recorded at 2024-07-21 08:22:25.971101. 		 Duration: 	 20.185339 
+before simulation recorded at 2024-07-21 08:22:25.971207. 		 Duration: 	 0.000106 
+before simulator preprocessing recorded at 2024-07-21 10:37:45.904920. 		 Duration: 	 0.106824 
+before simulator run recorded at 2024-07-21 10:38:06.323321. 		 Duration: 	 20.418401 
+before simulation recorded at 2024-07-21 10:38:06.323425. 		 Duration: 	 0.000104 
