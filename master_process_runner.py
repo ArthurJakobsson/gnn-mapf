@@ -39,7 +39,7 @@ if __name__ == "__main__":
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    LE = f"data_collection/data/logs/EXP_Small"
+    LE = f"data_collection/data/logs/EXP_Small2"
     os.makedirs(LE, exist_ok=True)
     
     num_cores = multiprocessing.cpu_count()

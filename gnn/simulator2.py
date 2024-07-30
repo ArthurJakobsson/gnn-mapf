@@ -259,25 +259,27 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     success = False
     for step in range(max_steps):
         # Create the data object
-        data = create_data_object(cur_locs, bd, grid_map, k, m)
-        data = normalize_graph_data(data, k)
-        data = data.to(device)
+        with torch.no_grad():
+            data = create_data_object(cur_locs, bd, grid_map, k, m)
+            data = normalize_graph_data(data, k)
+            data = data.to(device)
 
-        # Forward pass
-        _, predictions = model(data)
-        probabilities = torch.softmax(predictions, dim=1) # More general version
+            # Forward pass
+            _, predictions = model(data)
+            probabilities = torch.softmax(predictions, dim=1) # More general version
 
-        # Get the action preferences
-        probs = probabilities.cpu().detach().numpy() # (N,5)
-        action_preferences = convertProbsToPreferences(probs, "sampled") # (N,5)
+            # Get the action preferences
+            probs = probabilities.cpu().detach().numpy() # (N,5)
+
+        action_preferences = convertProbsToPreferences(probs, "sorted") # (N,5)
 
         # Run the shield
         new_move, cspibt_worked = lacamOrPibt(shield_type, grid_map, action_preferences, cur_locs, 
                                         agent_priorities, [])
         if not cspibt_worked:
             raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
-        # cur_locs = cur_locs + new_move # (N,2)
-        cur_locs += new_move # (N,2)
+        cur_locs = cur_locs + new_move # (N,2)
+        # cur_locs += new_move # (N,2)
         solution_path.append(cur_locs.copy())
         assert(np.all(grid_map[cur_locs[:,0], cur_locs[:,1]] == 0)) # Ensure no agents are on obstacles
 
@@ -379,14 +381,14 @@ def main(args: argparse.ArgumentParser):
 ### Example command
 """
 python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
-      --mapName den520d --scenFile data_collection/data/benchmark_data/scens/den520d-random-1.scen \
-      --agentNum=100 --bdNpzFile data_collection/data/benchmark_data/constant_npzs/den520d_bds.npz \
-      --modelPath=data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt --useGPU=False \
+      --mapName random_32_32_10 --scenFile data_collection/data/benchmark_data/scens/random_32_32_10-random-1.scen \
+      --agentNum=10 --bdNpzFile data_collection/data/benchmark_data/constant_npzs/random_32_32_10_bds.npz \
+      --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
       --k=4 --m=5 \
       --maxSteps=200 --seed 0 --shieldType CS-PIBT \
-      --outputCSVFile data_collection/data/logs/EXP_Test2/iter0/results.csv \
-      --outputPathsFile data_collection/data/logs/EXP_Test2/iter0/paths.npy \
-      --numScensToCreate 10 --outputScenPrefix data_collection/data/logs/EXP_Test2/iter0/encountered_scens/den520d/den520d-random-1.scen100
+      --outputCSVFile data_collection/data/logs/EXP_Test4/iter0/results.csv \
+      --outputPathsFile data_collection/data/logs/EXP_Test4/iter0//encountered_scens/paths.npy \
+      --numScensToCreate 10 --outputScenPrefix data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100
 """
 if __name__ == '__main__':
     # testGetCosts()
