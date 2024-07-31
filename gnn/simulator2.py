@@ -6,6 +6,7 @@ import torch # For the model
 import pandas as pd # For saving the results
 import csv # For saving the results
 import cv2
+import matplotlib.pyplot as plt
 
 
 from gnn.dataloader import create_data_object, normalize_graph_data, MyOwnDataset
@@ -16,6 +17,12 @@ from PIL import Image
 
 
 def save_action_pref(action_pref, action_taken):
+    # action_suggested = torch.nonzero(action_taken)[:,1]   
+    action_suggested = np.array(action_taken)
+    print(np.sum(np.array(action_suggested).flatten()==action_pref[:,0])/len(action_pref))
+    print(np.array(action_suggested).flatten()==action_pref[:,0])
+    print(np.array(action_suggested).flatten(), action_pref[:,0])
+    # pdb.set_trace()
     with open(f"./path.txt", mode='a') as file:
         file.write(f"{action_pref} \t : \t {action_taken}\n")
         
@@ -47,7 +54,7 @@ def add_cur_map(additional_moment):
     
 def save_array_to_image(array, filename):
     # Define the size of each cell in the image
-    cell_size = 80
+    cell_size = 40
     height, width = array.shape
     image_height = height * cell_size
     image_width = width * cell_size
@@ -87,8 +94,8 @@ def save_array_to_image(array, filename):
                 cv2.rectangle(image, top_left, bottom_right, light_color, thickness=-1)
 
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                font_scale = 0.5
-                thickness = 1
+                font_scale = 1
+                thickness = 2
                 text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
                 text_x = top_left[0] + (cell_size - text_size[0]) // 2
                 text_y = top_left[1] + (cell_size + text_size[1]) // 2
@@ -101,8 +108,8 @@ def save_array_to_image(array, filename):
                 cv2.rectangle(image, top_left, bottom_right, light_color, thickness=-1)
                 
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                font_scale = 0.5
-                thickness = 1
+                font_scale = 1
+                thickness = 2
                 text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
                 text_x = top_left[0] + (cell_size - text_size[0]) // 2
                 text_y = top_left[1] + (cell_size + text_size[1]) // 2
@@ -235,7 +242,6 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
     if agent_id in constrained_agents.keys(): # Force agent to only pick that action if constrained
         action_index = constrained_agents[agent_id]
         moves_ordered = moves_ordered[action_index:action_index+1]
-
     current_pos = current_locs[agent_id] # (2)
     for aMove in moves_ordered:
         next_loc = current_pos + aMove # (2)
@@ -364,11 +370,11 @@ def get_dataset():
     # Combine into single large dataset
     combined_dataset = torch.utils.data.ConcatDataset(dataset_list)
     print(f"Combined {len(dataset_list)} datasets for a combined size of {len(dataset)}")
-    train_size = int(0.8 * len(combined_dataset))
-    test_size = len(combined_dataset) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(combined_dataset, [train_size, test_size])
-    loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
-    return loader
+    # train_size = int(0.8 * len(combined_dataset))
+    # test_size = len(combined_dataset) - train_size
+    # train_dataset, test_dataset = torch.utils.data.random_split(combined_dataset, [train_size, test_size])
+    # loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    return combined_dataset
 
 
 def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
@@ -381,34 +387,59 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     agent_priorities = np.random.permutation(len(cur_locs)) # (N)
     solution_path = [cur_locs.copy()]
     success = False
+    train_dataset = get_dataset()
+    get_moment(grid_map, cur_locs, goal_locations)
+    save_array_to_image(big_array, 'output_image.png')
     for step in range(max_steps):
         # Create the data object
-        loader = get_dataset()
         data = create_data_object(cur_locs, bd, grid_map, k, m)
         data = normalize_graph_data(data, k)
-        pdb.set_trace()
-        data = loader.dataset[0]
+        
+        # data = train_dataset[step]
+        
+        # plt.imsave('datax.png', data.x[0].reshape(18,9), cmap='hot')
+        # plt.imsave('data2x.png', data2.x[0].reshape(18,9), cmap='hot')
+        
+        # data.y = data.y[0:5]
+
+        # edge_problems_x = np.where(data.edge_index[0]<=4)
+        # data.edge_index = data.edge_index[:,][:,0,:]
+        # edge_problems_y = np.where(data.edge_index[1]<=4)
+        # data.edge_index = data.edge_index[:,np.where(data.edge_index[1]<=4)][:,0,:]
         pdb.set_trace()
         data = data.to(device)
+        # get_moment(grid_map, cur_locs, goal_locations)
+        # save_array_to_image(big_array, 'output_image.png')
 
         # Forward pass
         _, predictions = model(data)
         probabilities = torch.softmax(predictions, dim=1) # More general version
-
         # Get the action preferences
         probs = probabilities.cpu().detach().numpy() # (N,5)
         action_preferences = convertProbsToPreferences(probs, "sampled") # (N,5)
-        get_moment(grid_map, cur_locs, goal_locations)
-        save_array_to_image(big_array, 'output_image.png')
+        # get_moment(grid_map, cur_locs, goal_locations)
+        # save_array_to_image(big_array, 'output_image.png')
         # Run the shield
         new_move, cspibt_worked = lacamOrPibt(shield_type, grid_map, action_preferences, cur_locs, 
                                         agent_priorities, [])
         if not cspibt_worked:
             raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
         # cur_locs = cur_locs + new_move # (N,2)
+        # pdb.set_trace()
         cur_locs += new_move # (N,2)
         solution_path.append(cur_locs.copy())
         # pdb.set_trace()
+        up = [-1, 0]
+        down = [1, 0]
+        left = [0, -1]
+        right = [0, 1]
+        stop = [0, 0]    
+        # moves_ordered = np.array([up, left, down, right, stop])
+        moves_ordered = np.array([stop, right, down, up, left])
+        new_move_numbers = [np.where(np.all(moves_ordered==new_move[i], axis=1))[0] for i in range(len(new_move))]
+        # pdb.set_trace()
+        save_action_pref(action_preferences, new_move_numbers)
+        # save_action_pref(action_preferences, data.y)
         assert(np.all(grid_map[cur_locs[:,0], cur_locs[:,1]] == 0)) # Ensure no agents are on obstacles
         get_moment(grid_map, cur_locs, goal_locations)
         save_array_to_image(big_array, 'output_image.png')
@@ -456,7 +487,7 @@ def main(args: argparse.ArgumentParser):
     if bd_key not in bd_npz:
         raise ValueError('BD key {} not found in the bd file'.format(bd_key))
     bd = bd_npz[bd_key][:num_agents] # (max agents,H,W)->(N,H,W)
-    bd = np.pad(bd, k, 'constant', constant_values=12345678) # Add padding
+    bd = np.pad(bd, ((0,0),(k,k),(k,k)), 'constant', constant_values=12345678) # Add padding
 
     # Load the model
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.useGPU else "cpu") # Use GPU if available
@@ -522,6 +553,13 @@ python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/consta
 """
 if __name__ == '__main__':
     big_array = np.array([])
+    try: 
+        os.remove("./path.txt") 
+        print("removed successfully") 
+    except OSError as error: 
+        print(error) 
+        print("File path can not be removed") 
+
     # test_get_moment()
     # pdb.set_trace()
     # testGetCosts()

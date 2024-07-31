@@ -454,6 +454,7 @@ def generic_batch_runner(args):
             # maximumAgents = mapsToMaxNumAgents[mapFile] + 1
             maximumAgents = increment + 1 # Just run one setting as of now
             agentNumbers = list(range(increment, maximumAgents, increment))
+            agentNumbers = [5]
             # agentNumbers = [mapsToMaxNumAgents[mapFile]] # Only do this to collect bds
             static_dict[mapFile]["agentRange"] = agentNumbers
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
