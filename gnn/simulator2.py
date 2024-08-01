@@ -100,6 +100,10 @@ def testGetCosts():
     assert(num_agents_at_goal == 2)
     print("getCosts test passed!")
 
+LABEL_TO_MOVES = np.array([[0,0], [0,1], [1,0], [-1,0], [0,-1]]) #  Stop, Right, Down, Up, Left
+# LABEL_TO_MOVES = np.array([[0,0], [1,0], [0,1], [0,-1], [-1,0]])
+# direction_labels = np.array([(0,0), (0,1), (1,0), (-1,0), (0,-1)]) # (5,2)
+
 def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_matrix, 
          occupied_nodes, occupied_edges, current_locs, current_locs_to_agent,
          constrained_agents):
@@ -121,15 +125,15 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
         else:
             return -1
 
-    up = [-1, 0]
-    down = [1, 0]
-    left = [0, -1]
-    right = [0, 1]
-    stop = [0, 0]    
-    # moves_ordered = np.array([up, left, down, right, stop])
-    moves_ordered = np.array([stop, right, down, up, left]) # This needs to match Pipeline's action ordering
+    # up = [-1, 0]
+    # down = [1, 0]
+    # left = [0, -1]
+    # right = [0, 1]
+    # stop = [0, 0]    
+    # # moves_ordered = np.array([up, left, down, right, stop])
+    # moves_ordered = np.array([stop, right, down, up, left]) # This needs to match Pipeline's action ordering
 
-    moves_ordered = moves_ordered[action_preferences[agent_id]]
+    moves_ordered = LABEL_TO_MOVES[action_preferences[agent_id]]
     if agent_id in constrained_agents.keys(): # Force agent to only pick that action if constrained
         action_index = constrained_agents[agent_id]
         moves_ordered = moves_ordered[action_index:action_index+1]
@@ -258,10 +262,11 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     solution_path = [cur_locs.copy()]
     success = False
     for step in range(max_steps):
-        # Create the data object
         with torch.no_grad():
+            # Create the data object
             data = create_data_object(cur_locs, bd, grid_map, k, m)
             data = normalize_graph_data(data, k)
+            # pdb.set_trace()
             data = data.to(device)
 
             # Forward pass
@@ -271,7 +276,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
             # Get the action preferences
             probs = probabilities.cpu().detach().numpy() # (N,5)
 
-        action_preferences = convertProbsToPreferences(probs, "sorted") # (N,5)
+        action_preferences = convertProbsToPreferences(probs, "sampled") # (N,5)
 
         # Run the shield
         new_move, cspibt_worked = lacamOrPibt(shield_type, grid_map, action_preferences, cur_locs, 
@@ -326,7 +331,7 @@ def main(args: argparse.ArgumentParser):
     if bd_key not in bd_npz:
         raise ValueError('BD key {} not found in the bd file'.format(bd_key))
     bd = bd_npz[bd_key][:num_agents] # (max agents,H,W)->(N,H,W)
-    bd = np.pad(bd, k, 'constant', constant_values=12345678) # Add padding
+    bd = np.pad(bd, ((0,0),(k,k),(k,k)), 'constant', constant_values=12345678) # Add padding
 
     # Load the model
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.useGPU else "cpu") # Use GPU if available

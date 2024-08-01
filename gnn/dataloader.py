@@ -50,6 +50,9 @@ def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
     bd_grid[:, 1, :, :] = torch.clamp(bd_grid[:, 1, :, :], min=-1.0, max=1.0)
 
     data.x = bd_grid
+    assert(data.x[:,1,k,k].all() == 0) # Make sure all agents are on empty space
+    assert(data.x[:,1].max() <= 1.0 and data.x[:,1].min() >= -1.0) # Make sure all agents are on empty space
+    assert(data.x[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     return data
 
 def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
@@ -67,6 +70,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     ### Numpy advanced indexing to get all agent slices at once
     rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
     colLocs = pos_list[:,1][:, None] # (N)->(N,1)
+    assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
 
     x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
     # Adjust indices to gather slices
@@ -114,6 +118,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     # edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
     # labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
     # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
+    # pdb.set_trace()
+    assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
 
     return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
                 edge_attr=torch.tensor(edge_features, dtype=torch.float), 
@@ -208,9 +214,10 @@ class MyOwnDataset(Dataset):
 
     def create_and_save_graph(self, idx, time_instance):
         # Graphify
-        if not time_instance: 
-            return #idk why but the last one is None
-        pos_list, labels, bd_list, grid = time_instance # (1), (2,n), (md,md): md=map dim with pad, n=num_agents
+        # if not time_instance: 
+        #     return #idk why but the last one is None
+        assert(time_instance is not None)
+        pos_list, labels, bd_list, grid = time_instance
 
         curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
@@ -381,10 +388,12 @@ class MyOwnDataset(Dataset):
 
 
 ### Example run
-# python -m gnn.dataloader --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz 
-#       --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs 
-#       --pathNpzFolder=data_collection/data/logs/EXP_Test3/iter0/eecbs_npzs 
-#       --processedFolder=data_collection/data/logs/EXP_Test3/iter0/processed
+"""
+python -m gnn.dataloader --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
+      --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs \
+      --pathNpzFolder=data_collection/data/logs/EXP_Test3/iter0/eecbs_npzs \
+      --processedFolder=data_collection/data/logs/EXP_Test3/iter0/processed \
+"""
 if __name__ == "__main__":
     """
     This file takes in npzs and processes them into pt files.

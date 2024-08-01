@@ -227,10 +227,8 @@ def test(loader, model, is_validation=False):
             first_choice = sorted_pred[:, -1]
             second_choice = sorted_pred[:, -2]
             validation_pred = pred.argmax(dim=1)
-            # pdb.set_trace()
-            if not torch.all(first_choice == validation_pred):
-                print("WARNING: SOMETHING FISHY IN TEST AS FIRST CHOICE IS NOT EQUAL TO VALIDATION PREDICTION")
-            #     pdb.set_trace()
+            # if not torch.all(first_choice == validation_pred): # Remove this as this can fail if two probs exactly equal
+            #     print("WARNING: SOMETHING FISHY IN TEST AS FIRST CHOICE IS NOT EQUAL TO VALIDATION PREDICTION")
             label = data.y.argmax(dim=1)
 
             if model.task == 'node':

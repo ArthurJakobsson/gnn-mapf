@@ -263,14 +263,14 @@ def parse_path(pathfile):
             # add the coordinates to the dictionary of maps
             for i, coord in enumerate(rawCoords):
                 temp = coord.split(',')
-                x = int(temp[0][1:])
-                y = int(temp[1][:-1])
+                row = int(temp[0][1:])
+                col = int(temp[1][:-1])
                 # if you're at the last coordinate then append it to the rest of the maps
                 if i == len(rawCoords) - 1:
                     while i != maxTimesteps:
-                        timestepsToMaps[i].append([x, y])
+                        timestepsToMaps[i].append([row, col])
                         i += 1
-                else: timestepsToMaps[i].append([x, y])
+                else: timestepsToMaps[i].append([row, col])
             linenum += 1
 
     # make each map a np array
