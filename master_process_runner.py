@@ -26,21 +26,21 @@ if __name__ == "__main__":
     parser.add_argument("expnum", help="experiment number", type=int)
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
     parser.add_argument('generate_initial', type=lambda x: bool(str2bool(x)))
-    parser.add_argument('num_samples', help="number of scens to simulate", type=int)
-    parser.add_argument('max_samples', help="max number of scens to simulate", type=int)
+    parser.add_argument('--exp_name', type=str)
+    parser.add_argument('--data_folder', type=str)
     parser.add_argument('--num_parallel', type=int)
     args = parser.parse_args()
-    expnum, mini_test, generate_initial, num_samples, max_samples = args.expnum, args.mini_test, args.generate_initial, args.num_samples, args.max_samples
+    expnum, mini_test, generate_initial = args.expnum, args.mini_test, args.generate_initial
     print(args.expnum)
 
     iternum = 0
     if mini_test:
-        # source_maps_scens = "./data_collection/data/mini_benchmark_data"
-        source_maps_scens = "./data_collection/data/mini_den_benchmark"
+        source_maps_scens = f"./data_collection/data/{args.data_folder}"
+        # source_maps_scens = "./data_collection/data/mini_den_benchmark"
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    LE = f"data_collection/data/logs/EXP_den312d_test4"
+    LE = f"data_collection/data/logs/{args.data_folder}"
     # LE = f"data_collection/data/logs/EXP_large2"
     os.makedirs(LE, exist_ok=True)
     
