@@ -466,7 +466,7 @@ def generic_batch_runner(args):
             maximumAgents = mapsToMaxNumAgents[mapFile] + 1
             # maximumAgents = increment + 1 # Just run one setting as of now
             agentNumbers = list(range(increment, maximumAgents, increment))
-            # agentNumbers = [100, 200, 300]
+            agentNumbers = [100, 200, 300]
             # agentNumbers = [10, 50, 100]
             # agentNumbers = [mapsToMaxNumAgents[mapFile]] # Only do this to collect bds
             static_dict[mapFile]["agentRange"] = agentNumbers
@@ -601,7 +601,7 @@ if __name__ == "__main__":
     pymodel_parser.add_argument('--useGPU', type=lambda x: bool(str2bool(x)), required=True)
     pymodel_parser.add_argument('--k', type=int, help="local window size", required=True)
     pymodel_parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
-    pymodel_parser.add_argument('--maxSteps', type=int, required=True)
+    pymodel_parser.add_argument('--maxSteps', type=str, help="see simulator2", required=True)
     pymodel_parser.add_argument('--shieldType', type=str, default='CS-PIBT')
     # Output parameters
     pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)

@@ -349,10 +349,17 @@ def main(args: argparse.ArgumentParser):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
+    # Get max steps
+    if args.maxSteps.endswith('x'):
+        longest_single_path = bd[range(num_agents), start_locations[:,0], start_locations[:,1]].max()
+        max_steps = int(args.maxSteps[:-1]) * longest_single_path
+    else:
+        max_steps = int(args.maxSteps)
+
     # Simulate
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
             model, k, args.m, map_grid, bd, start_locations, goal_locations, 
-            args.maxSteps, args.shieldType)
+            max_steps, args.shieldType)
     solution_path = solution_path - k # (T,N,2) Removes padding
     goal_locations = goal_locations - k # (N,2) Removes padding
     
@@ -378,10 +385,10 @@ def main(args: argparse.ArgumentParser):
 
     # Create the scen files
     numToCreate = args.numScensToCreate
-    # Always include the first timestep + last 5 timesteps
-    # sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False)
-    # sampled_timesteps = np.concatenate([[0], sampled_timesteps, np.arange(solution_path.shape[0]-5, solution_path.shape[0])])
-    sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False)
+    # Always include the first timestep + last 5 timesteps, then sample the rest
+    sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False)
+    sampled_timesteps = np.concatenate([[0], sampled_timesteps, np.arange(solution_path.shape[0]-5, solution_path.shape[0])])
+    # sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False)
     for t in sampled_timesteps:
         # scenFilepath = args.outputScenPrefix + f".{t}.scen"
         mapname, bdname, scenname, _ = getMapBDScenAgents(args.scenFile)
@@ -400,7 +407,7 @@ python -m gnn.simulator2 --mapNpzFile data_collection/data/benchmark_data/consta
       --k=4 --m=5 \
       --maxSteps=200 --seed 0 --shieldType CS-PIBT \
       --outputCSVFile data_collection/data/logs/EXP_Test4/iter0/results.csv \
-      --outputPathsFile data_collection/data/logs/EXP_Test4/iter0//encountered_scens/paths.npy \
+      --outputPathsFile data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
       --numScensToCreate 10 --outputScenPrefix data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100
 """
 if __name__ == '__main__':
@@ -417,7 +424,7 @@ if __name__ == '__main__':
     parser.add_argument('--useGPU', type=lambda x: bool(str2bool(x)), required=True)
     parser.add_argument('--k', type=int, help="local window size", required=True)
     parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
-    parser.add_argument('--maxSteps', type=int, required=True)
+    parser.add_argument('--maxSteps', type=str, help="int or [int]x, e.g. 100 or 2x to denote multiplicative factor", required=True)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--shieldType', type=str, default='CS-PIBT')
     # Output parameters

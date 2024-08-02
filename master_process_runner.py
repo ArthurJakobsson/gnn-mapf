@@ -35,11 +35,13 @@ if __name__ == "__main__":
 
     iternum = 0
     if mini_test:
-        source_maps_scens = "./data_collection/data/mini_benchmark_data"
+        # source_maps_scens = "./data_collection/data/mini_benchmark_data"
+        source_maps_scens = "./data_collection/data/mini_den_benchmark"
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    LE = f"data_collection/data/logs/EXP_Small2"
+    LE = f"data_collection/data/logs/EXP_den312d_test4"
+    # LE = f"data_collection/data/logs/EXP_large2"
     os.makedirs(LE, exist_ok=True)
     
     num_cores = multiprocessing.cpu_count()
@@ -50,43 +52,15 @@ if __name__ == "__main__":
     #                     f"--outputFolder=../{LE}/labels/raw/", f"--expnum={expnum}", f"--firstIter={first_iteration}", f"--iter={iternum}",
     #                     f"--num_parallel={args.num_parallel}", "--cutoffTime=20"])
     # print(command)
-    # print(command)
     # pdb.set_trace()
     
     log_time("begin")
     constantMapAndBDFolder = "data_collection/data/benchmark_data/constant_npzs"
     constantMapNpz = f"{constantMapAndBDFolder}/all_maps.npz"
     
-    # if generate_initial:
-    #     command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
-    #                     f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
-    #                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
-    #                     f"--outputFolder={LE}/iter0/eecbs_outputs", 
-    #                     f"--num_parallel_runs={args.num_parallel}",
-    #                     "\"eecbs\"",
-    #                     f"--outputPathNpzFolder={LE}/iter0/eecbs_npzs",
-    #                     f"--firstIter={first_iteration}",
-    #                     f"--cutoffTime=20",
-    #                     f"--suboptimality=2"])
-    #     ### Example command for minibenchmark
-    #     # python ./data_collection/eecbs_batchrunner2.py --mapFolder=./data_collection/data/mini_benchmark_data/maps 
-    #     #           --scenFolder=./data_collection/data/mini_benchmark_data/scens --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ 
-    #     #           --expnum=0 --firstIter=true --iter=0 --num_parallel=50 --cutoffTime=20
-    #     ### Example command for benchmark
-    #     # python ./data_collection/eecbs_batchrunner2.py --mapFolder=./data_collection/data/benchmark_data/maps 
-    #     #           --scenFolder=./data_collection/data/benchmark_data/scens --outputFolder=../data_collection/data/logs/EXP0/labels/raw/ 
-    #     #           --expnum=0 --firstIter=true --iter=0 --num_parallel=50 --cutoffTime=20
-    #     print(command)
-    #     subprocess.run(command, shell=True, check=True)
-    # else:
-    #     assert(os.path.exists(f"{LE}/iter0/eecbs_npzs/warehouse_10_20_10_2_2_paths.npz"))
-    
-    # log_time("initial generation")
-    # print("Done with first eecbs run")
-    # # pdb.set_trace()
 
     processed_folders_list = []
-    for iternum in range(30):
+    for iternum in range(10):
         iterFolder = f"{LE}/iter{iternum}"
         if not os.path.exists(iterFolder):
             os.makedirs(iterFolder)
@@ -144,6 +118,8 @@ if __name__ == "__main__":
         processed_folders_list.append(processed_folder)
         log_time(f"Iter {iternum}: dataloader")
 
+        # processed_folders_list = processed_folders_list[-1:] # Only keep the last 1 iterations
+
         ### Train the model
         command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{expnum}", 
                             f"--iternum={iternum}", f"--num_cores={num_cores}", 
@@ -164,14 +140,15 @@ if __name__ == "__main__":
                         "--useGPU=False",
                         "--k=4",
                         "--m=5",
-                        "--maxSteps=200",
-                        "--numScensToCreate=10",])
+                        "--maxSteps=2x",
+                        "--numScensToCreate=50",])
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: simulator")
 
 
         ### Create a folder with scen files for the next iteration
+        # Move scens from pymodel_outputs_folder/[MAPNAME] to encountered_scens/
         os.makedirs(encountered_scens, exist_ok=True)
         for mapfolder in os.listdir(pymodel_outputs_folder):
             folder_path = f"{pymodel_outputs_folder}/{mapfolder}"
