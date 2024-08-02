@@ -163,6 +163,8 @@ def detectExistingStatus(runnerArgs, mapfile, aNum, scenfile, df): # TODO update
             success = df["solution cost"].values[-1] != -1
         elif runnerArgs["command"] == "pymodel":
             success = df["success"].values[0] == 1
+        else:
+            raise KeyError("Unknown command: {}".format(runnerArgs["command"]))
         # success = df["overall_solution"].values[0] == 1
         return True, success
     else:
@@ -198,6 +200,9 @@ def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputFi
 
 
 def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutputFilepath, static_dict, eecbsArgs, mapName, curAgentNum):
+    """Inputs:
+        curAgentNum: This is only used if static_dict["agentRange"] is not empty
+    """
     ## Load separate CSVs and combine them
     combined_dfs = []
     for i in range(num_workers):
@@ -210,7 +215,11 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
         combined_dfs.append(pd.read_csv(combined_filename, index_col=False))
     combined_df = pd.concat(combined_dfs)
     combined_df = combined_df.drop_duplicates()
-    print("Map: {}, agentNum: {}, combined_df: {}".format(mapName, curAgentNum, combined_df.shape))
+    if len(static_dict[mapName]["agentRange"]) > 0:
+        print("Completed map: {}, agentNum: {}, combined_df: {}".format(mapName, curAgentNum, combined_df.shape))
+    else:
+        unique_agents = set(static_dict[mapName]["agentsPerScen"])
+        print("Completed map: {}, agentNums: {}, combined_df: {}".format(mapName, unique_agents, combined_df.shape))
     combined_df.to_csv(combined_filename, index=False)
     
     ## Check status on current runs
@@ -218,13 +227,16 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
     numSuccess = 0
     numToRunTotal = len(static_dict[mapName]["scens"])
     for scen, agentNum in zip(static_dict[mapName]["scens"], static_dict[mapName]["agentsPerScen"]):
-        runBefore, status = detectExistingStatus(eecbsArgs, mapFile, curAgentNum, scen, combined_df)
+        runBefore, status = detectExistingStatus(eecbsArgs, mapFile, agentNum, scen, combined_df)
+        if not runBefore:
+            print("Error: {}, {}, {}, {}".format(mapFile, agentNum, scen, combined_filename))
         assert(runBefore)
         numSuccess += status
 
     # shouldRunDataManipulator = False
     finished = False
     if len(static_dict[mapName]["agentRange"]) > 0: # If we are running a range of agents, check the next one
+        print(numSuccess, numToRunTotal, curAgentNum, mapName)
         if numSuccess < numToRunTotal/2:
             print("Early terminating as only succeeded {}/{} for {} agents on map {}".format(
                                             numSuccess, numToRunTotal, curAgentNum, mapName))
@@ -451,9 +463,11 @@ def generic_batch_runner(args):
         ### Get the number of agents to run for each scen
         if "benchmark" in scenInputFolder: # pre-loop run
             increment = min(100,  mapsToMaxNumAgents[mapFile])
-            # maximumAgents = mapsToMaxNumAgents[mapFile] + 1
-            maximumAgents = increment + 1 # Just run one setting as of now
+            maximumAgents = mapsToMaxNumAgents[mapFile] + 1
+            # maximumAgents = increment + 1 # Just run one setting as of now
             agentNumbers = list(range(increment, maximumAgents, increment))
+            # agentNumbers = [100, 200, 300]
+            # agentNumbers = [10, 50, 100]
             # agentNumbers = [mapsToMaxNumAgents[mapFile]] # Only do this to collect bds
             static_dict[mapFile]["agentRange"] = agentNumbers
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])

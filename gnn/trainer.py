@@ -133,8 +133,10 @@ def train(combined_dataset, writer):
     train_size = int(0.8 * len(combined_dataset))
     test_size = len(combined_dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(combined_dataset, [train_size, test_size])
-    loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    BATCH_SIZE = 64 #1024
+    NW = 4 # 32
+    loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NW, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NW, pin_memory=True)
 
     num_node_features = combined_dataset.datasets[0].num_node_features # datasets[0] is the first dataset in the combined dataset
     num_classes = combined_dataset.datasets[0].num_classes
@@ -292,6 +294,11 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(f"./data_collection/data/logs/train_logs/"+expname+"_"+itername)
     model_path = exp_folder+f"/{itername}"+"/models/"
+    finished_file = model_path + "/finished.txt"
+    if os.path.exists(finished_file):
+        print(f"Model already trained for {expname} {itername}")
+        exit(0)
+
     os.makedirs(model_path, exist_ok=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -310,3 +317,6 @@ if __name__ == "__main__":
     print(f"Combined {len(dataset_list)} datasets for a combined size of {len(dataset)}")
     
     model = train(dataset, writer)
+
+    with open(f"{model_path}/finished.txt", "w") as f:
+        f.write("")

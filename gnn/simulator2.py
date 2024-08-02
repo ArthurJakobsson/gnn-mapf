@@ -77,15 +77,15 @@ def getCosts(solution_path, goal_locs):
     total_cost_true = last_timestep_at_goal.sum()
 
     resting_at_goal = np.logical_and(at_goal[:-1], at_goal[1:]) # (T-1,N)
-    total_cost_not_resting_at_goal = (1-resting_at_goal).sum()
+    total_cost_not_resting_at_goal = (1-resting_at_goal).sum() # int
 
-    num_agents_at_goal = np.sum(at_goal[-1])
+    num_agents_at_goal = np.sum(at_goal[-1]) # int
     assert(total_cost_true >= total_cost_not_resting_at_goal)
     assert(total_cost_true <= (solution_path.shape[0]-1)*solution_path.shape[1])
     return total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal
 
 def testGetCosts():
-    goal_locs = np.array([[1,10], [2,20], [3,30]])
+    goal_locs = np.array([[1,10], [2,20], [3,30]]) # (N=3,2)
     solution_path = np.array([
         [[1,9],  [1,10], [1,10], [1,9],  [1,10]], # TC=4, TNRAG=3
         [[0,20], [1,20], [2,20], [2,20], [2,20]], # TC=2, TNRAG=2
@@ -101,8 +101,7 @@ def testGetCosts():
     print("getCosts test passed!")
 
 LABEL_TO_MOVES = np.array([[0,0], [0,1], [1,0], [-1,0], [0,-1]]) #  Stop, Right, Down, Up, Left
-# LABEL_TO_MOVES = np.array([[0,0], [1,0], [0,1], [0,-1], [-1,0]])
-# direction_labels = np.array([(0,0), (0,1), (1,0), (-1,0), (0,-1)]) # (5,2)
+ # This needs to match Pipeline's action ordering
 
 def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_matrix, 
          occupied_nodes, occupied_edges, current_locs, current_locs_to_agent,
@@ -124,14 +123,6 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
             return current_locs_to_agent[tuple(aLoc)]
         else:
             return -1
-
-    # up = [-1, 0]
-    # down = [1, 0]
-    # left = [0, -1]
-    # right = [0, 1]
-    # stop = [0, 0]    
-    # # moves_ordered = np.array([up, left, down, right, stop])
-    # moves_ordered = np.array([stop, right, down, up, left]) # This needs to match Pipeline's action ordering
 
     moves_ordered = LABEL_TO_MOVES[action_preferences[agent_id]]
     if agent_id in constrained_agents.keys(): # Force agent to only pick that action if constrained
@@ -253,15 +244,29 @@ def createScenFile(locs, goal_locs, map_name, scenFilepath):
 
 def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
              max_steps, shield_type):
+    """Inputs:
+        grid_map: (H,W), note includes padding
+        bd: (N,H,W), note includes padding
+        start_locations: (N,2)
+        goal_locations: (N,2)
+    """
     cur_locs = start_locations # (N,2)
     # Ensure no start/goal locations are on obstacles
     assert(grid_map[start_locations[:,0], start_locations[:,1]].sum() == 0)
     assert(grid_map[goal_locations[:,0], goal_locations[:,1]].sum() == 0)
 
-    agent_priorities = np.random.permutation(len(cur_locs)) # (N)
+    # agent_priorities = np.random.permutation(len(cur_locs)) # (N)
+    agent_priorities = bd[range(len(start_locations)), start_locations[:,0], start_locations[:,1]] # (N)
+    agent_priorities = agent_priorities / agent_priorities.max() # Normalize to [0,1]
+
     solution_path = [cur_locs.copy()]
     success = False
     for step in range(max_steps):
+        # Update priorities
+        agents_at_goal = np.all(np.equal(cur_locs, goal_locations), axis=1) # (N)
+        agent_priorities[agents_at_goal] = 0 # Agents at goal have priority 0
+        agent_priorities[agents_at_goal == False] += 1 # Agents not at goal increase priority by 1
+
         with torch.no_grad():
             # Create the data object
             data = create_data_object(cur_locs, bd, grid_map, k, m)
@@ -373,6 +378,9 @@ def main(args: argparse.ArgumentParser):
 
     # Create the scen files
     numToCreate = args.numScensToCreate
+    # Always include the first timestep + last 5 timesteps
+    # sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False)
+    # sampled_timesteps = np.concatenate([[0], sampled_timesteps, np.arange(solution_path.shape[0]-5, solution_path.shape[0])])
     sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False)
     for t in sampled_timesteps:
         # scenFilepath = args.outputScenPrefix + f".{t}.scen"
