@@ -6,5 +6,8 @@
     "vector": "cpp",
     "istream": "cpp",
     "iostream": "cpp"
-  }
+  },
+  "python.analysis.exclude": [
+    "**/data"
+  ]
 }
