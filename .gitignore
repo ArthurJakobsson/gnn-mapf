@@ -10,6 +10,7 @@ gnn/test.py
 gnn/model_log/
 gnn/data/
 .DS_Store
+animations/*
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*
