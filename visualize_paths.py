@@ -152,22 +152,22 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
 
     # Visualize
     tmpFolder = "./animations/tmpImgs"
-    for t in range(0, max_plan_length):
-        for t in range(max_plan_length-1, -1, -1):
-            plt.imshow(mapdata, cmap="Greys")
-            for i in range(0, agents):
-                plan = id2plan[:,i]
-                if t > len(plan)-1:
-                    plt.scatter(plan[-1][1], plan[-1][0], c="grey") # RVMod: Fixed by modding
+    # for t in range(0, max_plan_length):
+    for t in range(max_plan_length-1, -1, -1):
+        plt.imshow(mapdata, cmap="Greys")
+        for i in range(0, agents):
+            plan = id2plan[:,i]
+            if t > len(plan)-1:
+                plt.scatter(plan[-1][1], plan[-1][0], c="grey") # RVMod: Fixed by modding
+            else:
+                if np.all(plan[t] == id2goal[i]):
+                    plt.scatter(plan[t][1], plan[t][0], c="grey")
                 else:
-                    if np.all(plan[t] == id2goal[i]):
-                        plt.scatter(plan[t][1], plan[t][0], c="grey")
-                    else:
-                        plt.scatter(plan[t][1], plan[t][0], c=colors[i%len(colors)]) # RVMod: Fixed by modding
-            name = "{}/{:03d}.png".format(tmpFolder, t)
-            plt.title(f"t = {t}")
-            plt.savefig(name)
-            plt.cla()
+                    plt.scatter(plan[t][1], plan[t][0], c=colors[i%len(colors)]) # RVMod: Fixed by modding
+        name = "{}/{:03d}.png".format(tmpFolder, t)
+        plt.title(f"t = {t}")
+        plt.savefig(name)
+        plt.cla()
     
     if outputfile is None:
         outputfile = "animation.gif"
@@ -183,20 +183,27 @@ def main():
     args = parser.parse_args()
 
     # Call the animate_agents function with the log file path
-    mapdata = readMap("data_collection/data/benchmark_data/maps/random_32_32_10.map")
-    log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
-    scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
-    id2plan = np.load(log_file)
-    
-    start_locs, id2goal  = parse_scene(scen_file)
-    
-    max_plan_length = id2plan.shape[0]
-    agents = id2plan.shape[1]
+    mapdata = readMap("data_collection/data/benchmark_data/maps/warehouse_10_20_10_2_2.map")
+    # log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
+    # scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
+    log_dir = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/warehouse_10_20_10_2_2/paths/"
+    log_dir_list = os.listdir("data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/warehouse_10_20_10_2_2/paths/")
     
     
-    pdb.set_trace()
-    # mapdata, id2plan, id2goal, max_plan_length, agents = readJSSSolutionPaths(args.log_file)
-    animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, args.output)
+    for i, log in enumerate(log_dir_list):
+        if ".npy" not in log:
+            continue
+        scen_abbr = log.split(".")[0]
+        index = [idx for idx, s in enumerate(log_dir_list) if scen_abbr in s and ".npy" not in s][0]
+        id2plan = np.load(log_dir + log)
+        scen_file = log_dir_list[index]
+        start_locs, id2goal  = parse_scene(log_dir + scen_file)
+        
+        max_plan_length = id2plan.shape[0]
+        agents = id2plan.shape[1]
+        # mapdata, id2plan, id2goal, max_plan_length, agents = readJSSSolutionPaths(args.log_file)
+        output = f"{args.output}_{i}.gif"
+        animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, output)
 
 
 
