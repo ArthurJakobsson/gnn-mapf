@@ -96,7 +96,8 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     # scenname = (scenfile.split("/")[-1])
     # mapname = mapfile.split("/")[-1].split(".")[0]
     mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
-    command = f"conda activate pytorchfun && python -m gnn.simulator2"
+    # command = f"conda activate pytorchfun && python -m gnn.simulator2"
+    command = f"python -m gnn.simulator2"
 
     # Simulator parameters
     for aKey in runnerArgs["args"]:
