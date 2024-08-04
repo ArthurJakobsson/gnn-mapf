@@ -163,7 +163,7 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
                 if np.all(plan[t] == id2goal[i]):
                     plt.scatter(plan[t][1], plan[t][0], c="grey")
                 else:
-                    plt.scatter(plan[t][1], plan[t][0], c=colors[i%len(colors)]) # RVMod: Fixed by modding
+                    plt.scatter(plan[t][1], plan[t][0], s=1, c=colors[i%len(colors)]) # RVMod: Fixed by modding
         name = "{}/{:03d}.png".format(tmpFolder, t)
         plt.title(f"t = {t}")
         plt.savefig(name)
@@ -179,7 +179,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Visualize agent paths from log file')
     # parser.add_argument('log_file', type=str, help='Path to the log file')
-    parser.add_argument('--output', type=str, help='Path to the output gif file', default="animation.gif")
+    parser.add_argument('--output', type=str, help='Path to the output gif file', default="animation")
     args = parser.parse_args()
 
     # Call the animate_agents function with the log file path

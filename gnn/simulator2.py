@@ -306,6 +306,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
 
 
 def main(args: argparse.ArgumentParser):
+    torch.set_num_threads(1)
     k = args.k
     # Load the map
     if not os.path.exists(args.mapNpzFile):
