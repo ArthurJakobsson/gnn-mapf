@@ -143,8 +143,8 @@ if __name__ == "__main__":
                         "\"pymodel\"",
                         f"--modelPath={iterFolder}/models/max_test_acc.pt",
                         "--useGPU=False",
-                        "--k={args.k}",
-                        "--m={args.m}",
+                        f"--k={args.k}",
+                        f"--m={args.m}",
                         "--maxSteps=2x",
                         "--numScensToCreate=50",])
         print(command)
