@@ -277,6 +277,8 @@ if __name__ == "__main__":
     parser.add_argument("--experiment", help="experiment name", type=str)
     parser.add_argument("--iternum", help="iteration name", type=int)
     parser.add_argument("--num_cores", help="num_cores", type=int)
+    parser.add_argument("--k", help="window size", type=int)
+    parser.add_argument("--m", help="num_nearby_agents", type=int)
 
     # parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
     # parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
@@ -310,7 +312,7 @@ if __name__ == "__main__":
         if not os.path.exists(folder):
             raise Exception(f"Folder {folder} does not exist!")
         dataset = MyOwnDataset(mapNpzFile=None, bdNpzFolder=None, pathNpzFolder=None,
-                            processedOutputFolder=folder, num_cores=1)
+                            processedOutputFolder=folder, num_cores=1, k=args.k, m=args.m)
         dataset_list.append(dataset)
     # Combine into single large dataset
     dataset = torch.utils.data.ConcatDataset(dataset_list)

@@ -29,6 +29,8 @@ if __name__ == "__main__":
     parser.add_argument('--exp_name', type=str)
     parser.add_argument('--data_folder', type=str)
     parser.add_argument('--num_parallel', type=int)
+    parser.add_argument('--k', type=int, default=4)
+    parser.add_argument('--m', type=int, default=5)
     args = parser.parse_args()
     expnum, mini_test, generate_initial = args.expnum, args.mini_test, args.generate_initial
     print(args.expnum)
@@ -123,7 +125,8 @@ if __name__ == "__main__":
         ### Train the model
         command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{expnum}", 
                             f"--iternum={iternum}", f"--num_cores={num_cores}", 
-                            f"--processedFolders={','.join(processed_folders_list)}"])
+                            f"--processedFolders={','.join(processed_folders_list)}",
+                            f"--k={args.k}", f"--m={args.m}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: trainer")
@@ -138,8 +141,8 @@ if __name__ == "__main__":
                         "\"pymodel\"",
                         f"--modelPath={iterFolder}/models/max_test_acc.pt",
                         "--useGPU=False",
-                        "--k=4",
-                        "--m=5",
+                        "--k={args.k}",
+                        "--m={args.m}",
                         "--maxSteps=2x",
                         "--numScensToCreate=50",])
         print(command)

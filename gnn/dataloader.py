@@ -132,7 +132,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
 
 class MyOwnDataset(Dataset):
     def __init__(self, mapNpzFile, bdNpzFolder, pathNpzFolder,
-                processedOutputFolder, num_cores):
+                processedOutputFolder, num_cores, k, m):
         if num_cores != 1:
             raise NotImplementedError("Multiprocessing not supported yet")
         
@@ -147,8 +147,8 @@ class MyOwnDataset(Dataset):
         self.ct = CustomTimer()
 
         self.num_cores = num_cores
-        self.k = 4 # padding size
-        self.m = 5 # number of agents considered close
+        self.k = k # padding size
+        self.m = m # number of agents considered close
         self.size = float('inf')
         self.max_agents = 500
 
