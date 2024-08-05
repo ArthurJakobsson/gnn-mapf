@@ -18,7 +18,7 @@ def log_time(event_name):
 
 ### Example command for full benchmark
 """ 
-Small run: python -m master_process_runner 0 t t 100 1000 --num_parallel=50
+Small run: python -m master_process_runner 0 t t --exp_name=EXP_{} --data_folder={}_benchmark --num_parallel=50
 Big run: python -m master_process_runner 0 f t 100 1000 --num_parallel=50
 """
 if __name__ == "__main__":

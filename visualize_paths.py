@@ -158,10 +158,10 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
         for i in range(0, agents):
             plan = id2plan[:,i]
             if t > len(plan)-1:
-                plt.scatter(plan[-1][1], plan[-1][0], c="grey") # RVMod: Fixed by modding
+                plt.scatter(plan[-1][1], plan[-1][0],s=1 c="grey") # RVMod: Fixed by modding
             else:
                 if np.all(plan[t] == id2goal[i]):
-                    plt.scatter(plan[t][1], plan[t][0], c="grey")
+                    plt.scatter(plan[t][1], plan[t][0],s=1, c="grey")
                 else:
                     plt.scatter(plan[t][1], plan[t][0], s=1, c=colors[i%len(colors)]) # RVMod: Fixed by modding
         name = "{}/{:03d}.png".format(tmpFolder, t)
@@ -183,18 +183,18 @@ def main():
     args = parser.parse_args()
 
     # Call the animate_agents function with the log file path
-    mapdata = readMap("data_collection/data/benchmark_data/maps/warehouse_10_20_10_2_2.map")
+    mapdata = readMap("data_collection/data/benchmark_data/maps/den312d.map")
     # log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
     # scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
-    log_dir = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/warehouse_10_20_10_2_2/paths/"
-    log_dir_list = os.listdir("data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/warehouse_10_20_10_2_2/paths/")
+    log_dir = "data_collection/data/logs/EXP_den312_grid_locs/iter2/pymodel_outputs/den312d/paths/"
+    log_dir_list = os.listdir(log_dir)
     
     
     for i, log in enumerate(log_dir_list):
         if ".npy" not in log:
             continue
         scen_abbr = log.split(".")[0]
-        index = [idx for idx, s in enumerate(log_dir_list) if scen_abbr in s and ".npy" not in s][0]
+        index = [idx for idx, s in enumerate(log_dir_list) if scen_abbr in s and ".npy" not in s and "300" in s][0]
         id2plan = np.load(log_dir + log)
         scen_file = log_dir_list[index]
         start_locs, id2goal  = parse_scene(log_dir + scen_file)

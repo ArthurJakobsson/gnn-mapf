@@ -93,11 +93,11 @@ class GNNStack(nn.Module):
 class CustomConv(pyg_nn.MessagePassing):
     def __init__(self, in_channels, out_channels):
         super(CustomConv, self).__init__(aggr='add')
-        linear_in = 98
+        linear_in = 147 # 98
         self.lin = nn.Linear(linear_in, out_channels)
         self.lin_self = nn.Linear(linear_in, out_channels)
-        self.conv = nn.Conv2d(2, 2, kernel_size=(3, 3), stride=1, padding=0)
-        self.conv_self = nn.Conv2d(2, 2, kernel_size=(3, 3), stride=1, padding=0)
+        self.conv = nn.Conv2d(3, 3, kernel_size=(3, 3), stride=1, padding=0)
+        self.conv_self = nn.Conv2d(3, 3, kernel_size=(3, 3), stride=1, padding=0)
 
     def forward(self, x, edge_index):
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)

@@ -78,7 +78,11 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     grid_slices = grid[x_mesh, y_mesh] # (N,D,D)
     bd_slices = bd_list[np.arange(num_agents)[:,None,None], x_mesh, y_mesh] # (N,D,D)
-    node_features = np.stack([grid_slices, bd_slices], axis=1) # (N,2,D,D)
+    # pdb.set_trace()
+    agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
+    agent_pos[rowLocs, colLocs] = 1 # (W,H)
+    agent_pos_slices = agent_pos[x_mesh, y_mesh] # (N,D,D)
+    node_features = np.stack([grid_slices, bd_slices, agent_pos_slices], axis=1) # (N,3,D,D)
 
     # pdb.set_trace()
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
