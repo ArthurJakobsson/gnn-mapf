@@ -415,8 +415,10 @@ if __name__ == "__main__":
     parser.add_argument("--bdNpzFolder", help="bd npz folder", type=str, required=True)
     parser.add_argument("--pathNpzFolder", help="path npz folder", type=str, required=True)
     parser.add_argument("--processedFolder", help="processed folder to save pt", type=str, required=True)
+    parser.add_argument("--k", help="window size", type=int)
+    parser.add_argument("--m", help="num_nearby_agents", type=int)
     args = parser.parse_args()
 
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
-                        num_cores=1)
+                        num_cores=1, k=args.k, m=args.m)

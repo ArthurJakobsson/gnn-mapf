@@ -114,7 +114,9 @@ if __name__ == "__main__":
                             f"--mapNpzFile={constantMapNpz}", 
                             f"--bdNpzFolder={constantMapAndBDFolder}",
                             f"--pathNpzFolder={eecbs_path_npzs_folder}",
-                            f"--processedFolder={processed_folder}"])
+                            f"--processedFolder={processed_folder}",
+                            f"--k={args.k}",
+                            f"--m={args.m}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
         processed_folders_list.append(processed_folder)

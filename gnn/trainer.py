@@ -93,7 +93,7 @@ class GNNStack(nn.Module):
 class CustomConv(pyg_nn.MessagePassing):
     def __init__(self, in_channels, out_channels):
         super(CustomConv, self).__init__(aggr='add')
-        linear_in = 147 # 98
+        linear_in = (in_channels-2)**2 * 3#9 #147 # 98
         self.lin = nn.Linear(linear_in, out_channels)
         self.lin_self = nn.Linear(linear_in, out_channels)
         self.conv = nn.Conv2d(3, 3, kernel_size=(3, 3), stride=1, padding=0)
@@ -102,6 +102,7 @@ class CustomConv(pyg_nn.MessagePassing):
     def forward(self, x, edge_index):
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)
         self_x = F.relu(torch.flatten(self.conv_self(x), start_dim=1))
+        pdb.set_trace()
         self_x = self.lin_self(self_x)
 
         x_neighbors = F.relu(torch.flatten(self.conv(x), start_dim=1))
@@ -140,6 +141,7 @@ def train(combined_dataset, writer):
 
     num_node_features = combined_dataset.datasets[0].num_node_features # datasets[0] is the first dataset in the combined dataset
     num_classes = combined_dataset.datasets[0].num_classes
+    pdb.set_trace()
     model = GNNStack(num_node_features, 128, num_classes, task='node').to(device)
     opt = optim.AdamW(model.parameters(), lr=0.005, weight_decay=5e-4)
     scaler = GradScaler()
