@@ -158,7 +158,7 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
         for i in range(0, agents):
             plan = id2plan[:,i]
             if t > len(plan)-1:
-                plt.scatter(plan[-1][1], plan[-1][0],s=1 c="grey") # RVMod: Fixed by modding
+                plt.scatter(plan[-1][1], plan[-1][0],s=1, c="grey") # RVMod: Fixed by modding
             else:
                 if np.all(plan[t] == id2goal[i]):
                     plt.scatter(plan[t][1], plan[t][0],s=1, c="grey")

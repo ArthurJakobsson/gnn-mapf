@@ -55,7 +55,7 @@ def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
     assert(data.x[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     return data
 
-def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
+def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array([])):
     """
     poslist: (N,2) positions
     bd_list: (N,W,H) bd's
@@ -82,7 +82,18 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
     agent_pos[rowLocs, colLocs] = 1 # (W,H)
     agent_pos_slices = agent_pos[x_mesh, y_mesh] # (N,D,D)
-    node_features = np.stack([grid_slices, bd_slices, agent_pos_slices], axis=1) # (N,3,D,D)
+    
+    goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
+    goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)
+    # goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
+    for i in range(num_agents):
+        goal_pos[i, goalRowLocs[i], goalColLocs[i]] = 1
+    goal_pos_slices = goal_pos[np.arange(num_agents)[:,None,None],x_mesh, y_mesh] # (N,D,D)
+    # pdb.set_trace()
+    assert(goal_pos_slices.shape==bd_slices.shape)
+    
+    # if pos_locs == goal_loc add a 1 otherwise keep it at a 0
+    node_features = np.stack([grid_slices, bd_slices, goal_pos_slices], axis=1) # (N,3,D,D)
 
     # pdb.set_trace()
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
@@ -221,9 +232,9 @@ class MyOwnDataset(Dataset):
         # if not time_instance: 
         #     return #idk why but the last one is None
         assert(time_instance is not None)
-        pos_list, labels, bd_list, grid = time_instance
+        pos_list, labels, bd_list, grid, goal_locs = time_instance
 
-        curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, labels)
+        curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, goal_locs, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata

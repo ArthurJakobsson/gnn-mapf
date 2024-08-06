@@ -146,7 +146,7 @@ if __name__ == "__main__":
                         f"--k={args.k}",
                         f"--m={args.m}",
                         "--maxSteps=2x",
-                        "--numScensToCreate=50",])
+                        "--numScensToCreate=50"])
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: simulator")

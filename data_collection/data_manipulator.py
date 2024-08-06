@@ -108,6 +108,7 @@ class PipelineDataset(Dataset):
         # return np.array(locs), np.array(labels), bd, grid
         cur_locs = paths[timestep] # (N,2)
         next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
+        end_locs = paths[-1]
         deltas = next_locs - cur_locs # (N,2)
 
         # Define the mapping from direction vectors to indices
@@ -118,7 +119,7 @@ class PipelineDataset(Dataset):
         labels = np.eye(direction_labels.shape[0])[indices]
         # pdb.set_trace()
         # assert(np.all(labels == slow_labels))
-        return cur_locs, labels, bd, grid
+        return cur_locs, labels, bd, grid, end_locs
 
 
     def find_instance(self, idx):
@@ -507,7 +508,7 @@ def main():
         print(len(loader), " train size")
         random_samples = np.random.choice(len(loader), 10)
         for i in random_samples:
-            locs, labels, bd, grid = loader[i] # This will fail if not parsed/loaded properly
+            locs, labels, bd, grid, goal_locs = loader[i] # This will fail if not parsed/loaded properly
             assert(labels.shape[1] == 5)
             assert(locs.shape[1] == 2)
             # grid/bd should be 9,9 for single agent but is full map for graph version

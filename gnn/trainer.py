@@ -150,7 +150,7 @@ def train(combined_dataset, writer):
     patience = 10
     no_improvement = 0
 
-    for epoch in range(10+1):
+    for epoch in range(15+1):
         total_loss = 0
         correct = 0
         second_correct = 0

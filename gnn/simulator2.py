@@ -269,7 +269,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
 
         with torch.no_grad():
             # Create the data object
-            data = create_data_object(cur_locs, bd, grid_map, k, m)
+            data = create_data_object(cur_locs, bd, grid_map, k, m, goal_locations)
             data = normalize_graph_data(data, k)
             # pdb.set_trace()
             data = data.to(device)
