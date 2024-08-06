@@ -306,7 +306,10 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
 
 
 def main(args: argparse.ArgumentParser):
+    # Setting constants
+    torch.set_num_threads(1) # Make pytorch use only 1 thread, otherwise by default will try using all threads    
     k = args.k
+
     # Load the map
     if not os.path.exists(args.mapNpzFile):
         raise FileNotFoundError('Map file: {} not found.'.format(args.mapNpzFile))

@@ -96,8 +96,10 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     # scenname = (scenfile.split("/")[-1])
     # mapname = mapfile.split("/")[-1].split(".")[0]
     mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
-    # command = f"conda activate pytorchfun && python -m gnn.simulator2"
-    command = f"python -m gnn.simulator2"
+    command = ""
+    if runnerArgs["condaEnv"] is not None:
+        command += "conda activate {} && ".format(runnerArgs["condaEnv"]) # e.g. conda activate pytorchfun && python -m gnn.simulator2
+    command += "python -m gnn.simulator2"
 
     # Simulator parameters
     for aKey in runnerArgs["args"]:
@@ -329,6 +331,7 @@ def specificRunnerDictSetup(args):
     elif args.command == "pymodel":
         runnerArgs = {
             "command": "pymodel",
+            "condaEnv": args.condaEnv,
             "args": { # These are used for detection as well
                 "modelPath": args.modelPath,
                 "useGPU": args.useGPU,
@@ -450,6 +453,21 @@ def generic_batch_runner(args):
             "agentRange": [], # This is used for when we want to run a range of agents, e.g. for benchmark scens
             "outputFolder": f"{outputFolder}/{mapFile}", # This is where the output of the runs
         }
+        ### Clean / remove the folders if the command is "clean"
+        if args.command == "clean":
+            mapOutputFolder = static_dict[mapFile]["outputFolder"]
+            if os.path.exists(f"{mapOutputFolder}/bd/"):
+                shutil.rmtree(f"{mapOutputFolder}/bd/") # Delete the bd folder
+            if os.path.exists(f"{mapOutputFolder}/paths/"):
+                if args.keepNpys:
+                    # If keepNpys is true, then iterate through the paths folder and remove all files that are not npy
+                    for file in os.listdir(f"{mapOutputFolder}/paths/"):
+                        if not file.endswith(".npy"):
+                            os.remove(f"{mapOutputFolder}/paths/{file}")
+                else: # Remove the entire paths folder
+                    shutil.rmtree(f"{mapOutputFolder}/paths/") # Delete the paths folder
+            # Keep the csvs folder, it should just contain the combined.csv file
+            continue
 
         ### Checks if the finished txt already exists, if so skip
         if os.path.exists(idToWorkerOutputFilepath(-2, mapFile)): # Check for finished.txt which signifies if eecbs has already been run
@@ -463,11 +481,14 @@ def generic_batch_runner(args):
 
         ### Get the number of agents to run for each scen
         if "benchmark" in scenInputFolder: # pre-loop run
-            increment = min(100,  mapsToMaxNumAgents[mapFile])
-            maximumAgents = mapsToMaxNumAgents[mapFile] + 1
+            if args.numAgents == "increment":
+                increment = min(100,  mapsToMaxNumAgents[mapFile])
+                maximumAgents = mapsToMaxNumAgents[mapFile] + 1
+                agentNumbers = list(range(increment, maximumAgents, increment))
+            else:
+                agentNumbers = [int(x) for x in args.numAgents.split(",")]
             # maximumAgents = increment + 1 # Just run one setting as of now
-            agentNumbers = list(range(increment, maximumAgents, increment))
-            agentNumbers = [100, 200, 300]
+            # agentNumbers = [100, 200, 300][:1]
             # agentNumbers = [10, 50, 100]
             # agentNumbers = [mapsToMaxNumAgents[mapFile]] # Only do this to collect bds
             static_dict[mapFile]["agentRange"] = agentNumbers
@@ -488,6 +509,9 @@ def generic_batch_runner(args):
         assert(len(static_dict[mapFile]["agentsPerScen"]) > 0)
         nameToNumRun[mapFile] = len(mapsToScens[mapFile])
         # print(f"Map: {mapFile} requires {nameToNumRun[mapFile]} runs")
+
+    if args.command == "clean":
+        return
 
     # Start worker processes with corresponding tmux session
     for worker_id in range(num_workers):
@@ -531,7 +555,7 @@ def generic_batch_runner(args):
     ct.stop("MAPF Calls")
     print("------------ Finished {} Calls in :{:.3f} seconds".format(args.command, ct.getTimes("MAPF Calls")))
 
-    ### Clean up the bds, csvs, and paths folders
+    # ### Clean up the bds, csvs, and paths folders
     # for mapFile in mapsToScens:
     #     mapOutputFolder = static_dict[mapFile]["outputFolder"]
     #     if os.path.exists(f"{mapOutputFolder}/bd/"):
@@ -546,43 +570,61 @@ def generic_batch_runner(args):
                            args.outputPathNpzFolder, mapsInputFolder, num_workers)
 
 
-### Example calls of BatchRunner3
-# python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps 
-#                  --scenFolder=data_collection/data/benchmark_data/scens 
-#                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2
-#                  --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/[eecbs_outputs or pymodel_outputs]
-#                  --num_parallel=50
-#  EECBS specific:
-#                  "eecbs"
-#                  --outputPathNpzFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_npzs
-#                  --firstIter=false --cutoffTime=5
-# Python model specific:
-#                  "pymodel"
-#                  --modelPath=data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt
-#                  --k=4 --m=5 --maxSteps=100 --shieldType=CS-PIBT
-### Collecting initial bd and map data
-# python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps
-#                  --scenFolder=data_collection/data/benchmark_data/scens 
-#                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2
-#                  --outputFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs
-#                  --num_parallel=50
-#                  "eecbs"
-#                  --outputPathNpzFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_npzs
-#                  --firstIter=true --cutoffTime=1
+## Example calls of BatchRunner3
+"""
+Note: These are likely outdated, but the general structure should be the same
+python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps \
+                 --scenFolder=data_collection/data/benchmark_data/scens \
+                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
+                 --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/[eecbs_outputs or pymodel_outputs] \
+                 --num_parallel_runs=50 \
+EECBS specific:
+                 "eecbs" \
+                 --outputPathNpzFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_npzs \
+                 --firstIter=false --cutoffTime=5 \
+Python model specific:
+                 "pymodel" \
+                 --modelPath=data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt \
+                 --k=4 --m=5 --maxSteps=100 --shieldType=CS-PIBT \
+Cleaning the output folders (to save memory):
+python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps \
+                 --scenFolder=data_collection/data/benchmark_data/scens \
+                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
+                 --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/[eecbs_outputs or pymodel_outputs] \
+                 --numAgents=1 \ 
+                 --num_parallel_runs=1 \
+                 "clean" --keepNpys=True
+
+Collecting initial bd and map data:
+python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps \
+                 --scenFolder=data_collection/data/benchmark_data/scens \
+                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
+                 --outputFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs \
+                 --num_parallel_runs=50 \
+                 "eecbs" \
+                 --outputPathNpzFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_npzs \
+                 --firstIter=true --cutoffTime=1
+"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Common arguments
-    parser.add_argument("--mapFolder", help="contains all scens to run", type=str)
-    parser.add_argument("--scenFolder", help="contains all scens to run", type=str)
-    parser.add_argument("--constantMapAndBDFolder", help="contains the precomputed map and bd folders", type=str)
+    parser.add_argument("--mapFolder", help="contains all scens to run", type=str, required=True)
+    parser.add_argument("--scenFolder", help="contains all scens to run", type=str, required=True)
+    numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max"
+    parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
+    parser.add_argument("--constantMapAndBDFolder", help="contains the precomputed map and bd folders", type=str, required=True)
     parser.add_argument("--outputFolder", help="parent output folder where each map folder will contain paths/ and csvs/ results", 
-                        type=str)
+                        type=str, required=True)
     parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 
-                        type=int)
+                        type=int, required=True)
 
     # Subparses for C++ EECBS or Python ML model
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    ### Clean parser, no additional arguments are needed
+    clean_parser = subparsers.add_parser("clean", help="Clean up the output folders")
+    clean_parser.add_argument("--keepNpys", help="Keep the npy files for pymodel outputs", type=lambda x: bool(str2bool(x)), required=True)
 
     ### EECBS parser
     eecbs_parser = subparsers.add_parser("eecbs", help="Run eecbs")
@@ -597,6 +639,7 @@ if __name__ == "__main__":
 
     ### Python ML Model
     pymodel_parser = subparsers.add_parser("pymodel", help="Run python model")
+    pymodel_parser.add_argument('--condaEnv', type=str, help="name of conda env to activate for simulator2.py", required=False)
     # Simulator parameters
     pymodel_parser.add_argument('--modelPath', type=str, required=True)
     pymodel_parser.add_argument('--useGPU', type=lambda x: bool(str2bool(x)), required=True)
