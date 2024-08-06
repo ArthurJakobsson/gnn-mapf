@@ -44,11 +44,7 @@ if __name__ == "__main__":
         pass
     else:
         raise ValueError(f"Invalid setting: {args.which_setting}")
-    
-    # if not args.generate_initial:
-    #     print("--generate_initial is set to False. This should not be needed.")
-    #     print("Please see if you don't need this enabled (e.g. set to false), and rerun")
-    #     time.sleep(2) # Wait two seconds to make sure the user sees the message
+
 
     iternum = 0
     if args.mini_test:
@@ -57,8 +53,6 @@ if __name__ == "__main__":
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    # LE = f"data_collection/data/logs/EXP_den312d_test4"
-    # LE = f"data_collection/data/logs/EXP_large2"
     LE = f"data_collection/data/logs/{args.expName}"
     os.makedirs(LE, exist_ok=True)
     
