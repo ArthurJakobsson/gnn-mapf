@@ -152,6 +152,7 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
 
     # Visualize
     tmpFolder = "./animations/tmpImgs"
+    print("Animating 1 image")
     # for t in range(0, max_plan_length):
     for t in range(max_plan_length-1, -1, -1):
         plt.imshow(mapdata, cmap="Greys")
@@ -186,7 +187,7 @@ def main():
     mapdata = readMap("data_collection/data/benchmark_data/maps/den312d.map")
     # log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
     # scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
-    log_dir = "data_collection/data/logs/EXP_den312_grid_locs/iter2/pymodel_outputs/den312d/paths/"
+    log_dir = "data_collection/data/logs/EXP_400_agents/iter1/pymodel_outputs/den312d/paths/"
     log_dir_list = os.listdir(log_dir)
     
     
@@ -194,12 +195,14 @@ def main():
         if ".npy" not in log:
             continue
         scen_abbr = log.split(".")[0]
-        index = [idx for idx, s in enumerate(log_dir_list) if scen_abbr in s and ".npy" not in s and "300" in s][0]
+        # index = [idx for idx, s in enumerate(log_dir_list) if scen_abbr in s and ".npy" not in s and "400" in s][0]
+        scen_folder = "data_collection/data/benchmark_data/scens/"
         id2plan = np.load(log_dir + log)
-        scen_file = log_dir_list[index]
-        start_locs, id2goal  = parse_scene(log_dir + scen_file)
+        scen_file = scen_folder+scen_abbr+".scen"
+        start_locs, id2goal  = parse_scene(scen_file)
         
         max_plan_length = id2plan.shape[0]
+        print(id2plan.shape)
         agents = id2plan.shape[1]
         # mapdata, id2plan, id2goal, max_plan_length, agents = readJSSSolutionPaths(args.log_file)
         output = f"{args.output}_{i}.gif"

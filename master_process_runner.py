@@ -19,7 +19,7 @@ def log_time(event_name):
 
 ### Example command for full benchmark
 """ 
-Small run: python -m master_process_runner 0 t t --exp_name=EXP_{} --data_folder={}_benchmark --num_parallel=50
+Small run: python master_process_runner.py 0 t --expName=EXP_400_agents  --data_folder=den312_benchmark --num_parallel=50 --k=4 --m=7 --lr=0.001 --relu_type=leaky_relu --numAgents=100,200,300,400 --which_setting=Arthur
 Big run: python -m master_process_runner 0 f t 100 1000 --num_parallel=50
 Old big run: python -m master_process_runner 0 f f 100 1000 --num_parallel=50
 Small run: python -m master_process_runner 0 t --numScensToCreate=10 --num_parallel=10 --expName=EXP_den312d_test6 \
@@ -30,8 +30,9 @@ if __name__ == "__main__":
     parser.add_argument("expnum", help="experiment number", type=int)
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
     # parser.add_argument('generate_initial', help="NOTE: We should NOT need to do this given constant_npzs/ folder", type=lambda x: bool(str2bool(x)))
-    parser.add_argument('--numScensToCreate', type=int, help="number of scens to create per pymodel, see simulator2.py")
+    parser.add_argument('--numScensToCreate', type=int, help="number of scens to create per pymodel, see simulator2.py", default=20)
     parser.add_argument('--num_parallel', type=int)
+    parser.add_argument('--data_folder', type=str, help="name of folder with data")
     parser.add_argument('--k', type=int, default=4)
     parser.add_argument('--m', type=int, default=5)
     parser.add_argument('--lr', type=float, default=0.005)
@@ -55,7 +56,7 @@ if __name__ == "__main__":
     iternum = 0
     if args.mini_test:
         # source_maps_scens = "./data_collection/data/mini_benchmark_data"
-        source_maps_scens = "./data_collection/data/mini_den_benchmark"
+        source_maps_scens = f"./data_collection/data/{args.data_folder}"
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
 
@@ -170,7 +171,7 @@ if __name__ == "__main__":
                         "--useGPU=False",
                         f"--k={args.k}",
                         f"--m={args.m}",
-                        "--maxSteps=2x",
+                        "--maxSteps=3x",
                         f"--numScensToCreate={args.numScensToCreate}",])
         if conda_env is not None:
             command += f" --condaEnv={conda_env}"
