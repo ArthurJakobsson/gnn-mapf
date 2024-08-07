@@ -35,9 +35,10 @@ import multiprocessing
 # multiprocessing.set_start_method('spawn', force=True)
 
 class GNNStack(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, task='node'):
+    def __init__(self, input_dim, hidden_dim, output_dim, relu_type, task='node'):
         super(GNNStack, self).__init__()
         self.task = task
+        self.relu_type = relu_type
         self.convs = nn.ModuleList([self.build_conv_model(input_dim, hidden_dim, True)])
         self.lns = nn.ModuleList([nn.LayerNorm(hidden_dim), nn.LayerNorm(hidden_dim)])
         for _ in range(3):
@@ -51,10 +52,11 @@ class GNNStack(nn.Module):
 
         self.dropout = 0.25
         self.num_layers = 4
+       
 
     def build_conv_model(self, input_dim, hidden_dim, image_flag):
         if image_flag:
-            return CustomConv(input_dim, hidden_dim)
+            return CustomConv(input_dim, hidden_dim, self.relu_type)
         return pyg_nn.SAGEConv(input_dim, hidden_dim)
 
     def forward(self, data):
@@ -74,7 +76,10 @@ class GNNStack(nn.Module):
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index)
             emb = x
-            x = F.relu(x)
+            if self.relu_type!="relu":
+                x = F.leaky_relu(x)
+            else:
+                x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
             if i != self.num_layers - 1:
                 x = self.lns[i](x)
@@ -91,20 +96,28 @@ class GNNStack(nn.Module):
         return F.nll_loss(pred, label)
 
 class CustomConv(pyg_nn.MessagePassing):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, relu_type):
         super(CustomConv, self).__init__(aggr='add')
         linear_in = (in_channels-2)**2 * 3#9 #147 # 98
         self.lin = nn.Linear(linear_in, out_channels)
         self.lin_self = nn.Linear(linear_in, out_channels)
         self.conv = nn.Conv2d(3, 3, kernel_size=(3, 3), stride=1, padding=0)
         self.conv_self = nn.Conv2d(3, 3, kernel_size=(3, 3), stride=1, padding=0)
+        self.relu_type=relu_type
 
     def forward(self, x, edge_index):
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)
-        self_x = F.relu(torch.flatten(self.conv_self(x), start_dim=1))
+        if self.relu_type!="relu":
+            self_x = F.leaky_relu(torch.flatten(self.conv_self(x), start_dim=1))
+        else:
+            self_x = F.relu(torch.flatten(self.conv_self(x), start_dim=1))
+        
         self_x = self.lin_self(self_x)
 
-        x_neighbors = F.relu(torch.flatten(self.conv(x), start_dim=1))
+        if self.relu_type!="relu":
+            x_neighbors = F.leaky_relu(torch.flatten(self.conv(x), start_dim=1))
+        else:
+            x_neighbors = F.relu(torch.flatten(self.conv(x), start_dim=1))
         x_neighbors = self.lin(x_neighbors)
 
         self_and_propogated = self_x + self.propagate(edge_index, x=x_neighbors)
@@ -124,7 +137,7 @@ def save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test
     if double_test_acc > max_double_test_acc:
         torch.save(model, model_path + '/max_double_test_acc.pt')
 
-def train(combined_dataset, writer):
+def train(combined_dataset, writer, run_lr, relu_type):
 
     # data_size = len(dataset)
     # loader = DataLoader(dataset[:int(data_size * 0.8)], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
@@ -140,8 +153,8 @@ def train(combined_dataset, writer):
 
     num_node_features = combined_dataset.datasets[0].num_node_features # datasets[0] is the first dataset in the combined dataset
     num_classes = combined_dataset.datasets[0].num_classes
-    model = GNNStack(num_node_features, 128, num_classes, task='node').to(device)
-    opt = optim.AdamW(model.parameters(), lr=0.005, weight_decay=5e-4)
+    model = GNNStack(num_node_features, 128, num_classes, relu_type=relu_type, task='node').to(device)
+    opt = optim.AdamW(model.parameters(), lr=run_lr, weight_decay=5e-4)
     scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5, min_lr=1e-5)
     min_loss = float('inf')
@@ -150,7 +163,7 @@ def train(combined_dataset, writer):
     patience = 10
     no_improvement = 0
 
-    for epoch in range(15+1):
+    for epoch in range(20+1):
         total_loss = 0
         correct = 0
         second_correct = 0
@@ -279,13 +292,16 @@ if __name__ == "__main__":
     parser.add_argument("--num_cores", help="num_cores", type=int)
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
-
+    parser.add_argument("--lr", help="learning_rate", type=float)
+    parser.add_argument("--relu_type", help="learning_rate", type=str)
     # parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
     # parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
     parser.add_argument("--processedFolders", help="processed npz folders, comma seperated!", type=str, required=True)
     # parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
 
     args = parser.parse_args()
+    lr = args.lr
+    relu_type = args.relu_type
     exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
     itername = "iter"+str(iternum)
     
@@ -318,7 +334,7 @@ if __name__ == "__main__":
     dataset = torch.utils.data.ConcatDataset(dataset_list)
     print(f"Combined {len(dataset_list)} datasets for a combined size of {len(dataset)}")
     
-    model = train(dataset, writer)
+    model = train(dataset, writer, lr, relu_type)
 
     with open(f"{model_path}/finished.txt", "w") as f:
         f.write("")

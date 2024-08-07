@@ -31,6 +31,8 @@ if __name__ == "__main__":
     parser.add_argument('--num_parallel', type=int)
     parser.add_argument('--k', type=int, default=4)
     parser.add_argument('--m', type=int, default=5)
+    parser.add_argument('--lr', type=float, default=0.005)
+    parser.add_argument('--relu_type', type=str, default="relu")
     args = parser.parse_args()
     expnum, mini_test, generate_initial = args.expnum, args.mini_test, args.generate_initial
     print(args.expnum)
@@ -128,7 +130,7 @@ if __name__ == "__main__":
         command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{expnum}", 
                             f"--iternum={iternum}", f"--num_cores={num_cores}", 
                             f"--processedFolders={','.join(processed_folders_list)}",
-                            f"--k={args.k}", f"--m={args.m}"])
+                            f"--k={args.k}", f"--m={args.m}", f"--lr={args.lr}", f"--relu_type={args.relu_type}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: trainer")

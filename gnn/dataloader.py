@@ -83,8 +83,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array
     agent_pos[rowLocs, colLocs] = 1 # (W,H)
     agent_pos_slices = agent_pos[x_mesh, y_mesh] # (N,D,D)
     
-    goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
-    goal_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
+    # goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
+    # goal_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
     # NOTE: for 1 hot goal version
     # goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)
     # goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
@@ -92,15 +92,16 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array
     #     goal_pos[i, goalRowLocs[i], goalColLocs[i]] = 1
     
     # NOTE: for all agents on their goal turn to 1 version
-    matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs) # Compare row and column locations
+    # matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs) # Compare row and column locations
     
-    goal_pos[rowLocs[matches], colLocs[matches]] = 1 # Set goal positions to 1 where matches are found
-    goal_pos_slices = goal_pos[x_mesh, y_mesh] # (N,D,D)
+    # goal_pos[rowLocs[matches], colLocs[matches]] = 1 # Set goal positions to 1 where matches are found
+    # goal_pos_slices = goal_pos[x_mesh, y_mesh] # (N,D,D)
     # pdb.set_trace()
-    assert(goal_pos_slices.shape==bd_slices.shape)
+    # assert(goal_pos_slices.shape==bd_slices.shape)
     # pdb.set_trace()
     # if pos_locs == goal_loc add a 1 otherwise keep it at a 0
-    node_features = np.stack([grid_slices, bd_slices, goal_pos_slices], axis=1) # (N,3,D,D)
+    # node_features = np.stack([grid_slices, bd_slices, goal_pos_slices], axis=1) # (N,3,D,D)
+    node_features = np.stack([grid_slices, bd_slices, agent_pos_slices], axis=1) # (N,3,D,D)
 
     # pdb.set_trace()
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
