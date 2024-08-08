@@ -154,17 +154,22 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
     tmpFolder = "./animations/tmpImgs"
     print("Animating 1 image")
     # for t in range(0, max_plan_length):
-    for t in range(max_plan_length-1, -1, -1):
+    
+    last_row = id2plan[-1]
+    repeated_rows = np.tile(last_row, (40,1, 1))
+    id2plan = np.vstack([id2plan, repeated_rows])
+    # pdb.set_trace()
+    for t in range(max_plan_length+40-1, -1, -1):
         plt.imshow(mapdata, cmap="Greys")
         for i in range(0, agents):
             plan = id2plan[:,i]
-            if t > len(plan)-1:
-                plt.scatter(plan[-1][1], plan[-1][0],s=1, c="grey") # RVMod: Fixed by modding
+            # if t > len(plan)-1:
+            #     plt.scatter(plan[-1][1], plan[-1][0],s=1, c="grey") # RVMod: Fixed by modding
+            # else:
+            if np.all(plan[t] == id2goal[i]):
+                plt.scatter(plan[t][1], plan[t][0],s=1, c="grey")
             else:
-                if np.all(plan[t] == id2goal[i]):
-                    plt.scatter(plan[t][1], plan[t][0],s=1, c="grey")
-                else:
-                    plt.scatter(plan[t][1], plan[t][0], s=1, c=colors[i%len(colors)]) # RVMod: Fixed by modding
+                plt.scatter(plan[t][1], plan[t][0], s=1, c=colors[i%len(colors)]) # RVMod: Fixed by modding
         name = "{}/{:03d}.png".format(tmpFolder, t)
         plt.title(f"t = {t}")
         plt.savefig(name)
@@ -187,7 +192,7 @@ def main():
     mapdata = readMap("data_collection/data/benchmark_data/maps/den312d.map")
     # log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
     # scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
-    log_dir = "data_collection/data/logs/EXP_400_agents/iter1/pymodel_outputs/den312d/paths/"
+    log_dir = "data_collection/data/logs/EXP_paris_den/iter1/pymodel_outputs/den312d/paths/"
     log_dir_list = os.listdir(log_dir)
     
     

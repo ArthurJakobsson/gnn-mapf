@@ -176,6 +176,7 @@ class MyOwnDataset(Dataset):
         self.df = None
         super().__init__() # this automatically calls process()
         self.custom_process()
+        
 
     @property
     def processed_dir(self) -> str:
