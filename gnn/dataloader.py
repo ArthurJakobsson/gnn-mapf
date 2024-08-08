@@ -82,6 +82,28 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array
     agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
     agent_pos[rowLocs, colLocs] = 1 # (W,H)
     agent_pos_slices = agent_pos[x_mesh, y_mesh] # (N,D,D)
+
+    # TODO get the best location to go next, just according to the bd
+    # NOTE: because we pad all bds with a large number, 
+    # we should be able to get the up, down, left and right of each bd without fear of invalid indexing
+    best_moves = np.zeros((num_agents, 5)) # (N, [up, left, down, right, stop])
+    bd_tmp = np.copy(bd_slices)
+    x_mesh2, y_mesh2 = np.meshgrid(np.arange(-1,1+1), np.arange(-1,1+1), indexing='ij') # assumes k at least 1; getting a 3x3 grid centered at the same place
+    bd_tmp = bd_tmp[x_mesh2, y_mesh2]
+    # set diagonal entries to a big number
+    bd_tmp[:,0,0] = 1073741823
+    bd_tmp[:,0,2] = 1073741823
+    bd_tmp[:,2,0] = 1073741823
+    bd_tmp[:,2,2] = 1073741823
+    mins = np.min(bd_tmp, axis=(1,2)) # take a min
+    flattened = np.reshape(bd_tmp, (-1, 9))
+    flattened = flattened[:,[(1,3,7,5,4)]]
+
+    # Create a boolean array where each element is True if it is the minimum in its row
+    min_indices = flattened == mins[:, None]
+    min_indices = np.array([min_indices[i][i] for i in range(len(min_indices))]) # (N, 5) non-unique argmin solution
+    # min_indices = bd_tmp == mins[:, None]
+    # min_indices = np.pad(min_indices, ((0,0),(k-1,k-1),(k-1,k-1)), constant_values=True) # (N,D,D) no-unique argmin solution
     
     # goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
     # goal_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
@@ -146,7 +168,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array
 
     return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
                 edge_attr=torch.tensor(edge_features, dtype=torch.float), 
-                y = torch.tensor(labels, dtype=torch.int8))
+                y = torch.tensor(labels, dtype=torch.int8),bd_suggestion=best_moves)
 
 
 class MyOwnDataset(Dataset):
