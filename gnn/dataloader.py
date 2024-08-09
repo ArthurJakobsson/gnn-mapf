@@ -55,7 +55,7 @@ def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
     assert(data.x[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     return data
 
-def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array([])):
+def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([])):
     """
     poslist: (N,2) positions
     bd_list: (N,W,H) bd's
@@ -63,8 +63,17 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array
     k: (int) local region size
     m: (int) number of closest neighbors to consider
     """
+    agent_locations = agent_goal =  at_goal_grid = False
+    if "agent_locations" in extra_layers:
+        agent_locations=True
+    if "agent_goal" in extra_layers:
+        agent_goal=True
+    if "at_goal_grid" in extra_layers:
+        at_goal_grid=True
+    if bd_pred is not None:
+        bd_predictions = True
+    
     num_agents = len(pos_list)
-    # pdb.set_trace()
     # x = [np.array([slice_maps(pos, grid, k), slice_maps(pos, bd, k)]) for (pos, bd) in zip(pos_list, bd_list)]
     # x = np.array(x) # (N,2,W,H)
     ### Numpy advanced indexing to get all agent slices at once
@@ -78,54 +87,36 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array
     y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     grid_slices = grid[x_mesh, y_mesh] # (N,D,D)
     bd_slices = bd_list[np.arange(num_agents)[:,None,None], x_mesh, y_mesh] # (N,D,D)
-    # pdb.set_trace()
-    agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
-    agent_pos[rowLocs, colLocs] = 1 # (W,H)
-    agent_pos_slices = agent_pos[x_mesh, y_mesh] # (N,D,D)
+    num_layers = 2
+    node_features = np.stack([grid_slices, bd_slices], axis=1) # (N,2,D,D)
 
-    # TODO get the best location to go next, just according to the bd
-    # NOTE: because we pad all bds with a large number, 
-    # we should be able to get the up, down, left and right of each bd without fear of invalid indexing
-    best_moves = np.zeros((num_agents, 5)) # (N, [up, left, down, right, stop])
-    bd_tmp = np.copy(bd_slices)
-    x_mesh2, y_mesh2 = np.meshgrid(np.arange(-1,1+1), np.arange(-1,1+1), indexing='ij') # assumes k at least 1; getting a 3x3 grid centered at the same place
-    bd_tmp = bd_tmp[x_mesh2, y_mesh2]
-    # set diagonal entries to a big number
-    bd_tmp[:,0,0] = 1073741823
-    bd_tmp[:,0,2] = 1073741823
-    bd_tmp[:,2,0] = 1073741823
-    bd_tmp[:,2,2] = 1073741823
-    mins = np.min(bd_tmp, axis=(1,2)) # take a min
-    flattened = np.reshape(bd_tmp, (-1, 9))
-    flattened = flattened[:,[(1,3,7,5,4)]]
+    if agent_locations:
+        agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
+        agent_pos[rowLocs, colLocs] = 1 # (W,H)
+        agent_pos_slices = agent_pos[x_mesh, y_mesh] # (N,D,D)
+        node_features = np.stack([node_features,agent_pos_slices]) # (N,3,D,D)
+        num_layers+=1
+    
+    goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
+    matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs)
+    if agent_goal: 
+            # NOTE: for 1 hot goal version
+        goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)   
+        goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
+        for i in range(num_agents):
+            goal_pos[i, goalRowLocs[i], goalColLocs[i]] = 1
+        node_features = np.stack([node_features,goal_pos]) # (N,`2or3`,D,D)
+        num_layers+=1
+    
+    if at_goal_grid:
+        goal_pos_binary = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
+        # NOTE: for all agents on their goal turn to 1 version
+        goal_pos_binary[rowLocs[matches], colLocs[matches]] = 1 # Set goal positions to 1 where matches are found
+        goal_pos_slices = goal_pos_binary[x_mesh, y_mesh] # (N,D,D)
+        assert(goal_pos_slices.shape==bd_slices.shape)
+        node_features = np.stack([node_features,goal_pos_slices]) # (N,`2,3or4`,D,D)
+        num_layers+=1
 
-    # Create a boolean array where each element is True if it is the minimum in its row
-    min_indices = flattened == mins[:, None]
-    min_indices = np.array([min_indices[i][i] for i in range(len(min_indices))]) # (N, 5) non-unique argmin solution
-    # min_indices = bd_tmp == mins[:, None]
-    # min_indices = np.pad(min_indices, ((0,0),(k-1,k-1),(k-1,k-1)), constant_values=True) # (N,D,D) no-unique argmin solution
-    
-    # goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
-    # goal_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
-    # NOTE: for 1 hot goal version
-    # goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)
-    # goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
-    # for i in range(num_agents):
-    #     goal_pos[i, goalRowLocs[i], goalColLocs[i]] = 1
-    
-    # NOTE: for all agents on their goal turn to 1 version
-    # matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs) # Compare row and column locations
-    
-    # goal_pos[rowLocs[matches], colLocs[matches]] = 1 # Set goal positions to 1 where matches are found
-    # goal_pos_slices = goal_pos[x_mesh, y_mesh] # (N,D,D)
-    # pdb.set_trace()
-    # assert(goal_pos_slices.shape==bd_slices.shape)
-    # pdb.set_trace()
-    # if pos_locs == goal_loc add a 1 otherwise keep it at a 0
-    # node_features = np.stack([grid_slices, bd_slices, goal_pos_slices], axis=1) # (N,3,D,D)
-    node_features = np.stack([grid_slices, bd_slices, agent_pos_slices], axis=1) # (N,3,D,D)
-
-    # pdb.set_trace()
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
     deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
     dists = np.linalg.norm(deltas, axis=2, ord=1) # (N,N), the distance between each agent
@@ -165,18 +156,49 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, labels=np.array
     # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
     # pdb.set_trace()
     assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
+    bd_pred_arr = None
+    linear_dimensions = grid_slices.shape[0]**2 * num_layers
+    if bd_predictions:
+        # TODO get the best location to go next, just according to the bd
+        # NOTE: because we pad all bds with a large number, 
+        # we should be able to get the up, down, left and right of each bd without fear of invalid indexing
+        best_moves = np.zeros((num_agents, 5)) # (N, [up, left, down, right, stop])
+        bd_tmp = np.copy(bd_list)
+        x_mesh2, y_mesh2 = np.meshgrid(np.arange(-1,1+1), np.arange(-1,1+1), indexing='ij') # assumes k at least 1; getting a 3x3 grid centered at the same place
+        x_mesh2 = x_mesh2[None, :, :] + rowLocs[:, None, :] #  -> (N,3,3)
+        y_mesh2 = y_mesh2[None, :, :] + colLocs[:, None, :] # -> (N,3,3)
+        bd_tmp = bd_tmp[np.arange(num_agents)[:,None,None], x_mesh2, y_mesh2] # (N,3,3)
+        # set diagonal entries to a big number
+        bd_tmp[:,0,0] = 1073741823
+        bd_tmp[:,0,2] = 1073741823
+        bd_tmp[:,2,0] = 1073741823
+        bd_tmp[:,2,2] = 1073741823
+        mins = np.min(bd_tmp, axis=(1,2)) # take a min
+        flattened = np.reshape(bd_tmp, (-1, 9))
+        flattened = flattened[:,[(4,5,7,1,3)]]
+
+        # Create a boolean array where each element is True if it is the minimum in its row
+        min_indices = flattened == mins[:, None]
+        min_indices = np.array([min_indices[i][i] for i in range(len(min_indices))]) # (N, 5) non-unique argmin solution
+        # min_indices = bd_tmp == mins[:, None]
+        # min_indices = np.pad(min_indices, ((0,0),(k-1,k-1),(k-1,k-1)), constant_values=True) # (N,D,D) no-unique argmin solution
+        bd_pred_arr = min_indices 
+        linear_dimensions+=5
+        
+    
 
     return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
-                edge_attr=torch.tensor(edge_features, dtype=torch.float), 
+                edge_attr=torch.tensor(edge_features, dtype=torch.float), bd_pred=bd_pred_arr, lin_dim=linear_dimensions,
                 y = torch.tensor(labels, dtype=torch.int8),bd_suggestion=best_moves)
 
 
 class MyOwnDataset(Dataset):
     def __init__(self, mapNpzFile, bdNpzFolder, pathNpzFolder,
-                processedOutputFolder, num_cores, k, m):
+                processedOutputFolder, num_cores, k, m, extra_layers, bd_pred):
         if num_cores != 1:
             raise NotImplementedError("Multiprocessing not supported yet")
-        
+        self.extra_layers = extra_layers
+        self.bd_pred = bd_pred
         self.mapNpzFile = mapNpzFile
         self.bdNpzFolder = bdNpzFolder
         self.pathNpzFolder = pathNpzFolder
@@ -265,7 +287,7 @@ class MyOwnDataset(Dataset):
         assert(time_instance is not None)
         pos_list, labels, bd_list, grid, goal_locs = time_instance
 
-        curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, goal_locs, labels)
+        curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, goal_locs, self.extra_layers, self.bd_pred, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata

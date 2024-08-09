@@ -297,11 +297,16 @@ if __name__ == "__main__":
     # parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
     # parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
     parser.add_argument("--processedFolders", help="processed npz folders, comma seperated!", type=str, required=True)
+    extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
+    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, required=True, default=None)
+    parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     # parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
 
     args = parser.parse_args()
     lr = args.lr
     relu_type = args.relu_type
+    extra_layers = args.extra_layers
+    bd_pred = args.bd_pred
     exp_folder, expname, iternum = args.exp_folder, args.experiment, args.iternum
     itername = "iter"+str(iternum)
     
@@ -328,7 +333,7 @@ if __name__ == "__main__":
         if not os.path.exists(folder):
             raise Exception(f"Folder {folder} does not exist!")
         dataset = MyOwnDataset(mapNpzFile=None, bdNpzFolder=None, pathNpzFolder=None,
-                            processedOutputFolder=folder, num_cores=1, k=args.k, m=args.m)
+                            processedOutputFolder=folder, num_cores=1, k=args.k, m=args.m, extra_layers=args.extra_layers, bd_pred=args.bd_pred)
         dataset_list.append(dataset)
     # Combine into single large dataset
     dataset = torch.utils.data.ConcatDataset(dataset_list)

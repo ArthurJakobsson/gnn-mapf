@@ -40,6 +40,9 @@ if __name__ == "__main__":
     parser.add_argument('--expName', help="Name of the experiment, e.g. Test5", required=True)
     numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max, see eecbs_batchrunner3.py"
     parser.add_argument('--numAgents', help=numAgentsHelp, type=str, required=True)
+    extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
+    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, required=True, default=None)
+    parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     parser.add_argument('--which_setting', help="[Arthur, Rishi, PSC]", required=True) # E.g. use --which_setting to determine using conda env or different aspects
 
     args = parser.parse_args()
@@ -154,6 +157,10 @@ if __name__ == "__main__":
                             f"--iternum={iternum}", f"--num_cores={num_cores}", 
                             f"--processedFolders={','.join(processed_folders_list)}",
                             f"--k={args.k}", f"--m={args.m}", f"--lr={args.lr}", f"--relu_type={args.relu_type}"])
+        if args.extra_layers is not None:
+            command += f"--extra_layers={args.extra_layers}"
+        if args.bd_pred is not None:
+            command += f"--bd_pred={args.bd_pred}"
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: trainer")
@@ -172,7 +179,11 @@ if __name__ == "__main__":
                         f"--k={args.k}",
                         f"--m={args.m}",
                         "--maxSteps=3x",
-                        f"--numScensToCreate={args.numScensToCreate}",])
+                        f"--numScensToCreate={args.numScensToCreate}"])
+        if args.extra_layers is not None:
+            command += f"--extra_layers={args.extra_layers}"
+        if args.bd_pred is not None:
+            command += f"--bd_pred={args.bd_pred}"
         if conda_env is not None:
             command += f" --condaEnv={conda_env}"
         print(command)
