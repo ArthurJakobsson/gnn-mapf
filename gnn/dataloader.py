@@ -169,24 +169,20 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         y_mesh2 = y_mesh2[None, :, :] + colLocs[:, None, :] # -> (N,3,3)
         bd_tmp = bd_tmp[np.arange(num_agents)[:,None,None], x_mesh2, y_mesh2] # (N,3,3)
         # set diagonal entries to a big number
-        bd_tmp[:,0,0] = 1073741823
-        bd_tmp[:,0,2] = 1073741823
-        bd_tmp[:,2,0] = 1073741823
-        bd_tmp[:,2,2] = 1073741823
-        mins = np.min(bd_tmp, axis=(1,2)) # take a min
-        flattened = np.reshape(bd_tmp, (-1, 9))
-        flattened = flattened[:,[(4,5,7,1,3)]]
+        bd_tmp[:,0,0] = bd_tmp[:,0,2] = bd_tmp[:,2,0] = bd_tmp[:,2,2] = 1073741823
+        flattened = np.reshape(bd_tmp, (-1, 9)) # (order (top to bot) left mid right, left mid right, left mid right)
+        flattened = flattened[:,[(1,3,7,5,4)]].reshape((-1,5))
 
         # Create a boolean array where each element is True if it is the minimum in its row
-        min_indices = flattened == mins[:, None]
-        min_indices = np.array([min_indices[i][i] for i in range(len(min_indices))]) # (N, 5) non-unique argmin solution
+        min_indices = flattened == flattened.min(axis=1, keepdims=True)
+        min_indices = min_indices.astype(int) # (N, 5) non-unique argmin solution
         # min_indices = bd_tmp == mins[:, None]
         # min_indices = np.pad(min_indices, ((0,0),(k-1,k-1),(k-1,k-1)), constant_values=True) # (N,D,D) no-unique argmin solution
         bd_pred_arr = min_indices 
         linear_dimensions+=5
         
     return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
-                edge_attr=torch.tensor(edge_features, dtype=torch.float), bd_pred=bd_pred_arr, lin_dim=linear_dimensions, num_channels=num_layers,
+                edge_attr=torch.tensor(edge_features, dtype=torch.float), bd_pred=torch.tensor(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
                 y = torch.tensor(labels, dtype=torch.int8),bd_suggestion=best_moves)
 
 

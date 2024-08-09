@@ -140,9 +140,10 @@ def detectExistingStatus(runnerArgs, mapfile, aNum, scenfile, df): # TODO update
 
     ### Grabs the correct row from the dataframe based on arguments
     for aKey, aValue in runnerArgs["args"].items():
-        # if aKey == "output":
-        #     continue
+        if aKey == "extra_layers" or aKey == "bd_pred":
+            continue
         if aKey not in df.columns:
+            
             raise KeyError("Error: {} not in the columns of the dataframe".format(aKey))
         df = df[df[aKey] == aValue]  # Filter the dataframe to only include the runs with the same parameters
     
