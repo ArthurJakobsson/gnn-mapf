@@ -35,14 +35,14 @@ import multiprocessing
 # multiprocessing.set_start_method('spawn', force=True)
 
 class GNNStack(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, relu_type, task='node'):
+    def __init__(self, linear_dim, in_channels, hidden_dim, output_dim, relu_type, device, task='node'):
         super(GNNStack, self).__init__()
         self.task = task
         self.relu_type = relu_type
-        self.convs = nn.ModuleList([self.build_conv_model(input_dim, hidden_dim, True)])
+        self.convs = nn.ModuleList([self.build_conv_model(linear_dim, in_channels, hidden_dim, device,True)])
         self.lns = nn.ModuleList([nn.LayerNorm(hidden_dim), nn.LayerNorm(hidden_dim)])
         for _ in range(3):
-            self.convs.append(self.build_conv_model(hidden_dim, hidden_dim, False))
+            self.convs.append(self.build_conv_model(linear_dim, hidden_dim, hidden_dim, device, False))
             self.lns.append(nn.LayerNorm(hidden_dim))
 
         self.post_mp = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.Dropout(0.25),
@@ -54,10 +54,10 @@ class GNNStack(nn.Module):
         self.num_layers = 4
        
 
-    def build_conv_model(self, input_dim, hidden_dim, image_flag):
+    def build_conv_model(self, linear_dim, in_channels, hidden_dim,device, image_flag):
         if image_flag:
-            return CustomConv(input_dim, hidden_dim, self.relu_type)
-        return pyg_nn.SAGEConv(input_dim, hidden_dim)
+            return CustomConv(linear_dim, in_channels, hidden_dim, device, self.relu_type)
+        return pyg_nn.SAGEConv(in_channels, hidden_dim)
 
     def forward(self, data):
         """
@@ -69,11 +69,12 @@ class GNNStack(nn.Module):
         Output:
             F.log_softmax(x, dim=1) -- node score logits, we can do exp() to get probabilities
             """
-        x, edge_index, batch = data.x, data.edge_index, data.batch
+        x, edge_index, batch, bd_pred = data.x, data.edge_index, data.batch, data.bd_pred
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
 
-        for i in range(self.num_layers):
+        x = self.convs[0](x, bd_pred, edge_index)
+        for i in range(1, self.num_layers):
             x = self.convs[i](x, edge_index)
             emb = x
             if self.relu_type!="relu":
@@ -96,28 +97,34 @@ class GNNStack(nn.Module):
         return F.nll_loss(pred, label)
 
 class CustomConv(pyg_nn.MessagePassing):
-    def __init__(self, in_channels, out_channels, relu_type):
+    def __init__(self, linear_dim, in_channels, out_channels, device,relu_type):
         super(CustomConv, self).__init__(aggr='add')
-        linear_in = (in_channels-2)**2 * 3#9 #147 # 98
-        self.lin = nn.Linear(linear_in, out_channels)
-        self.lin_self = nn.Linear(linear_in, out_channels)
-        self.conv = nn.Conv2d(3, 3, kernel_size=(3, 3), stride=1, padding=0)
-        self.conv_self = nn.Conv2d(3, 3, kernel_size=(3, 3), stride=1, padding=0)
+        self.lin = nn.Linear(linear_dim, out_channels)
+        self.lin_self = nn.Linear(linear_dim, out_channels)
+        self.conv = nn.Conv2d(in_channels, in_channels, kernel_size=(3, 3), stride=1, padding=0)
+        self.conv_self = nn.Conv2d(in_channels, in_channels, kernel_size=(3, 3), stride=1, padding=0)
         self.relu_type=relu_type
+        self.device = device
 
-    def forward(self, x, edge_index):
+    def forward(self, x, bd_pred, edge_index):
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)
+        flattened_conv = torch.flatten(self.conv_self(x), start_dim=1) # (1, ~)
+        if bd_pred[0] is not None:
+            bd_pred = torch.tensor(np.array(bd_pred))
+            bd_pred = torch.flatten(bd_pred, end_dim=-2).to(self.device)
+            flattened_conv = torch.hstack([flattened_conv, bd_pred])
+            
         if self.relu_type!="relu":
-            self_x = F.leaky_relu(torch.flatten(self.conv_self(x), start_dim=1))
+            self_x = F.leaky_relu(flattened_conv)
         else:
-            self_x = F.relu(torch.flatten(self.conv_self(x), start_dim=1))
+            self_x = F.relu(flattened_conv)
         
         self_x = self.lin_self(self_x)
 
         if self.relu_type!="relu":
-            x_neighbors = F.leaky_relu(torch.flatten(self.conv(x), start_dim=1))
+            x_neighbors = F.leaky_relu(flattened_conv)
         else:
-            x_neighbors = F.relu(torch.flatten(self.conv(x), start_dim=1))
+            x_neighbors = F.relu(flattened_conv)
         x_neighbors = self.lin(x_neighbors)
 
         self_and_propogated = self_x + self.propagate(edge_index, x=x_neighbors)
@@ -153,7 +160,9 @@ def train(combined_dataset, writer, run_lr, relu_type):
 
     num_node_features = combined_dataset.datasets[0].num_node_features # datasets[0] is the first dataset in the combined dataset
     num_classes = combined_dataset.datasets[0].num_classes
-    model = GNNStack(num_node_features, 128, num_classes, relu_type=relu_type, task='node').to(device)
+    lin_dim = combined_dataset.datasets[0][0].lin_dim
+    num_channels = combined_dataset.datasets[0][0].num_channels
+    model = GNNStack(lin_dim,num_channels, 128, num_classes, relu_type=relu_type, device=device, task='node').to(device)
     opt = optim.AdamW(model.parameters(), lr=run_lr, weight_decay=5e-4)
     scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5, min_lr=1e-5)

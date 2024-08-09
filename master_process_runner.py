@@ -19,7 +19,7 @@ def log_time(event_name):
 
 ### Example command for full benchmark
 """ 
-Small run: python master_process_runner.py 0 t --expName=EXP_400_agents  --data_folder=den312_benchmark --num_parallel=50 --k=4 --m=7 --lr=0.001 --relu_type=leaky_relu --numAgents=100,200,300,400 --which_setting=Arthur
+Small run: python master_process_runner.py 0 t --expName=EXP_400_agents  --data_folder=den312_benchmark --num_parallel=50 --k=4 --m=7 --lr=0.001 --relu_type=leaky_relu --numAgents=100,200,300,400 --which_setting=Arthur --extra_layers=agent_locations --bd_pred=t
 Big run: python -m master_process_runner 0 f t 100 1000 --num_parallel=50
 Old big run: python -m master_process_runner 0 f f 100 1000 --num_parallel=50
 Small run: python -m master_process_runner 0 t --numScensToCreate=10 --num_parallel=10 --expName=EXP_den312d_test6 \
@@ -145,6 +145,10 @@ if __name__ == "__main__":
                             f"--processedFolder={processed_folder}",
                             f"--k={args.k}",
                             f"--m={args.m}"])
+        if args.extra_layers is not None:
+            command += f" --extra_layers={args.extra_layers}"
+        if args.bd_pred is not None:
+            command += f" --bd_pred={args.bd_pred}"
         print(command)
         subprocess.run(command, shell=True, check=True)
         processed_folders_list.append(processed_folder)
@@ -158,9 +162,9 @@ if __name__ == "__main__":
                             f"--processedFolders={','.join(processed_folders_list)}",
                             f"--k={args.k}", f"--m={args.m}", f"--lr={args.lr}", f"--relu_type={args.relu_type}"])
         if args.extra_layers is not None:
-            command += f"--extra_layers={args.extra_layers}"
+            command += f" --extra_layers={args.extra_layers}"
         if args.bd_pred is not None:
-            command += f"--bd_pred={args.bd_pred}"
+            command += f" --bd_pred={args.bd_pred}"
         print(command)
         subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: trainer")
@@ -181,9 +185,9 @@ if __name__ == "__main__":
                         "--maxSteps=3x",
                         f"--numScensToCreate={args.numScensToCreate}"])
         if args.extra_layers is not None:
-            command += f"--extra_layers={args.extra_layers}"
+            command += f" --extra_layers={args.extra_layers}"
         if args.bd_pred is not None:
-            command += f"--bd_pred={args.bd_pred}"
+            command += f" --bd_pred={args.bd_pred}"
         if conda_env is not None:
             command += f" --condaEnv={conda_env}"
         print(command)

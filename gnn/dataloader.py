@@ -93,8 +93,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     if agent_locations:
         agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
         agent_pos[rowLocs, colLocs] = 1 # (W,H)
-        agent_pos_slices = agent_pos[x_mesh, y_mesh] # (N,D,D)
-        node_features = np.stack([node_features,agent_pos_slices]) # (N,3,D,D)
+        agent_pos_slices = np.expand_dims(agent_pos[x_mesh, y_mesh], axis=1) # (N,1,D,D)
+        node_features = np.hstack([node_features,agent_pos_slices]) # (N,3,D,D)
         num_layers+=1
     
     goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
@@ -103,9 +103,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
             # NOTE: for 1 hot goal version
         goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)   
         goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
-        for i in range(num_agents):
-            goal_pos[i, goalRowLocs[i], goalColLocs[i]] = 1
-        node_features = np.stack([node_features,goal_pos]) # (N,`2or3`,D,D)
+        goal_pos = np.expand_dims(goal_pos,axis=1)
+        node_features = np.hstack([node_features,goal_pos]) # (N,`2or3`,D,D)
         num_layers+=1
     
     if at_goal_grid:
@@ -114,7 +113,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         goal_pos_binary[rowLocs[matches], colLocs[matches]] = 1 # Set goal positions to 1 where matches are found
         goal_pos_slices = goal_pos_binary[x_mesh, y_mesh] # (N,D,D)
         assert(goal_pos_slices.shape==bd_slices.shape)
-        node_features = np.stack([node_features,goal_pos_slices]) # (N,`2,3or4`,D,D)
+        goal_pos_slices = np.expand_dims(goal_pos_slices, axis=1)
+        node_features = np.hstack([node_features,goal_pos_slices]) # (N,`2,3or4`,D,D)
         num_layers+=1
 
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
@@ -157,7 +157,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     # pdb.set_trace()
     assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     bd_pred_arr = None
-    linear_dimensions = grid_slices.shape[0]**2 * num_layers
+    linear_dimensions = (grid_slices.shape[1]-2)**2 * num_layers
     if bd_predictions:
         # TODO get the best location to go next, just according to the bd
         # NOTE: because we pad all bds with a large number, 
@@ -185,10 +185,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         bd_pred_arr = min_indices 
         linear_dimensions+=5
         
-    
-
     return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
-                edge_attr=torch.tensor(edge_features, dtype=torch.float), bd_pred=bd_pred_arr, lin_dim=linear_dimensions,
+                edge_attr=torch.tensor(edge_features, dtype=torch.float), bd_pred=bd_pred_arr, lin_dim=linear_dimensions, num_channels=num_layers,
                 y = torch.tensor(labels, dtype=torch.int8),bd_suggestion=best_moves)
 
 
@@ -481,8 +479,11 @@ if __name__ == "__main__":
     parser.add_argument("--processedFolder", help="processed folder to save pt", type=str, required=True)
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
+    extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
+    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, required=True, default=None)
+    parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     args = parser.parse_args()
 
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
-                        num_cores=1, k=args.k, m=args.m)
+                        num_cores=1, k=args.k, m=args.m, extra_layers=args.extra_layers, bd_pred=args.bd_pred)
