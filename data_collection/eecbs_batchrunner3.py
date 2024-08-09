@@ -342,6 +342,10 @@ def specificRunnerDictSetup(args):
             },
             "numScensToCreate": args.numScensToCreate
         }
+        if args.extra_layers is not None:
+            runnerArgs["args"]["extra_layers"]=args.extra_layers
+        if args.bd_pred is not None:
+            runnerArgs["args"]["bd_pred"]=args.bd_pred
     else:
         raise ValueError("Unknown command: {}".format(args.command))
     return runnerArgs
@@ -647,8 +651,13 @@ if __name__ == "__main__":
     pymodel_parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
     pymodel_parser.add_argument('--maxSteps', type=str, help="see simulator2", required=True)
     pymodel_parser.add_argument('--shieldType', type=str, default='CS-PIBT')
+    extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
+    pymodel_parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
+    pymodel_parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     # Output parameters
     pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)
+    
+ 
 
     ### Parse arguments and run the batch runner
     args = parser.parse_args()

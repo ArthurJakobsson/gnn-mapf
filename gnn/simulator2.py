@@ -243,7 +243,7 @@ def createScenFile(locs, goal_locs, map_name, scenFilepath):
 
 
 def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
-             max_steps, shield_type):
+             max_steps, shield_type, args):
     """Inputs:
         grid_map: (H,W), note includes padding
         bd: (N,H,W), note includes padding
@@ -269,7 +269,9 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
 
         with torch.no_grad():
             # Create the data object
-            data = create_data_object(cur_locs, bd, grid_map, k, m, goal_locations)
+            print(args.extra_layers)
+            pdb.set_trace()
+            data = create_data_object(cur_locs, bd, grid_map, k, m, goal_locations, args.extra_layers, args.bd_pred)
             data = normalize_graph_data(data, k)
             # pdb.set_trace()
             data = data.to(device)
@@ -362,7 +364,7 @@ def main(args: argparse.ArgumentParser):
     # Simulate
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
             model, k, args.m, map_grid, bd, start_locations, goal_locations, 
-            max_steps, args.shieldType)
+            max_steps, args.shieldType, args)
     solution_path = solution_path - k # (T,N,2) Removes padding
     goal_locations = goal_locations - k # (N,2) Removes padding
     
@@ -434,7 +436,10 @@ if __name__ == '__main__':
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
     parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", required=True)
     parser.add_argument('--numScensToCreate', type=int, help="how many scens to create", required=True)
-    parser.add_argument('--outputScenPrefix', type=str, help="output prefix to create scens", required=False)
+    parser.add_argument('--outputScenPrefix', type=str, help="output prefix to create scens", required=False)    
+    extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
+    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
+    parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
 
     args = parser.parse_args()
 

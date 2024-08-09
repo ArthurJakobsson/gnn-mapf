@@ -307,7 +307,7 @@ if __name__ == "__main__":
     # parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
     parser.add_argument("--processedFolders", help="processed npz folders, comma seperated!", type=str, required=True)
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
-    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, required=True, default=None)
+    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     # parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
 
