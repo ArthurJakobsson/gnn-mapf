@@ -17,6 +17,16 @@ def log_time(event_name):
     with open(f"./{LE}/timing.txt", mode='a') as file:
         file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
 
+def run_command(command):
+    # Run the command using subprocess
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    # Print the result of the command
+    if result.returncode == 0:
+        print(f"Job submitted successfully: {result.stdout}")
+    else:
+        print(f"Failed to submit job: {result.stderr}")
+
 def startup_small():
     command = [
         'sbatch',
@@ -27,15 +37,9 @@ def startup_small():
         '--job-name', 'arthur_main',
         './run_main.sh'
     ]
+    run_command(command)
+        
 
-    # Run the command using subprocess
-    result = subprocess.run(command, capture_output=True, text=True)
-
-    # Print the result of the command
-    if result.returncode == 0:
-        print(f"Job submitted successfully: {result.stdout}")
-    else:
-        print(f"Failed to submit job: {result.stderr}")
 
 def generate_sh_script(file, python_file, args, chosen_section=None):
     # Open or create the train.sh file in write mode
@@ -135,15 +139,7 @@ if __name__ == "__main__":
             '--job-name', 'arthur_setup',
             './setup.sh'
         ]
-
-        # Run the command using subprocess
-        result = subprocess.run(command, capture_output=True, text=True)
-
-        # Print the result of the command
-        if result.returncode == 0:
-            print(f"Job submitted successfully: {result.stdout}")
-        else:
-            print(f"Failed to submit job: {result.stderr}")
+        run_command(command)
     
     def call_train():
         # call sbatch for run_train
@@ -156,15 +152,7 @@ if __name__ == "__main__":
             '--job-name', 'arthur_train',
             './train.sh'
         ]
-
-        # Run the command using subprocess
-        result = subprocess.run(command, capture_output=True, text=True)
-
-        # Print the result of the command
-        if result.returncode == 0:
-            print(f"Job submitted successfully: {result.stdout}")
-        else:
-            print(f"Failed to submit job: {result.stderr}")
+        run_command(command)
     
     def call_simulate():
         # call sbatch for simulation
@@ -178,15 +166,9 @@ if __name__ == "__main__":
             '--job-name', 'arthur_simulate',
             './simulate.sh'
         ]
+        run_command(command)
 
-        # Run the command using subprocess
-        result = subprocess.run(command, capture_output=True, text=True)
 
-        # Print the result of the command
-        if result.returncode == 0:
-            print(f"Job submitted successfully: {result.stdout}")
-        else:
-            print(f"Failed to submit job: {result.stderr}")
     
     if args.which_section == "begin":
         processed_folders_list = np.array([])
