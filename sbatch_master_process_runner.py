@@ -33,7 +33,7 @@ def startup_small():
         '-p', 'RM-shared',
         '-N', '1',
         '--ntasks-per-node=2',
-        '-t', '8:00:00',
+        '-t', '0:30:00',
         '--job-name', 'arthur_main',
         './run_main.sh'
     ]
