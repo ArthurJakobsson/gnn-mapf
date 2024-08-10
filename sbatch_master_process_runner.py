@@ -32,7 +32,7 @@ def startup_small():
         'sbatch',
         '-p', 'RM-shared',
         '-N', '1',
-        '--ntasks-per-node=64',
+        '--ntasks-per-node=2',
         '-t', '8:00:00',
         '--job-name', 'arthur_main',
         './run_main.sh'
