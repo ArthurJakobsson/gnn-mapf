@@ -146,7 +146,7 @@ if __name__ == "__main__":
         command += f" --bd_pred={args.bd_pred}"
     print(command)
     subprocess.run(command, shell=True, check=True)
-    processed_folders_list = np.load(LE+"/processed_folders_list")
+    processed_folders_list = np.load(LE+"/processed_folders_list.npy")
     processed_folders_list.append(processed_folder)
     np.save(LE+"/processed_folders_list", processed_folders_list)
     log_time(f"Iter {args.iternum}: dataloader")

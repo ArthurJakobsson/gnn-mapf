@@ -50,7 +50,7 @@ def generate_sh_script(file, python_file, args, chosen_section=None):
         f.write("#!/bin/bash\n\n")
         f.write("module load anaconda3\n")
         f.write("conda activate arthur_env\n\n")
-        f.write("export MKL_SERVICE_FORCE_INTEL=1")
+        f.write("export MKL_SERVICE_FORCE_INTEL=1\n")
         f.write(f"python {python_file} \\\n")
 
         # Iterate over the parsed arguments in args

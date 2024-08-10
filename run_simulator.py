@@ -79,7 +79,7 @@ if __name__ == "__main__":
     model_folder = f"{iterFolder}/models"
     pymodel_outputs_folder = f"{iterFolder}/pymodel_outputs"
     encountered_scens = f"{iterFolder}/encountered_scens"
-    processed_folders_list = np.load(LE+"/processed_folders_list")
+    processed_folders_list = np.load(LE+"/processed_folders_list.npy")
 
 
     ### Run best model on simulator on scens to create new scenes

@@ -79,7 +79,7 @@ if __name__ == "__main__":
     model_folder = f"{iterFolder}/models"
     pymodel_outputs_folder = f"{iterFolder}/pymodel_outputs"
     encountered_scens = f"{iterFolder}/encountered_scens"
-    processed_folders_list = np.load(LE+"/processed_folders_list")
+    processed_folders_list = np.load(LE+"/processed_folders_list.npy")
     # processed_folders_list = processed_folders_list[-3:] # Only keep the last 1 iterations
     
     command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{args.expnum}", 
