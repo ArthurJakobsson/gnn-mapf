@@ -181,9 +181,14 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         bd_pred_arr = min_indices 
         linear_dimensions+=5
         
+    # NOTE: calculate weights
+    num_agent_goal_ratio = np.mean(matches)
+    weights = np.ones(num_agents)
+    weights[matches.flatten()] -= num_agent_goal_ratio+0.001
+    
     return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
                 edge_attr=torch.tensor(edge_features, dtype=torch.float), bd_pred=torch.tensor(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
-                y = torch.tensor(labels, dtype=torch.int8),bd_suggestion=best_moves)
+                weights = torch.tensor(weights, dtype=torch.float), y = torch.tensor(labels, dtype=torch.int8),bd_suggestion=best_moves)
 
 
 class MyOwnDataset(Dataset):

@@ -91,10 +91,12 @@ class GNNStack(nn.Module):
         x = self.post_mp(x)
         return emb, F.log_softmax(x, dim=1)
 
-    def loss(self, pred, label):
+    def loss(self, pred, label, weights):
+        base_loss = F.nll_loss(pred, label, reduction='none')
+        weighted_loss = base_loss*weights
         # This combined with log_softmax in forward() is equivalent to cross entropy
         # as stated in https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-        return F.nll_loss(pred, label)
+        return weighted_loss.mean()
 
 class CustomConv(pyg_nn.MessagePassing):
     def __init__(self, linear_dim, in_channels, out_channels,relu_type):
@@ -176,18 +178,17 @@ def train(combined_dataset, writer, run_lr, relu_type):
         total_samples = 0
 
         model.train()
-        # pdb.set_trace()
         for batch in tqdm(loader):
             batch = batch.to(device)
             opt.zero_grad()
             # with autocast():
             embedding, pred = model(batch)
             label = batch.y
-            pred = pred[batch.train_mask]
-            label = label[batch.train_mask]
+            # pred = pred[batch.train_mask]
+            # label = label[batch.train_mask]
 
             label_maxes = torch.argmax(label, dim=1).to(device)
-            loss = model.loss(pred, label_maxes)
+            loss = model.loss(pred, label_maxes, batch.weights)
             # pdb.set_trace()
 
             scaler.scale(loss).backward()
@@ -253,10 +254,10 @@ def test(loader, model, is_validation=False):
             label = data.y.argmax(dim=1)
 
             if model.task == 'node':
-                mask = data.val_mask if is_validation else data.test_mask
-                first_choice = first_choice[mask]
-                second_choice = second_choice[mask]
-                label = data.y[mask].argmax(dim=1)
+                # mask = data.val_mask if is_validation else data.test_mask
+                # first_choice = first_choice[mask]
+                # second_choice = second_choice[mask]
+                label = data.y.argmax(dim=1)
 
             correct += first_choice.eq(label).sum().item()
             second_correct += second_choice.eq(label).sum().item()
@@ -264,7 +265,7 @@ def test(loader, model, is_validation=False):
             if model.task == 'graph':
                 total += len(data.y)
             else:
-                total += mask.sum().item() if is_validation else torch.sum(data.test_mask).item()
+                total += len(data.y) #mask.sum().item() if is_validation else torch.sum(data.test_mask).item()
 
     return correct / total, (correct + second_correct) / total
 
