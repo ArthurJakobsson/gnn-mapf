@@ -129,5 +129,5 @@ if __name__ == "__main__":
     subprocess.run(command, shell=True, check=True)
     
     args.iternum += 1
-    generate_sh_script("run_main", "sbatch_master_process_runner.py", args, chosen_section="setup")
-    startup_small()
+    generate_sh_script(LE, "run_main", "sbatch_master_process_runner.py", args, chosen_section="setup")
+    startup_small(LE)

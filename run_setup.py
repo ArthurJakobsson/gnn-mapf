@@ -150,5 +150,5 @@ if __name__ == "__main__":
     processed_folders_list = np.append(processed_folders_list, processed_folder)
     np.save(LE+"/processed_folders_list", processed_folders_list)
     log_time(f"Iter {args.iternum}: dataloader")
-    generate_sh_script("run_main", "sbatch_master_process_runner.py", args, chosen_section="train")
-    startup_small()
+    generate_sh_script(LE,"run_main", "sbatch_master_process_runner.py", args, chosen_section="train")
+    startup_small(LE)

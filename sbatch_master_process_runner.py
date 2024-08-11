@@ -27,7 +27,7 @@ def run_command(command):
     else:
         print(f"Failed to submit job: {result.stderr}")
 
-def startup_small():
+def startup_small(LE):
     command = [
         'sbatch',
         '-p', 'RM-shared',
@@ -35,13 +35,13 @@ def startup_small():
         '--ntasks-per-node=2',
         '-t', '0:30:00',
         '--job-name', 'arthur_main',
-        './run_main.sh'
+        f'./{LE}/run_main.sh'
     ]
     run_command(command)
         
 
 
-def generate_sh_script(file, python_file, args, chosen_section=None):
+def generate_sh_script(LE, file, python_file, args, chosen_section=None):
     # Open or create the train.sh file in write mode
     if os.path.exists(f'{file}.sh'):
         os.remove(f'{file}.sh')
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     
     def call_setup():
         # call sbatch for run_setup
-        generate_sh_script("setup", "run_setup.py", args)
+        generate_sh_script(LE,"setup", "run_setup.py", args)
         command = [
             'sbatch',
             '-p', 'RM-shared',
@@ -138,26 +138,26 @@ if __name__ == "__main__":
             '--ntasks-per-node=64',
             '-t', '8:00:00',
             '--job-name', 'arthur_setup',
-            './setup.sh'
+            f'./{LE}/setup.sh'
         ]
         run_command(command)
     
     def call_train():
         # call sbatch for run_train
-        generate_sh_script("train", "run_train.py", args)
+        generate_sh_script(LE,"train", "run_train.py", args)
         command = [
             'sbatch',
             '-p', 'GPU-small',
             '--gres=gpu:v100-32:1',
             '-t', '8:00:00',
             '--job-name', 'arthur_train',
-            './train.sh'
+            f'./{LE}/train.sh'
         ]
         run_command(command)
     
     def call_simulate():
         # call sbatch for simulation
-        generate_sh_script("simulate", "run_simulator.py", args)
+        generate_sh_script(LE,"simulate", "run_simulator.py", args)
         command = [
             'sbatch',
             '-p', 'RM-shared',
@@ -165,7 +165,7 @@ if __name__ == "__main__":
             '--ntasks-per-node=64',
             '-t', '8:00:00',
             '--job-name', 'arthur_simulate',
-            './simulate.sh'
+            f'./{LE}/simulate.sh'
         ]
         run_command(command)
 
