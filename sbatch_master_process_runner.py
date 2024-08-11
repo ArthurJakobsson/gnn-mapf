@@ -148,7 +148,7 @@ if __name__ == "__main__":
         command = [
             'sbatch',
             '-p', 'GPU-small',
-            '--gres=gpu:v100-32:2',
+            '--gres=gpu:v100-32:1',
             '-t', '8:00:00',
             '--job-name', 'arthur_train',
             './train.sh'

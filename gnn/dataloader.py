@@ -187,6 +187,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     # weights[np.invert(matches.flatten())] = 1/(np.sum(matches)+1)
     # weights[matches.flatten()] -= num_agent_goal_ratio+0.001
     weights[matches.flatten()] = 1/(np.sum(matches)+1)
+    weights += (num_agents-np.sum(weights))/num_agents
     
     return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
                 edge_attr=torch.tensor(edge_features, dtype=torch.float), bd_pred=torch.tensor(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
