@@ -43,9 +43,9 @@ def startup_small(LE):
 
 def generate_sh_script(LE, file, python_file, args, chosen_section=None):
     # Open or create the train.sh file in write mode
-    if os.path.exists(f'{file}.sh'):
-        os.remove(f'{file}.sh')
-    with open(f'{file}.sh', 'w') as f:
+    if os.path.exists(f'{LE}/{file}.sh'):
+        os.remove(f'{LE}/{file}.sh')
+    with open(f'{LE}/{file}.sh', 'w') as f:
         # Start the script with the command to run the Python script
         f.write("#!/bin/bash\n\n")
         f.write("module load anaconda3\n")
