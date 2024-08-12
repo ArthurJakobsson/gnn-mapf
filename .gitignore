@@ -11,6 +11,8 @@ gnn/model_log/
 gnn/data/
 .DS_Store
 animations/*
+repackaged_test/*
+batch_experiment/*
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*

@@ -136,7 +136,7 @@ if __name__ == "__main__":
             '-p', 'RM-shared',
             '-N', '1',
             '--ntasks-per-node=64',
-            '-t', '8:00:00',
+            '-t', '16:00:00',
             '--job-name', 'arthur_setup',
             f'./{LE}/setup.sh'
         ]
@@ -147,9 +147,9 @@ if __name__ == "__main__":
         generate_sh_script(LE,"train", "run_train.py", args)
         command = [
             'sbatch',
-            '-p', 'GPU-small',
+            '-p', 'GPU-shared',
             '--gres=gpu:v100-32:1',
-            '-t', '8:00:00',
+            '-t', '24:00:00',
             '--job-name', 'arthur_train',
             f'./{LE}/train.sh'
         ]
@@ -163,7 +163,7 @@ if __name__ == "__main__":
             '-p', 'RM-shared',
             '-N', '1',
             '--ntasks-per-node=64',
-            '-t', '8:00:00',
+            '-t', '16:00:00',
             '--job-name', 'arthur_simulate',
             f'./{LE}/simulate.sh'
         ]

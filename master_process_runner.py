@@ -36,6 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--k', type=int, default=4)
     parser.add_argument('--m', type=int, default=5)
     parser.add_argument('--lr', type=float, default=0.005)
+    parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--relu_type', type=str, default="relu")
     parser.add_argument('--expName', help="Name of the experiment, e.g. Test5", required=True)
     numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max, see eecbs_batchrunner3.py"

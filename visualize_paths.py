@@ -151,7 +151,7 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
     colors = ['r', 'b', 'm', 'g']
 
     # Visualize
-    tmpFolder = "./animations/tmpImgs"
+    tmpFolder = "./animations/tmpImgs2"
     print("Animating 1 image")
     # for t in range(0, max_plan_length):
     
@@ -189,10 +189,10 @@ def main():
     args = parser.parse_args()
 
     # Call the animate_agents function with the log file path
-    mapdata = readMap("data_collection/data/benchmark_data/maps/den312d.map")
+    mapdata = readMap("data_collection/data/benchmark_data/maps/Paris_1_256.map")
     # log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
     # scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
-    log_dir = "data_collection/data/logs/EXP_paris_den/iter1/pymodel_outputs/den312d/paths/"
+    log_dir = "data_collection/data/logs/EXP_same_mean_subtraction/iter1/pymodel_outputs/Paris_1_256/paths/"
     log_dir_list = os.listdir(log_dir)
     
     
