@@ -114,6 +114,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     outputPathNpy = f"{outputFolder}/paths/{bdname}.{scenname}.npy"
     command += f" --outputPathsFile={outputPathNpy}"
     command += f" --numScensToCreate={runnerArgs['numScensToCreate']}"
+    command += f" --percentSuccessGenerationReduction={runnerArgs['percentSuccessGenerationReduction']}"
     return command
 
 def getCommandForSingleInstance(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
@@ -339,8 +340,9 @@ def specificRunnerDictSetup(args):
                 "k": args.k,
                 "m": args.m,
                 "maxSteps": args.maxSteps,
-                "shieldType": args.shieldType,
+                "shieldType": args.shieldType
             },
+            "percentSuccessGenerationReduction": args.percentSuccessGenerationReduction,
             "numScensToCreate": args.numScensToCreate
         }
         if args.extra_layers is not None:
@@ -657,6 +659,7 @@ if __name__ == "__main__":
     pymodel_parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     # Output parameters
     pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)
+    pymodel_parser.add_argument('--percentSuccessGenerationReduction', help="see simulator2", type=float, required=True)
     
  
 

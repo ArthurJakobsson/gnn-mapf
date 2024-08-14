@@ -45,6 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     parser.add_argument('--which_setting', help="[Arthur, Rishi, PSC]", required=True) # E.g. use --which_setting to determine using conda env or different aspects
+    parser.add_argument('--percent_for_succ', help="percent decreased scen creation for success instances in simulation", type=float, required=True)
 
     args = parser.parse_args()
     if args.which_setting == "Arthur":
@@ -184,7 +185,8 @@ if __name__ == "__main__":
                         f"--k={args.k}",
                         f"--m={args.m}",
                         "--maxSteps=3x",
-                        f"--numScensToCreate={args.numScensToCreate}"])
+                        f"--numScensToCreate={args.numScensToCreate}",
+                        f"--percentSuccessGenerationReduction={args.percent_for_succ}"])
         if args.extra_layers is not None:
             command += f" --extra_layers={args.extra_layers}"
         if args.bd_pred is not None:

@@ -25,8 +25,8 @@ def apply_masks(data_len, curdata):
     indices = torch.randperm(data_len) # (N)
     tr_mask[indices[:int((3/4)*data_len)]] = 1
     te_mask[indices[int((3/4)*data_len):]] = 1
-    curdata.train_mask = torch.tensor(tr_mask, dtype=torch.bool)
-    curdata.test_mask = torch.tensor(te_mask, dtype=torch.bool)
+    curdata.train_mask = torch.from_numpy(tr_mask)
+    curdata.test_mask = torch.from_numpy(te_mask)
     return curdata
 
 def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
@@ -40,7 +40,6 @@ def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
         raise KeyError("Invalid edge normalization method: {}".format(edge_normalize))
 
     ### Normalize bd
-    # pdb.set_trace()
     assert(bd_normalize in ["center"])
     bd_grid = data.x # (N,2,D,D)
     center = bd_grid[:, 1, k, k].unsqueeze(1).unsqueeze(2) # (N,1,1)
@@ -131,7 +130,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     selection = distance_of_neighbors != np.inf # (N,m)
     edge_indices = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
     edge_features = deltas[edge_indices[0], edge_indices[1]] # (num_edges,2), the difference between each agent
-
+    edge_features = edge_features.astype(np.float32)
     # test_neighbors = []
     # totalCount = 0
     # for i in range(num_agents):
@@ -154,7 +153,6 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     # edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
     # labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
     # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
-    # pdb.set_trace()
     assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     bd_pred_arr = None
     linear_dimensions = (grid_slices.shape[1]-2)**2 * num_layers
@@ -162,7 +160,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         # TODO get the best location to go next, just according to the bd
         # NOTE: because we pad all bds with a large number, 
         # we should be able to get the up, down, left and right of each bd without fear of invalid indexing
-        best_moves = np.zeros((num_agents, 5)) # (N, [up, left, down, right, stop])
+        # (N, [Stop, Right, Down, Up, Left])
         bd_tmp = np.copy(bd_list)
         x_mesh2, y_mesh2 = np.meshgrid(np.arange(-1,1+1), np.arange(-1,1+1), indexing='ij') # assumes k at least 1; getting a 3x3 grid centered at the same place
         x_mesh2 = x_mesh2[None, :, :] + rowLocs[:, None, :] #  -> (N,3,3)
@@ -171,7 +169,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         # set diagonal entries to a big number
         bd_tmp[:,0,0] = bd_tmp[:,0,2] = bd_tmp[:,2,0] = bd_tmp[:,2,2] = 1073741823
         flattened = np.reshape(bd_tmp, (-1, 9)) # (order (top to bot) left mid right, left mid right, left mid right)
-        flattened = flattened[:,[(1,3,7,5,4)]].reshape((-1,5))
+        flattened = flattened[:,[(4,5,7,1,3)]].reshape((-1,5))
 
         # Create a boolean array where each element is True if it is the minimum in its row
         min_indices = flattened == flattened.min(axis=1, keepdims=True)
@@ -180,18 +178,19 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         # min_indices = np.pad(min_indices, ((0,0),(k-1,k-1),(k-1,k-1)), constant_values=True) # (N,D,D) no-unique argmin solution
         bd_pred_arr = min_indices 
         linear_dimensions+=5
-        
+    
     # NOTE: calculate weights
     num_agent_goal_ratio = np.mean(matches)
     weights = np.ones(num_agents)
     # weights[np.invert(matches.flatten())] = 1/(np.sum(matches)+1)
     weights[matches.flatten()] -= num_agent_goal_ratio+0.001
     # weights[matches.flatten()] = 1/(np.sum(matches)+1)
-    weights += (num_agents-np.sum(weights))/num_agents # TODO this is buggy
-    
-    return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
-                edge_attr=torch.tensor(edge_features, dtype=torch.float), bd_pred=torch.tensor(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
-                weights = torch.tensor(weights, dtype=torch.float), y = torch.tensor(labels, dtype=torch.int8),bd_suggestion=best_moves)
+    # weights += (num_agents-np.sum(weights))/num_agents # TODO this is buggy
+    weights *= num_agents/np.sum(weights)
+    node_features=node_features.astype(np.float32)
+    return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
+                edge_attr=torch.from_numpy(edge_features), bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
+                weights = torch.from_numpy(weights), y = torch.from_numpy(labels))
 
 
 class MyOwnDataset(Dataset):
@@ -351,7 +350,6 @@ class MyOwnDataset(Dataset):
                 #     continue
                 if not npz_path.endswith(".npz"):
                     continue
-                # pdb.set_trace()
                 map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
                 # cur_path_iter = raw_path.split("_")[-1][:-4]
                 # if not (int(cur_path_iter)==self.iternum):
@@ -413,7 +411,6 @@ class MyOwnDataset(Dataset):
         ### Get indices and files
         # self.order_of_indices looks like [0, 213, 457, 990, 1405, ...]
         # self.order_of_files looks like [map1, map2, map2, map4, map5, ...]
-        # pdb.set_trace()
         self.order_of_indices = [0] # start with 0
         self.order_of_files = []
         # self.order_to_loaded_pt = []
@@ -424,7 +421,6 @@ class MyOwnDataset(Dataset):
             # self.order_to_loaded_pt.append(torch.load(osp.join(self.processed_dir, pt_path)))
         self.order_of_indices.pop() # Remove the last element since it is the sum of all elements
         self.order_of_indices = np.cumsum(self.order_of_indices) # (num_maps)
-        # pdb.set_trace()
 
         # for row in self.df.iterrows():
         #     self.order_to_loaded_pt.append(torch.load(osp.join(self.processed_dir, row[1]["pt_path"])))
@@ -435,7 +431,6 @@ class MyOwnDataset(Dataset):
 
     def get(self, idx):
         """Require to override Dataset get()"""
-        # pdb.set_trace()
         # assert(self.df is not None and len(self.df) > 0)
         which_file_index = np.searchsorted(self.order_of_indices, idx, side='right')-1 # (num_maps)
         # data_file = self.order_of_files[which_file_index]
@@ -491,3 +486,39 @@ if __name__ == "__main__":
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
                         num_cores=1, k=args.k, m=args.m, extra_layers=args.extra_layers, bd_pred=args.bd_pred)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# NOTE code to check if bd_preds are correct
+    # if bd_predictions:
+    #     best_moves2 = np.zeros((num_agents, 5))
+    #     _,row, col = bd_slices.shape
+    #     for i, bd in enumerate(bd_slices):
+    #         stay = bd[int(row/2), int(col/2)]
+    #         right = bd[int(row/2), int(col/2)+1]
+    #         left = bd[int(row/2), int(col/2)-1]
+    #         up = bd[int(row/2)-1, int(col/2)]
+    #         down = bd[int(row/2)+1, int(col/2)]
+    #         act_list =[stay, right, down, up, left]
+    #         min_act = min(act_list)
+    #         if stay == min_act:
+    #             best_moves2[i,0] = 1
+    #         if right == min_act:
+    #             best_moves2[i,1] = 1
+    #         if down == min_act:
+    #             best_moves2[i,2] = 1
+    #         if up == min_act:
+    #             best_moves2[i,3] = 1
+    #         if left == min_act:
+    #             best_moves2[i,4] = 1    
+    # assert(np.all(bd_pred_arr==best_moves2))

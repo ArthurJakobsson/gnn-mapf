@@ -13,6 +13,10 @@ gnn/data/
 animations/*
 repackaged_test/*
 batch_experiment/*
+new_map_generation/eecbs_npzs/*
+new_map_generation/eecbs_output/*
+new_map_generation/maps/*
+new_map_generation/scens/*
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*

@@ -390,10 +390,24 @@ def main(args: argparse.ArgumentParser):
 
     # Create the scen files
     numToCreate = args.numScensToCreate
+    chanceDecreasedForSuccess = args.percentSuccessGenerationReduction
+
+    # subsample fewer scens if failure instance
+    if success:
+        numToCreate *= chanceDecreasedForSuccess #TODO turn this into a argument
+        numToCreate = int(numToCreate)
+        sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False)
+    # if failure also sample more towards the end
+    else:
+        weights = np.arange(solution_path.shape[0]) + 1
+        weights /= np.sum(weights)
+        sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False, p=weights)        # Always include the first timestep + last 5 timesteps, then sample the rest
+    
     # Always include the first timestep + last 5 timesteps, then sample the rest
-    sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False)
-    sampled_timesteps = np.concatenate([[0], sampled_timesteps, np.arange(solution_path.shape[0]-5, solution_path.shape[0])])
-    # sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False)
+    # sampled_timesteps = np.concatenate([[0], sampled_timesteps, np.arange(solution_path.shape[0]-5, solution_path.shape[0])])    
+    # sampled_timesteps = np.unique(sampled_timesteps)
+    
+    
     for t in sampled_timesteps:
         # scenFilepath = args.outputScenPrefix + f".{t}.scen"
         mapname, bdname, scenname, _ = getMapBDScenAgents(args.scenFile)
@@ -401,6 +415,7 @@ def main(args: argparse.ArgumentParser):
         prefix = os.path.dirname(args.outputPathsFile)
         scenFilepath = f"{prefix}/{bdname}.{custom_scenname}.{num_agents}.scen"
         # pdb.set_trace()
+
         createScenFile(solution_path[t], goal_locations, args.mapName, scenFilepath)
 
 ### Example command
@@ -431,6 +446,7 @@ if __name__ == '__main__':
     parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
     parser.add_argument('--maxSteps', type=str, help="int or [int]x, e.g. 100 or 2x to denote multiplicative factor", required=True)
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--percentSuccessGenerationReduction', type=float, default=0.7)
     parser.add_argument('--shieldType', type=str, default='CS-PIBT')
     # Output parameters
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)

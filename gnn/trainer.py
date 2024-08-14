@@ -74,7 +74,6 @@ class GNNStack(nn.Module):
         x, edge_index, batch, bd_pred = data.x, data.edge_index, data.batch, data.bd_pred
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
-
         x = self.convs[0](x, bd_pred, edge_index)
         for i in range(1, self.num_layers):
             x = self.convs[i](x, edge_index)
@@ -156,8 +155,8 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
     train_dataset, test_dataset = torch.utils.data.random_split(combined_dataset, [train_size, test_size])
     BATCH_SIZE = my_batch_size #64 #1024
     NW = 4 # 32
-    loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NW, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NW, pin_memory=True)
+    loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NW, pin_memory=True, persistent_workers=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NW, pin_memory=True, persistent_workers=True)
 
     num_node_features = combined_dataset.datasets[0].num_node_features # datasets[0] is the first dataset in the combined dataset
     num_classes = combined_dataset.datasets[0].num_classes
@@ -180,7 +179,7 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
         second_correct = 0
         total_samples = 0
         start_time = time.time()
-
+        
         model.train()
         for batch in tqdm(loader):
             batch = batch.to(device)
@@ -192,8 +191,8 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
             # label = label[batch.train_mask]
 
             label_maxes = torch.argmax(label, dim=1).to(device)
-            loss = model.loss(pred, label_maxes, batch.weights)
-            # pdb.set_trace()
+            weights = torch.ones(label_maxes.shape).to(device) #batch.weights
+            loss = model.loss(pred, label_maxes, weights)
 
             scaler.scale(loss).backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
@@ -223,9 +222,13 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
             ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader"]
         ).decode("utf-8").strip()
         
+        test_acc, double_test_acc = test(test_loader, model)
         results.append([my_batch_size, epoch, train_acc, test_acc, runtime, gpu_memory_usage])
 
         print(f"Batchsize: {my_batch_size}, Epoch: {epoch}, Train Acc: {train_acc:.2f}%, Test Acc: {test_acc:.2f}%, Runtime: {runtime:.2f}s, GPU Usage: {gpu_memory_usage}MB")
+        
+        if train_acc > 95:
+            break
 
         if epoch % 5 == 0:
             test_acc, double_test_acc = test(test_loader, model)
@@ -247,7 +250,7 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
             #     print(f"Early stopping at epoch {epoch}")
             #     break
     df = pd.DataFrame(results, columns=["Batchsize", "Epoch", "Train Acc", "Test Acc", "Runtime", "GPU Usage"])
-    df.to_csv(f"batch_experiment/batchsize_{my_batch_size}_stats.csv", index=False)
+    df.to_csv(f"batch_experiment/batchsize_2workers_{my_batch_size}_stats.csv", index=False)
 
     return model
 

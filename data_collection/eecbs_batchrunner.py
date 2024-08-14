@@ -79,7 +79,9 @@ mapsToMaxNumAgents = { #TODO change this to 100 for all
     "final_test0": 101,
     "random_32_32_20": 101,
     "lak303d": 101,
-    "den520d": 101
+    "den520d": 101,
+    "dense_map_15_15_0": 51,
+    "dense_map_15_15_1": 51
 }
 
 def str2bool(v):
