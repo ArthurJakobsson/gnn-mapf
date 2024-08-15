@@ -5,11 +5,14 @@ import numpy as np
 import torch # For the model
 import pandas as pd # For saving the results
 import csv # For saving the results
+from collections import deque # For the queue of constraints
 
 from gnn.dataloader import create_data_object, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
 from custom_utils.common_helper import str2bool, getMapBDScenAgents
 
+####################################################
+#### Helper functions
 def parse_scene(scen_file):
     """Input: scenfile
     Output: start_locations, goal_locations
@@ -40,23 +43,22 @@ def parse_scene(scen_file):
             goal_locations.append((row,col)) # This is consistant with usage
     return np.array(start_locations, dtype=int), np.array(goal_locations, dtype=int)
 
-def convertProbsToPreferences(probs, conversion_type):
-    """Converts probabilities to preferences
-    Inputs:
-        probs: (N,5) probabilities
-        conversion_type: sorted or sampled
-    Outputs:
-        preferences: (N,5) preferences with each row containing 0,1,2,3,4
+def createScenFile(locs, goal_locs, map_name, scenFilepath):
+    """Input: 
+        locs: (N,2)
+        goal_locs: (N,2)
+        map_name: name of the map
+        scenFilepath: filepath to save scen
     """
-    if conversion_type == "sorted":
-        preferences = np.argsort(-probs, axis=1)
-    elif conversion_type == "sampled":
-        preferences = np.zeros_like(probs, dtype=int)
-        for i in range(probs.shape[0]):
-            preferences[i] = np.random.choice(5, size=5, replace=False, p=probs[i])
-    else:
-        raise ValueError('Invalid conversion type: {}'.format(conversion_type))
-    return preferences
+    assert(locs.min() >= 0 and goal_locs.min() >= 0)
+
+    ### Write scen file with the locs and goal_locs
+    # Note we need to swap row:[0],col:[1] and save it as col,row
+    with open(scenFilepath, 'w') as f:
+        f.write(f"version {len(locs)}\n")
+        for i in range(locs.shape[0]):
+            f.write(f"0\t{map_name}\t{0}\t{0}\t{locs[i,1]}\t{locs[i,0]}\t{goal_locs[i,1]}\t{goal_locs[i,0]}\t0\n")
+    print("Scen file created at: {}".format(scenFilepath))
 
 def getCosts(solution_path, goal_locs):
     """
@@ -100,12 +102,33 @@ def testGetCosts():
     assert(num_agents_at_goal == 2)
     print("getCosts test passed!")
 
+def convertProbsToPreferences(probs, conversion_type):
+    """Converts probabilities to preferences
+    Inputs:
+        probs: (N,5) probabilities
+        conversion_type: sorted or sampled
+    Outputs:
+        preferences: (N,5) preferences with each row containing 0,1,2,3,4
+    """
+    if conversion_type == "sorted":
+        preferences = np.argsort(-probs, axis=1)
+    elif conversion_type == "sampled":
+        preferences = np.zeros_like(probs, dtype=int)
+        for i in range(probs.shape[0]):
+            preferences[i] = np.random.choice(5, size=5, replace=False, p=probs[i])
+    else:
+        raise ValueError('Invalid conversion type: {}'.format(conversion_type))
+    return preferences
+
+####################################################
+#### LaCAM and PIBT func
+
 LABEL_TO_MOVES = np.array([[0,0], [0,1], [1,0], [-1,0], [0,-1]]) #  Stop, Right, Down, Up, Left
  # This needs to match Pipeline's action ordering
 
 def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_matrix, 
          occupied_nodes, occupied_edges, current_locs, current_locs_to_agent,
-         constrained_agents):
+         constrained_agents_to_action):
     """Inputs:
         grid_map: (H,W)
         agent_id: int
@@ -116,7 +139,7 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
         occupied_edges: set (row_from, col_from, row_to, col_to)
         current_locs: (N,2)
         current_locs_to_agent: dict: (row, col) -> agent_id
-        constrained_agents: [(agent_id, action index), ...], empty list if no constraints
+        constrained_agents_to_action: dict: agent_id -> action_index
     """
     def findAgentAtLocation(aLoc):
         if tuple(aLoc) in current_locs_to_agent.keys():
@@ -125,9 +148,10 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
             return -1
 
     moves_ordered = LABEL_TO_MOVES[action_preferences[agent_id]]
-    if agent_id in constrained_agents.keys(): # Force agent to only pick that action if constrained
-        action_index = constrained_agents[agent_id]
-        moves_ordered = moves_ordered[action_index:action_index+1]
+    if agent_id in constrained_agents_to_action.keys(): # Force agent to only pick that action if constrained
+        action_index = constrained_agents_to_action[agent_id]
+        moves_ordered = moves_ordered[action_index:action_index+1] # Only consider that action
+        print("Agent {} constrained to action {}".format(agent_id, action_index))
 
     current_pos = current_locs[agent_id] # (2)
     for aMove in moves_ordered:
@@ -156,7 +180,7 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
             # Recurse
             isvalid = pibtRecursive(grid_map, conflicting_agent, action_preferences, planned_agents,
                                 move_matrix, occupied_nodes, occupied_edges, current_locs,
-                                current_locs_to_agent, constrained_agents)
+                                current_locs_to_agent, constrained_agents_to_action)
             if isvalid:
                 return True
             else:
@@ -171,6 +195,143 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
     # No valid move found
     return False
 
+def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_constraints):
+    """Inputs:
+        grid_map: (H,W)
+        action_preferences: (N,5)
+        current_locs: (N,2)
+        agent_priorities: (N)
+        agent_constraints: [(agent_id, action index), ...], empty list if no constraints
+    """
+    agent_order = np.argsort(-agent_priorities) # Sort by priority, highest first
+    move_matrix = np.zeros((len(agent_priorities), 2), dtype=int) # (N,2)
+    occupied_nodes = []
+    occupied_edges = []
+    planned_agents = []
+
+    current_locs_to_agent = dict() # Maps (row, col) -> agent_id
+    for agent_id in agent_order:
+        if tuple(current_locs[agent_id]) not in current_locs_to_agent.keys():
+            current_locs_to_agent[tuple(current_locs[agent_id])] = agent_id
+        else:
+            raise RuntimeError('Multiple agents at same location!')
+
+    ### Convert agent_id constraints to actual agent indices based on agent_order
+    # This means that constraints apply to highest priority agents first, which is desired as these agents are furthest from their goals
+    constrained_agents_to_action = dict()
+    for agent_id, action_index in agent_constraints:
+        which_agent = agent_order[agent_id]
+        constrained_agents_to_action[which_agent] = action_index
+
+    ### Plan agents in order of priority
+    for agent_id in agent_order:
+        if agent_id in planned_agents:
+            continue
+        pibt_worked = pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, 
+                            move_matrix, occupied_nodes, occupied_edges, 
+                            current_locs, current_locs_to_agent, constrained_agents_to_action)
+        if pibt_worked is False:
+            break
+
+    return move_matrix, pibt_worked
+
+
+def lacam(start_locations, goal_locations, bd, grid_map, conversion_type, 
+                            k, m, model, device):
+    """Inputs:
+        bd: (N,H,W)
+        grid_map: (H,W)
+    """
+
+    class HLNode:
+        def __init__(self, state, action_preferences, parent) -> None:
+            self.state = state
+            self.action_preferences = action_preferences
+            self.parent = parent
+            self.queue_of_constraints = deque() # Each element is a list of tuples (agentId, actionIndex)
+            # A successor could require constraining multiple agents, therefore each constraint is a list of tuples (one per constrained agent)
+            # Conceptually, we are lazily BFSing the constraints. When generating [(0,3),(1,4)] 
+            # we want to add [(0,3),(1,4),(2,0)], [(0,3),(1,4),(2,1)], ... [(0,3),(1,4),(2,4)]
+            self.queue_of_constraints.append([]) # Start with no constraints
+
+            ### Compute agent priorities via PIBT rule
+            distance_to_goal = bd[range(len(state)), state[:,0], state[:,1]] # (N)
+            if parent is None:
+                self.depth = 0
+                self.agent_priorities = distance_to_goal / distance_to_goal.max() # Normalize to [0,1]
+            else:
+                self.depth = parent.depth + 1
+                self.agent_priorities = self.parent.agent_priorities + 1
+                self.agent_priorities[distance_to_goal == 0] = 0 # Set priority to 0 if reached goal
+
+
+        def getNextState(self):
+            """Outputs:
+                new_state: None or (N,2)
+            """
+            if len(self.queue_of_constraints) == 0:
+                return False, None, None, True
+            curConstraint = self.queue_of_constraints.popleft()
+            # curConstraint is a list of tuples (agentId, actionIndex), agentId of K correponds to agent with K highest priority
+            
+            ### Add in next constraints
+            if len(curConstraint) == 0: # Initial, start with constraining agent 0
+                for i in range(0,5):
+                    self.queue_of_constraints.append([(0,i)])
+            else:
+                # curConstraint is a list of tuples (agentId, actionIndex) dictating that agentId should take actionIndex
+                curAgent = curConstraint[-1][0] # curConstraint[-1] is the last constraint added
+                for i in range(0,5): # We want to constrain the next agent with the same current constraints + the new constraint
+                    self.queue_of_constraints.append(curConstraint + [(curAgent+1,i)])
+
+            # Run PIBT
+            new_move, pibt_worked = pibt(grid_map, self.action_preferences, self.state, self.agent_priorities, curConstraint)
+
+            if not pibt_worked: # Failed with the constraints
+                return None
+            new_state = self.state + new_move
+            return new_state
+
+
+    mainStack = deque() # Stack of HLNodes
+    stateToHLNodes = dict() # Maps str(state) to HLNode
+
+    ### Initialize the HLNode
+    curNode = HLNode(start_locations, None)
+    mainStack.appendleft(curNode) # Start with the initial state
+    stateToHLNodes[str(start_locations)] = curNode
+
+    success = False
+    MAXNODECOUNT = 1000
+    totalNodesExpanded = 0
+    while len(mainStack) > 0:
+        curNode : HLNode = mainStack.popleft()
+        if len(curNode.queue_of_constraints) != 0: # Always add in the original HLNode if not exhausted
+            mainStack.appendleft(curNode)
+        new_locs = curNode.getNextState()
+        if new_locs is None:
+            continue
+        totalNodesExpanded += 1
+
+        # Check if all agents have reached their goals
+        if np.all(np.equal(new_locs, goal_locations)):
+            break
+
+        if str(new_locs) in stateToHLNodes.keys(): # Already visited/created this state
+            curNode = stateToHLNodes[str(new_locs)] # Get the existing HLNode
+        else:
+            # Create a new HLNode
+            probs = runNNOnState(new_locs, bd, grid_map, k, m, model, device)
+            action_preferences = convertProbsToPreferences(probs, conversion_type) # (N,5)
+            newHLNode = HLNode(new_locs, action_preferences, curNode)
+            mainStack.appendleft(newHLNode)
+
+    # Get path via backtracking. If not a success, this returns the path to the last state found
+    entirePath = [new_locs]
+    while curNode is not None:
+        entirePath.append(curNode.state)
+        curNode = curNode.parent
+    entirePath.reverse() # Reverse to get path from start to goal
 
 def lacamOrPibt(lacam_or_cspibt, grid_map, action_preferences, current_locs, 
           agent_priorities, agent_constraints):
@@ -224,22 +385,27 @@ def lacamOrPibt(lacam_or_cspibt, grid_map, action_preferences, current_locs,
     return move_matrix, cspibt_worked
     
 
-def createScenFile(locs, goal_locs, map_name, scenFilepath):
-    """Input: 
-        locs: (N,2)
-        goal_locs: (N,2)
-        map_name: name of the map
-        scenFilepath: filepath to save scen
+def runNNOnState(cur_locs, bd, grid_map, k, m, model, device):
+    """Inputs:
+        cur_locs: (N,2)
+    Outputs:
+        probs: (N,5)
     """
-    assert(locs.min() >= 0 and goal_locs.min() >= 0)
 
-    ### Write scen file with the locs and goal_locs
-    # Note we need to swap row:[0],col:[1] and save it as col,row
-    with open(scenFilepath, 'w') as f:
-        f.write(f"version {len(locs)}\n")
-        for i in range(locs.shape[0]):
-            f.write(f"0\t{map_name}\t{0}\t{0}\t{locs[i,1]}\t{locs[i,0]}\t{goal_locs[i,1]}\t{goal_locs[i,0]}\t0\n")
-    print("Scen file created at: {}".format(scenFilepath))
+    with torch.no_grad():
+        # Create the data object
+        data = create_data_object(cur_locs, bd, grid_map, k, m)
+        data = normalize_graph_data(data, k)
+        data = data.to(device)
+
+        # Forward pass
+        _, predictions = model(data)
+        probabilities = torch.softmax(predictions, dim=1) # More general version
+
+        # Get the action preferences
+        probs = probabilities.cpu().detach().numpy() # (N,5)
+
+    return probs
 
 
 def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
@@ -267,19 +433,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         agent_priorities[agents_at_goal] = 0 # Agents at goal have priority 0
         agent_priorities[agents_at_goal == False] += 1 # Agents not at goal increase priority by 1
 
-        with torch.no_grad():
-            # Create the data object
-            data = create_data_object(cur_locs, bd, grid_map, k, m)
-            data = normalize_graph_data(data, k)
-            # pdb.set_trace()
-            data = data.to(device)
-
-            # Forward pass
-            _, predictions = model(data)
-            probabilities = torch.softmax(predictions, dim=1) # More general version
-
-            # Get the action preferences
-            probs = probabilities.cpu().detach().numpy() # (N,5)
+        probs = runNNOnState(cur_locs, bd, grid_map, k, m, model, device)
 
         action_preferences = convertProbsToPreferences(probs, "sampled") # (N,5)
 
