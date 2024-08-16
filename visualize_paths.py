@@ -114,85 +114,58 @@ def readMap(mapfile: str):
     mapdata = mapdata.astype(int)
     return mapdata
 
-# def readJSSSolutionPaths(pathsfile):
-#     # pathsfile = "/home/rishi/Desktop/CMU/Research/eecbs-private/build_debug/jss_solution_paths.txt" # RVMod (originally "paths.txt")
-#     agents = 0
-#     id2plan = dict()
-#     id2length = dict()
-#     id2goal = dict()
-#     with open(pathsfile, "r") as f:
-#         for line in f:
-#             if line.startswith("Map_name: "):
-#                 mapdata = readMap(line.split(" ")[1].strip())
-#                 continue
-#             if line == "":
-#                 continue
-#             if line.startswith("Num_agents: "):
-#                 numAgents = int(line.split(" ")[1])
-#                 continue
-#             if line.startswith("Goal_for_agent"):
-#                 agent_id = int(line.split(" ")[1][:-1])
-#                 goal = string_coord_to_tuple(line.split(" ")[2][:-1])
-#                 id2goal[agent_id] = goal
-#                 continue
-
-#             plan = line.split(":")[1]
-#             plan_coord_strs = plan.split(" ")[1].split("->")[:-1]
-#             plan = [string_coord_to_tuple(s) for s in plan_coord_strs]
-#             agent_id = int(line.split(":")[0].split(" ")[1])
-#             id2plan[agent_id] = plan
-#             id2length[agent_id] = len(plan)
-#             agents += 1
-
-#     max_plan_length = max(id2length.values())
-#     return mapdata, id2plan, id2goal, max_plan_length, agents
-
 def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfile):
     colors = ['r', 'b', 'm', 'g']
 
     # Visualize
-    tmpFolder = "./animations/tmpImgs2"
+    tmpFolder = "./animations/tmpImgs"
     print("Animating 1 image")
     # for t in range(0, max_plan_length):
     
     last_row = id2plan[-1]
     repeated_rows = np.tile(last_row, (40,1, 1))
     id2plan = np.vstack([id2plan, repeated_rows])
-    # pdb.set_trace()
+    finished=False
+    if np.all(id2plan[-1]==id2goal[0:agents]):
+        finished=True
     for t in range(max_plan_length+40-1, -1, -1):
         plt.imshow(mapdata, cmap="Greys")
         for i in range(0, agents):
             plan = id2plan[:,i]
-            # if t > len(plan)-1:
-            #     plt.scatter(plan[-1][1], plan[-1][0],s=1, c="grey") # RVMod: Fixed by modding
-            # else:
             if np.all(plan[t] == id2goal[i]):
                 plt.scatter(plan[t][1], plan[t][0],s=1, c="grey")
             else:
                 plt.scatter(plan[t][1], plan[t][0], s=1, c=colors[i%len(colors)]) # RVMod: Fixed by modding
+
+        if finished:
+            plt.text(0.2, 1.05, 'success', color='green', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+        else:
+            plt.text(0.2, 1.05, 'failure', color='red', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+        plt.subplots_adjust(top=0.85)
         name = "{}/{:03d}.png".format(tmpFolder, t)
         plt.title(f"t = {t}")
         plt.savefig(name)
         plt.cla()
     
-    if outputfile is None:
-        outputfile = "animation.gif"
-    assert(outputfile.endswith(".gif"))
-    create_gif(tmpFolder, outputfile)
+    succStr = "_S" if finished else "_F"
+    # if outputfile is None:
+    #     outputfile = "animation.gif"
+    # assert(outputfile.endswith(".gif"))
+    create_gif(tmpFolder, outputfile+succStr+".gif")
 
 
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Visualize agent paths from log file')
     # parser.add_argument('log_file', type=str, help='Path to the log file')
-    parser.add_argument('--output', type=str, help='Path to the output gif file', default="animation")
+    parser.add_argument('--output', type=str, help='Path to the output gif file', default="animations/den312d")
     args = parser.parse_args()
 
     # Call the animate_agents function with the log file path
-    mapdata = readMap("data_collection/data/benchmark_data/maps/Paris_1_256.map")
+    mapdata = readMap("data_collection/data/benchmark_data/maps/den312d.map")
     # log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
     # scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
-    log_dir = "data_collection/data/logs/EXP_same_mean_subtraction/iter1/pymodel_outputs/Paris_1_256/paths/"
+    log_dir = "data_collection/data/logs/EXP_test_biasing/iter8/pymodel_outputs/den312d/paths/"
     log_dir_list = os.listdir(log_dir)
     
     
@@ -210,7 +183,7 @@ def main():
         print(id2plan.shape)
         agents = id2plan.shape[1]
         # mapdata, id2plan, id2goal, max_plan_length, agents = readJSSSolutionPaths(args.log_file)
-        output = f"{args.output}_{i}.gif"
+        output = f"{args.output}_{i}"
         animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, output)
 
 

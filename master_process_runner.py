@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--relu_type', type=str, default="relu")
     parser.add_argument('--expName', help="Name of the experiment, e.g. Test5", required=True)
-    numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max, see eecbs_batchrunner3.py"
+    numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max or include .json for pulling from config file, see eecbs_batchrunner3.py "
     parser.add_argument('--numAgents', help=numAgentsHelp, type=str, required=True)
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
     parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
@@ -57,7 +57,9 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Invalid setting: {args.which_setting}")
 
-
+    if ".json" in args.numAgents:
+        args.numAgents = "map_configs/"+args.numAgents
+    
     iternum = 0
     if args.mini_test:
         # source_maps_scens = "./data_collection/data/mini_benchmark_data"

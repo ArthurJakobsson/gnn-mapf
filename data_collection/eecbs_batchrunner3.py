@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt  # For plotting
 import numpy as np  # For utils
 from collections import defaultdict
 import shutil
+import json
+
 
 import multiprocessing
 # from custom_utils.custom_timer import CustomTimer
@@ -485,13 +487,20 @@ def generic_batch_runner(args):
                 print("Removing previous potentially partial run for {}".format(mapFile))
                 shutil.rmtree(f"{outputFolder}/{mapFile}", ignore_errors=False)
         maps_to_run.append(mapFile)
-
+        
+        
+        agent_json_dict = None
         ### Get the number of agents to run for each scen
         if "benchmark" in scenInputFolder: # pre-loop run
             if args.numAgents == "increment":
                 increment = min(100,  mapsToMaxNumAgents[mapFile])
                 maximumAgents = mapsToMaxNumAgents[mapFile] + 1
                 agentNumbers = list(range(increment, maximumAgents, increment))
+            elif ".json" in args.numAgents:
+                if agent_json_dict is None:
+                    f = open(args.numAgents)
+                    agent_json_dict = json.load(f)['map_agent_counts']
+                agentNumbers = agent_json_dict[mapFile]
             else:
                 agentNumbers = [int(x) for x in args.numAgents.split(",")]
             # maximumAgents = increment + 1 # Just run one setting as of now

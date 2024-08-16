@@ -178,7 +178,7 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
         correct = 0
         second_correct = 0
         total_samples = 0
-        start_time = time.time()
+        # start_time = time.time()
         
         model.train()
         for batch in tqdm(loader):
@@ -216,19 +216,19 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
         writer.add_scalar("train_top2_accuracy", train_top2_acc, epoch)
         scheduler.step(total_loss)
 
-        runtime = time.time() - start_time
+        # runtime = time.time() - start_time
         
-        gpu_memory_usage = subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader"]
-        ).decode("utf-8").strip()
+        # gpu_memory_usage = subprocess.check_output(
+        #     ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader"]
+        # ).decode("utf-8").strip()
         
-        test_acc, double_test_acc = test(test_loader, model)
-        results.append([my_batch_size, epoch, train_acc, test_acc, runtime, gpu_memory_usage])
+        # test_acc, double_test_acc = test(test_loader, model)
+        # results.append([my_batch_size, epoch, train_acc, test_acc, runtime, gpu_memory_usage])
 
-        print(f"Batchsize: {my_batch_size}, Epoch: {epoch}, Train Acc: {train_acc:.2f}%, Test Acc: {test_acc:.2f}%, Runtime: {runtime:.2f}s, GPU Usage: {gpu_memory_usage}MB")
+        # print(f"Batchsize: {my_batch_size}, Epoch: {epoch}, Train Acc: {train_acc:.2f}%, Test Acc: {test_acc:.2f}%, Runtime: {runtime:.2f}s, GPU Usage: {gpu_memory_usage}MB")
         
-        if train_acc > 95:
-            break
+        # if train_acc > 95:
+        #     break
 
         if epoch % 5 == 0:
             test_acc, double_test_acc = test(test_loader, model)
@@ -249,8 +249,8 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
             # if no_improvement >= patience:
             #     print(f"Early stopping at epoch {epoch}")
             #     break
-    df = pd.DataFrame(results, columns=["Batchsize", "Epoch", "Train Acc", "Test Acc", "Runtime", "GPU Usage"])
-    df.to_csv(f"batch_experiment/batchsize_2workers_{my_batch_size}_stats.csv", index=False)
+    # df = pd.DataFrame(results, columns=["Batchsize", "Epoch", "Train Acc", "Test Acc", "Runtime", "GPU Usage"])
+    # df.to_csv(f"batch_experiment/batchsize_2workers_{my_batch_size}_stats.csv", index=False)
 
     return model
 
