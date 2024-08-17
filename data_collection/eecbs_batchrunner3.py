@@ -339,6 +339,7 @@ def specificRunnerDictSetup(args):
                 "m": args.m,
                 "maxSteps": args.maxSteps,
                 "shieldType": args.shieldType,
+                "lacamLookahead": args.lacamLookahead,
             },
             "numScensToCreate": args.numScensToCreate
         }
@@ -647,6 +648,7 @@ if __name__ == "__main__":
     pymodel_parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
     pymodel_parser.add_argument('--maxSteps', type=str, help="see simulator2", required=True)
     pymodel_parser.add_argument('--shieldType', type=str, default='CS-PIBT')
+    pymodel_parser.add_argument('--lacamLookahead', type=int, default=0)
     # Output parameters
     pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)
 

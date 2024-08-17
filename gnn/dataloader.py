@@ -55,7 +55,7 @@ def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
     assert(data.x[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     return data
 
-def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
+def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([]), debug_checks=False):
     """
     poslist: (N,2) positions
     bd_list: (N,W,H) bd's
@@ -64,33 +64,37 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     m: (int) number of closest neighbors to consider
     """
     num_agents = len(pos_list)
-    # pdb.set_trace()
-    # x = [np.array([slice_maps(pos, grid, k), slice_maps(pos, bd, k)]) for (pos, bd) in zip(pos_list, bd_list)]
-    # x = np.array(x) # (N,2,W,H)
+    range_num_agents = np.arange(num_agents)
+
     ### Numpy advanced indexing to get all agent slices at once
     rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
     colLocs = pos_list[:,1][:, None] # (N)->(N,1)
-    assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
+    if debug_checks:
+        assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
 
     x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
     # Adjust indices to gather slices
     x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     grid_slices = grid[x_mesh, y_mesh] # (N,D,D)
-    bd_slices = bd_list[np.arange(num_agents)[:,None,None], x_mesh, y_mesh] # (N,D,D)
+    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
     node_features = np.stack([grid_slices, bd_slices], axis=1) # (N,2,D,D)
 
-    # pdb.set_trace()
-    agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
+    agent_indices = np.repeat(range_num_agents[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
     deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
-    dists = np.linalg.norm(deltas, axis=2, ord=1) # (N,N), the distance between each agent
+
+    ## Calculate the distance between each agent, einsum is faster than other options
+    dists = np.einsum('ijk,ijk->ij', deltas, deltas).astype(float) # (N,N), the L2^2 distance between each agent
+    # dists2 = np.linalg.norm(deltas, axis=2, ord=2) # (N,N), the distance between each agent
+    # dists3 = np.sum(np.abs(deltas)**2, axis=2) # (N,N), the distance between each agent
+    # assert(np.allclose(dists1, dists3)) # Make sure the two distance calculations are the same
+    # assert(np.allclose(dists1, np.sqrt(dists2))) # Make sure the two distance calculations are the same
+
     fov_dist = np.any(np.abs(deltas) > k, axis=2) # (N,N,2)->(N,N) bool for if the agent is within the field of view
     dists[fov_dist] = np.inf # Set the distance to infinity if the agent is out of the field of view
-    np.fill_diagonal(dists, np.inf) # Set the distance to itself to infinity
-    closest_neighbors = np.argsort(dists, axis=1)[:, :m] # (N,m), the indices of the 4 closest agents
-    distance_of_neighbors = dists[np.arange(num_agents)[:,None],closest_neighbors] # (N,m)
+    closest_neighbors = np.argsort(dists, axis=1)[:, 1:m+1] # (N,m), the indices of the 4 closest agents, ignore self
+    distance_of_neighbors = dists[range_num_agents[:,None],closest_neighbors] # (N,m)
     
-    # agent_inds = np.arange(num_agents)[:, None] # (N,1)
     neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
     selection = distance_of_neighbors != np.inf # (N,m)
     edge_indices = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
@@ -119,12 +123,66 @@ def create_data_object(pos_list, bd_list, grid, k, m, labels=np.array([])):
     # labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
     # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
     # pdb.set_trace()
-    assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
+    if debug_checks:
+        assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
 
     return Data(x=torch.tensor(node_features, dtype=torch.float), edge_index=torch.tensor(edge_indices, dtype=torch.long), 
                 edge_attr=torch.tensor(edge_features, dtype=torch.float), 
                 y = torch.tensor(labels, dtype=torch.int8))
 
+def create_data_object_torch(pos_list, bd_list, grid, k, m, labels=np.array([])):
+    """
+    poslist: (N,2) positions
+    bd_list: (N,W,H) bd's
+    grid: (W,H) grid
+    k: (int) local region size
+    m: (int) number of closest neighbors to consider
+    """
+    pos_list = torch.from_numpy(pos_list)
+    bd_list = torch.from_numpy(bd_list).float()
+    grid = torch.from_numpy(grid).float()
+
+    num_agents = len(pos_list)
+    # pdb.set_trace()
+    # x = [np.array([slice_maps(pos, grid, k), slice_maps(pos, bd, k)]) for (pos, bd) in zip(pos_list, bd_list)]
+    # x = np.array(x) # (N,2,W,H)
+    ### Numpy advanced indexing to get all agent slices at once
+    rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
+    colLocs = pos_list[:,1][:, None] # (N)->(N,1)
+    assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
+    range_num_agents = torch.arange(num_agents)
+
+    x_mesh, y_mesh = torch.meshgrid(torch.arange(-k,k+1), torch.arange(-k,k+1), indexing='ij') # Each is (D,D)
+    # Adjust indices to gather slices
+    x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
+    y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
+    grid_slices = grid[x_mesh, y_mesh] # (N,D,D)
+    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
+    node_features = torch.stack([grid_slices, bd_slices], axis=1) # (N,2,D,D)
+
+    # pdb.set_trace()
+    # agent_indices = np.repeat(range_num_agents[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
+    agent_indices = range_num_agents.unsqueeze(0).repeat(m, 1).T  # (N, N), each row is 0->num_agents
+    deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
+    # pdb.set_trace()
+    dists = torch.linalg.norm(deltas.float(), axis=2, ord=1) # (N,N), the distance between each agent
+    fov_dist = torch.any(torch.abs(deltas) > k, axis=2) # (N,N,2)->(N,N) bool for if the agent is within the field of view
+    dists[fov_dist] = torch.inf # Set the distance to infinity if the agent is out of the field of view
+    # torch.fill_diagonal_(dists, torch.inf) # Set the distance to itself to infinity
+    closest_neighbors = torch.argsort(dists, axis=1)[:, 1:m+1] # (N,m), the indices of the 4 closest agents
+    distance_of_neighbors = dists[range_num_agents[:,None],closest_neighbors] # (N,m)
+    
+    # agent_inds = np.arange(num_agents)[:, None] # (N,1)
+    neighbors_and_source_idx = torch.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
+    selection = distance_of_neighbors != torch.inf # (N,m)
+    edge_indices = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
+    edge_features = deltas[edge_indices[0], edge_indices[1]] # (num_edges,2), the difference between each agent
+
+    assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
+    # pdb.set_trace()
+    return Data(x=node_features, edge_index=edge_indices, 
+                edge_attr=edge_features.float(), 
+                y = torch.tensor(labels, dtype=torch.int8))
 
 class MyOwnDataset(Dataset):
     def __init__(self, mapNpzFile, bdNpzFolder, pathNpzFolder,

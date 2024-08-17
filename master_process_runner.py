@@ -20,8 +20,8 @@ def log_time(event_name):
 ### Example command for full benchmark
 """ 
 Old big run: python -m master_process_runner 0 f f 100 1000 --num_parallel=50
-Small run: python -m master_process_runner 0 t --numScensToCreate=10 --num_parallel=10 --expName=EXP_den312d_test6 \
-    --numAgents=100 --which_setting=Rishi
+Small run: python -m master_process_runner 0 t --numScensToCreate=20 --num_parallel=30 --expName=EXP_den312d_lacam2 \
+    --numAgents=100,200,400 --which_setting=Rishi
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                             "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
-                            "--cutoffTime=20",
+                            "--cutoffTime=60",
                             "--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         f"--firstIter=false",
-                        f"--cutoffTime=20",
+                        f"--cutoffTime=60",
                         f"--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -161,7 +161,9 @@ if __name__ == "__main__":
                         "--useGPU=False",
                         "--k=4",
                         "--m=5",
-                        "--maxSteps=2x",
+                        "--maxSteps=3x",
+                        "--shieldType=LaCAM",
+                        "--lacamLookahead=50",
                         f"--numScensToCreate={args.numScensToCreate}",])
         if conda_env is not None:
             command += f" --condaEnv={conda_env}"

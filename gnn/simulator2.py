@@ -2,14 +2,15 @@ import os
 import argparse
 import pdb
 import numpy as np
-import torch # For the model
+import torch # For the model and 
 import pandas as pd # For saving the results
 import csv # For saving the results
 from collections import deque, OrderedDict # For the queue of constraints
 from functools import lru_cache # For caching the model calls
+import cProfile # For profiling
+import pstats # For profiling
 
-
-from gnn.dataloader import create_data_object, normalize_graph_data
+from gnn.dataloader import create_data_object, create_data_object_torch, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
 from custom_utils.common_helper import str2bool, getMapBDScenAgents
 
@@ -60,7 +61,7 @@ def createScenFile(locs, goal_locs, map_name, scenFilepath):
         f.write(f"version {len(locs)} \n")
         for i in range(locs.shape[0]):
             f.write(f"0\t{map_name}\t{0}\t{0}\t{locs[i,1]}\t{locs[i,0]}\t{goal_locs[i,1]}\t{goal_locs[i,0]}\t0 \n")
-    print("Scen file created at: {}".format(scenFilepath))
+    # print("Scen file created at: {}".format(scenFilepath))
 
 def getCosts(solution_path, goal_locs):
     """
@@ -115,9 +116,20 @@ def convertProbsToPreferences(probs, conversion_type):
     if conversion_type == "sorted":
         preferences = np.argsort(-probs, axis=1)
     elif conversion_type == "sampled":
-        preferences = np.zeros_like(probs, dtype=int)
-        for i in range(probs.shape[0]):
-            preferences[i] = np.random.choice(5, size=5, replace=False, p=probs[i])
+        ### This naive version with for loop becomes a bottleneck
+        # preferences = np.zeros_like(probs, dtype=int)
+        # for i in range(probs.shape[0]):
+        #     preferences[i] = np.random.choice(5, size=5, replace=False, p=probs[i])
+
+        ### Faster version using torch
+        probs = torch.tensor(probs, dtype=torch.float32)
+        preferences = torch.zeros_like(probs, dtype=torch.int64)
+        for i in range(5):
+            cur_sample = torch.multinomial(probs, num_samples=1, replacement=False) # (N,1)
+            probs.scatter_(1, cur_sample, 0) # Set the sampled index to 0
+            preferences[:,i] = cur_sample[:,0]
+        preferences = preferences.numpy()
+        assert(np.all(preferences.sum(axis=1) == 10)) # Make sure 0,1,2,3,4 are all present per row
     else:
         raise ValueError('Invalid conversion type: {}'.format(conversion_type))
     return preferences
@@ -140,17 +152,11 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
         occupied_nodes: set (row, col)
         occupied_edges: set (row_from, col_from, row_to, col_to)
         current_locs: (N,2)
-        current_locs_to_agent: dict: (row, col) -> agent_id
+        current_locs_to_agent: (H,W)  # dict: (row, col) -> agent_id
         constrained_agents_to_action: dict: agent_id -> action_index
     """
-    def findAgentAtLocation(aLoc):
-        if tuple(aLoc) in current_locs_to_agent.keys():
-            return current_locs_to_agent[tuple(aLoc)]
-        else:
-            return -1
-
     moves_ordered = LABEL_TO_MOVES[action_preferences[agent_id]]
-    if agent_id in constrained_agents_to_action.keys(): # Force agent to only pick that action if constrained
+    if agent_id in constrained_agents_to_action: # Force agent to only pick that action if constrained
         action_index = constrained_agents_to_action[agent_id]
         moves_ordered = moves_ordered[action_index:action_index+1] # Only consider that action
         # print("Agent {} constrained to action {}".format(agent_id, action_index))
@@ -166,19 +172,22 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
         if grid_map[next_loc[0], next_loc[1]] == 1:
             continue
         # Skip if vertex occupied by higher agent
-        if tuple(next_loc) in occupied_nodes:
+        if occupied_nodes[next_loc[0], next_loc[1]]:
             continue
         # Skip if reverse edge occupied by higher agent
-        if tuple([*next_loc, *current_pos]) in occupied_edges:
+        edge_key = tuple([*next_loc, *current_pos])
+        if edge_key in occupied_edges:
             continue
+        
         
         ### Pretend we move there
         move_matrix[agent_id] = aMove
-        planned_agents.append(agent_id)
-        occupied_nodes.append(tuple(next_loc))
-        occupied_edges.append(tuple([*current_pos, *next_loc]))
-        conflicting_agent = findAgentAtLocation(next_loc)
-        if conflicting_agent != -1 and conflicting_agent != agent_id and conflicting_agent not in planned_agents:
+        planned_agents[agent_id] = True
+        occupied_nodes[next_loc[0], next_loc[1]] = True
+        occupied_edges.add(edge_key)
+
+        conflicting_agent = current_locs_to_agent[next_loc[0], next_loc[1]]
+        if conflicting_agent != -1 and conflicting_agent != agent_id and not planned_agents[conflicting_agent]:
             # Recurse
             isvalid = pibtRecursive(grid_map, conflicting_agent, action_preferences, planned_agents,
                                 move_matrix, occupied_nodes, occupied_edges, current_locs,
@@ -186,9 +195,9 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
             if isvalid:
                 return True
             else:
-                del planned_agents[-1]
-                del occupied_nodes[-1]
-                del occupied_edges[-1]
+                planned_agents[agent_id] = False
+                occupied_nodes[next_loc[0], next_loc[1]] = False
+                occupied_edges.remove(edge_key)
                 continue
         else:
             # No conflict
@@ -210,16 +219,12 @@ def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_con
     """
     agent_order = np.argsort(-agent_priorities) # Sort by priority, highest first
     move_matrix = np.zeros((len(agent_priorities), 2), dtype=int) # (N,2)
-    occupied_nodes = []
-    occupied_edges = []
-    planned_agents = []
+    occupied_nodes = np.zeros(grid_map.shape, dtype=bool) # (H,W), True denotes occupied
+    occupied_edges = set() # (row_from, col_from, row_to, col_to)
+    planned_agents = np.zeros(len(agent_priorities), dtype=bool) # (N), True denotes planned
 
-    current_locs_to_agent = dict() # Maps (row, col) -> agent_id
-    for agent_id in agent_order:
-        if tuple(current_locs[agent_id]) not in current_locs_to_agent.keys():
-            current_locs_to_agent[tuple(current_locs[agent_id])] = agent_id
-        else:
-            raise RuntimeError('Multiple agents at same location!')
+    current_locs_to_agent = np.zeros(grid_map.shape, dtype=int) - 1  # (H,W), -1 denotes no agent
+    current_locs_to_agent[current_locs[:,0], current_locs[:,1]] = np.arange(len(current_locs))  # Assigns agent_id to each location
 
     ### Convert agent_id constraints to actual agent indices based on agent_order
     # This means that constraints apply to highest priority agents first, which is desired as these agents are furthest from their goals
@@ -230,7 +235,7 @@ def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_con
 
     ### Plan agents in order of priority
     for agent_id in agent_order:
-        if agent_id in planned_agents:
+        if planned_agents[agent_id]:
             continue
         pibt_worked = pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, 
                             move_matrix, occupied_nodes, occupied_edges, 
@@ -240,8 +245,24 @@ def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_con
 
     return move_matrix, pibt_worked
 
+def updatePriorities(prev_priorities, at_goal):
+    """Inputs:
+        prev_priorities: (N)
+        at_goal: (N), boolean
+    Outputs:
+        agent_priorities: (N)
+    """
+    agent_priorities = prev_priorities.copy()
 
-def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs):
+    # agents previously at goal (parent_priority <= 0) and still at goal (dist == 0) should have priority decreased
+    agent_priorities[(prev_priorities <= 0) & at_goal] -= 1
+    # agents that just got to goal (parent_priority > 0 & dist == 0) should have priority set to 0
+    agent_priorities[(prev_priorities > 0) & at_goal] = 0 # Agents that are at goal should have priority decreased
+    # agents that are not at goal (dist > 0) should have priority increased
+    agent_priorities[~at_goal] = np.maximum(prev_priorities[~at_goal], 0) + 1
+    return agent_priorities
+
+def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs, lacamLimit):
     """Inputs:
         bd: (N,H,W)
         grid_map: (H,W)
@@ -261,14 +282,29 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs)
             self.queue_of_constraints.append([]) # Start with no constraints
 
             ### Compute agent priorities via PIBT rule
-            distance_to_goal = bd[range(len(state)), state[:,0], state[:,1]] # (N)
             if parent is None:
                 self.depth = 0
+                distance_to_goal = bd[range(len(state)), state[:,0], state[:,1]] # (N)
                 self.agent_priorities = distance_to_goal / distance_to_goal.max() # Normalize to [0,1]
             else:
                 self.depth = parent.depth + 1
-                self.agent_priorities = self.parent.agent_priorities + 1
-                self.agent_priorities[distance_to_goal == 0] = 0 # Set priority to 0 if reached goal
+                at_goal = np.all(np.equal(state, goal_locations), axis=1) # (N)
+                self.agent_priorities = updatePriorities(self.parent.agent_priorities, at_goal)
+                # self.agent_priorities = self.parent.agent_priorities.copy()
+
+                # # agents previously at goal (parent_priority <= 0) and still at goal (dist == 0) should have priority decreased
+                # # pdb.set_trace()
+                # self.agent_priorities[(self.parent.agent_priorities <= 0) & (distance_to_goal == 0)] -= 1
+                # # agents that just got to goal (parent_priority > 0 & dist == 0) should have priority set to 0
+                # self.agent_priorities[(self.parent.agent_priorities > 0) & (distance_to_goal == 0)] = 0 # Agents that are at goal should have priority decreased
+                # # agents that are not at goal (dist > 0) should have priority increased
+                # self.agent_priorities[distance_to_goal > 0] = np.maximum(self.parent.agent_priorities[distance_to_goal > 0], 0) + 1
+                # self.agent_priorities[self.parent.agent_priorities <= 0] -= 1 # Agents that are at goal should have priority decreased
+                # self.agent_priorities[distance_to_goal == 0] = 0 # Set priority to 0 if reached goal
+                # if np.any(distance_to_goal == 0):
+                #     print(self.parent.agent_priorities)
+                #     print(self.agent_priorities)
+                #     pdb.set_trace()
 
 
         def getNextState(self):
@@ -308,9 +344,9 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs)
     stateToHLNodes[start_locations.tobytes()] = curNode
 
     success = False
-    MAXNNCALLS = 50
+    MAXGENERATED = lacamLimit
     numNodesExpanded = 0
-    numNNCalls = 0
+    numGenerated = 0
     while len(mainStack) > 0:
         curNode : HLNode = mainStack.popleft()
         if len(curNode.queue_of_constraints) != 0: # Always add in the original HLNode if not exhausted
@@ -326,21 +362,22 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs)
             success = True
             break
 
-        if str(new_locs) in stateToHLNodes.keys(): # Already visited/created this state
-            curNode = stateToHLNodes[str(new_locs)] # Get the existing HLNode
+        key = new_locs.tobytes()
+        if key in stateToHLNodes.keys(): # Already visited/created this state
+            curNode = stateToHLNodes[key] # Get the existing HLNode
         else:
             # Create a new HLNode
             # probs = runNNOnState(new_locs, bd, grid_map, k, m, model, device)
             # action_preferences = convertProbsToPreferences(probs, conversion_type) # (N,5)
             newHLNode = HLNode(new_locs, getActionPrefsFromLocs(new_locs), curNode)
-            numNNCalls += 1
+            numGenerated += 1
 
             # Add to collections
-            stateToHLNodes[new_locs.tobytes()] = newHLNode
+            stateToHLNodes[key] = newHLNode
             mainStack.appendleft(newHLNode)
 
-        if numNNCalls > MAXNNCALLS:
-            print("Stopping due to max NN calls")
+        if numGenerated > MAXGENERATED:
+            # print("Stopping due to max NN calls")
             break
     
     # Get path via backtracking. If not a success, this returns the path to the last state found
@@ -349,7 +386,7 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs)
         entirePath.append(curNode.state)
         curNode = curNode.parent
     entirePath.reverse() # Reverse to get path from start to goal
-    return entirePath, success, numNodesExpanded, numNNCalls
+    return entirePath, success, numNodesExpanded, numGenerated
 
 class WrapperNNWithCache:
     def __init__(self, bd, grid_map, model, device, k, m) -> None:
@@ -360,13 +397,16 @@ class WrapperNNWithCache:
         self.k = k
         self.m = m
         self.saved_calls = dict()
+        self.hits = 0
 
     def __call__(self, locs):
-        if locs.tostring() in self.saved_calls.keys():
-            return self.saved_calls[locs.tostring()]
+        key = str(locs)
+        if key in self.saved_calls.keys():
+            self.hits += 1
+            return self.saved_calls[key]
         else:
             probs = runNNOnState(locs, self.bd, self.grid_map, self.k, self.m, self.model, self.device)
-            self.saved_calls[locs.tostring()] = probs
+            self.saved_calls[key] = probs
             return probs
 
 def runNNOnState(cur_locs, bd, grid_map, k, m, model, device):
@@ -392,7 +432,7 @@ def runNNOnState(cur_locs, bd, grid_map, k, m, model, device):
 
 
 def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
-             max_steps, shield_type):
+             max_steps, shield_type, lacam_lookahead):
     """Inputs: \n
         grid_map: (H,W), note includes padding \n
         bd: (N,H,W), note includes padding \n
@@ -412,7 +452,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     
     wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m)
     def getActionPrefsFromLocs(locs):
-        # probs = wrapper_nn(locs)
+        # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
         probs = runNNOnState(locs, bd, grid_map, k, m, model, device)
         return convertProbsToPreferences(probs, "sampled")
     
@@ -430,8 +470,9 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     for step in range(max_steps):
         # Update priorities
         agents_at_goal = np.all(np.equal(cur_locs, goal_locations), axis=1) # (N)
-        agent_priorities[agents_at_goal] = 0 # Agents at goal have priority 0
-        agent_priorities[agents_at_goal == False] += 1 # Agents not at goal increase priority by 1
+        agent_priorities = updatePriorities(agent_priorities, agents_at_goal)
+        # agent_priorities[agents_at_goal] = 0 # Agents at goal have priority 0
+        # agent_priorities[agents_at_goal == False] += 1 # Agents not at goal increase priority by 1
 
         if shield_type == "CS-PIBT":
             # probs = runNNOnState(cur_locs, bd, grid_map, k, m, model, device) # (N,5) Get probs from NN
@@ -442,10 +483,13 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
                 raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
         else:
             # Run LaCAM
-            next_locs, lacamFoundSolution, numNodesExpanded, numNNCalls = lacam(cur_locs, goal_locations, bd, grid_map, getActionPrefsFromLocs)
+            next_locs, lacamFoundSolution, numNodesExpanded, numGenerated = lacam(cur_locs, goal_locations, 
+                                                    bd, grid_map, getActionPrefsFromLocs, lacam_lookahead)
             # Note: next_locs is (T1,N,2) where T1 is the lookahead depth
 
             if lacamFoundSolution:
+                for t in range(1, len(next_locs)):
+                    assert(np.all(grid_map[next_locs[t][:,0], next_locs[t][:,1]] == 0)) # Ensure no agents are on obstacles
                 print("LaCAM found solution at step: {}".format(step))
                 solution_path.extend(next_locs[1:]) # Add the lookahead path
                 success = True
@@ -466,6 +510,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     # pdb.set_trace()
     solution_path = np.array(solution_path) # (T<=max_steps+1,N,2)
     total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal = getCosts(solution_path, goal_locations)
+    print("Total cache hits: {}, Total size: {}".format(wrapper_nn.hits, len(wrapper_nn.saved_calls)))
 
     return solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success
 
@@ -474,6 +519,7 @@ def main(args: argparse.ArgumentParser):
     # Setting constants
     torch.set_num_threads(1) # Make pytorch use only 1 thread, otherwise by default will try using all threads    
     k = args.k
+    # profiler = cProfile.Profile()
 
     # Load the map
     if not os.path.exists(args.mapNpzFile):
@@ -525,27 +571,33 @@ def main(args: argparse.ArgumentParser):
         max_steps = int(args.maxSteps)
 
     # Simulate
+    # profiler.enable()
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
             model, k, args.m, map_grid, bd, start_locations, goal_locations, 
-            max_steps, args.shieldType)
+            max_steps, args.shieldType, args.lacamLookahead)
     print("Success: {}, Total cost true: {}, Total cost not at goal: {}, Num agents at goal: {}/{}".format(success, 
                                     total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, num_agents))
     solution_path = solution_path - k # (T,N,2) Removes padding
     goal_locations = goal_locations - k # (N,2) Removes padding
+    # profiler.disable()
+    # profiler.dump_stats('profile.prof')
+    # profiler.print_stats(sort='cumtime')
+    # stats = pstats.Stats(profiler).sort_stats('cumtime')
+    # stats.print_stats(30) # Print the top 30
     
     # Save the statistics into the csv file
     if not os.path.exists(args.outputCSVFile):
         # Create the file and write the header
         with open(args.outputCSVFile, 'w') as f:
             writer = csv.writer(f, delimiter=',')
-            writer.writerow(['mapName', 'scenFile', 'agentNum', 'seed', 'shieldType',
+            writer.writerow(['mapName', 'scenFile', 'agentNum', 'seed', 'shieldType', 'lacamLookahead',
                              'modelPath', 'useGPU', 'k', 'm', 'maxSteps', 
                              'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
                              'num_agents_at_goal'])
             
     with open(args.outputCSVFile, 'a') as f:
         writer = csv.writer(f, delimiter=',')
-        writer.writerow([args.mapName, args.scenFile, args.agentNum, args.seed, args.shieldType, 
+        writer.writerow([args.mapName, args.scenFile, args.agentNum, args.seed, args.shieldType, args.lacamLookahead,
                          args.modelPath, args.useGPU, args.k, args.m, args.maxSteps,
                          success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal])
 
@@ -574,13 +626,13 @@ def main(args: argparse.ArgumentParser):
 """
 python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
       --mapName=random_32_32_10 --scenFile=data_collection/data/benchmark_data/scens/random_32_32_10-random-1.scen \
-      --agentNum=400 --bdNpzFile=data_collection/data/benchmark_data/constant_npzs/random_32_32_10_bds.npz \
+      --agentNum=440 --bdNpzFile=data_collection/data/benchmark_data/constant_npzs/random_32_32_10_bds.npz \
       --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
       --k=4 --m=5 \
-      --maxSteps=200 --seed=0 --shieldType=LaCAM \
       --outputCSVFile=data_collection/data/logs/EXP_Test4/iter0/results.csv \
       --outputPathsFile=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
-      --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100
+      --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
+      --maxSteps=200 --seed=0 --shieldType=LaCAM --lacamLookahead=5
 """
 if __name__ == '__main__':
     # testGetCosts()
@@ -599,6 +651,7 @@ if __name__ == '__main__':
     parser.add_argument('--maxSteps', type=str, help="int or [int]x, e.g. 100 or 2x to denote multiplicative factor", required=True)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'LaCAM'])
+    parser.add_argument('--lacamLookahead', type=int, help="LaCAM node expansion limit", default=0)
     # Output parameters
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
     parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", required=True)
@@ -611,5 +664,7 @@ if __name__ == '__main__':
         args.mapName = args.mapName.removesuffix('.map')
     if args.outputScenPrefix is None:
         tmp = args.outputPathsFile.removesuffix('.npy')
+    if args.shieldType == "LaCAM" and args.lacamLookahead == 0:
+        raise ValueError('LaCAM lookahead must be set when using LaCAM shield type.')
     
     main(args)
