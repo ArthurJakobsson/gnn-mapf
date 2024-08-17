@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     
     log_time("begin")
-    constantMapAndBDFolder = "data_collection/data/benchmark_data/constant_npzs"
+    constantMapAndBDFolder = "data_collection/data/benchmark_data/constant_npzs" #TODO change this to make new maps
     constantMapNpz = f"{constantMapAndBDFolder}/all_maps.npz"
     
 

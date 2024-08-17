@@ -381,7 +381,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
         # mapOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_map.npz"
         # bdOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_bds.npz"
         # mapOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_map.npz"
-        mapOutputNpz = f"{args.constantMapAndBDFolder}/all_maps.npz"
+        mapOutputNpz = f"{args.constantMapAndBDFolder}/all_maps.npz" #TODO change this to previous line for testing new maps
         bdOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_bds.npz"
         # mapOutputNpz = f"data_collection/data/benchmark_data/constant_npz2/{mapFile}_map.npz"
         # bdOutputNpz = f"data_collection/data/benchmark_data/constant_npzs2/{mapFile}_bds.npz"
