@@ -22,8 +22,8 @@ def log_time(event_name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("expnum", help="experiment number", type=int)
-    parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
+    parser.add_argument("--expnum", help="experiment number", type=int)
+    parser.add_argument('--mini_test', type=lambda x: bool(str2bool(x)))
     # parser.add_argument('generate_initial', help="NOTE: We should NOT need to do this given constant_npzs/ folder", type=lambda x: bool(str2bool(x)))
     parser.add_argument('--numScensToCreate', type=int, help="number of scens to create per pymodel, see simulator2.py", default=20)
     parser.add_argument('--num_parallel', type=int)
