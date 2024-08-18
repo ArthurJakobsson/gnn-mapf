@@ -41,6 +41,7 @@ if __name__ == "__main__":
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     parser.add_argument('--which_setting', help="[Arthur, Rishi, PSC]", required=True) # E.g. use --which_setting to determine using conda env or different aspects
     parser.add_argument('--percent_for_succ', help="percent decreased scen creation for success instances in simulation", type=float, required=True)
+    parser.add_argument('--which_section', help="[begin, setup, train, simulate]", required=True)
     parser.add_argument('--iternum', type=int)
 
     args = parser.parse_args()
