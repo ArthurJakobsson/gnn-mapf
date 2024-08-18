@@ -476,7 +476,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
         probs = runNNOnState(locs, bd, grid_map, k, m, model, device)
         return convertProbsToPreferences(probs, "sampled")
-    wrapper_bd_prefs = WrapperBDGetActionPrefs(bd, grid_map, k, m, len(start_locations))
+    wrapper_bd_prefs = WrapperBDGetActionPrefs(bd, grid_map, k, m, len(start_locations)) # This returns PIBT action preferences
 
     
     cur_locs = start_locations # (N,2)
@@ -496,7 +496,8 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         agent_priorities = updatePriorities(agent_priorities, agents_at_goal)
 
         if shield_type == "CS-PIBT":
-            action_preferences = getActionPrefsFromLocs(cur_locs)
+            # action_preferences = getActionPrefsFromLocs(cur_locs)
+            action_preferences = wrapper_bd_prefs(cur_locs)
             new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [])
             if not cspibt_worked:
                 raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
@@ -504,13 +505,13 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
             # Run LaCAM
             at_goal_ratio = np.mean(agents_at_goal)
             scaled_lookahead = 1 # Use lookahead of 1 in the beginning
-            usedAP = getActionPrefsFromLocs
+            # usedAP = getActionPrefsFromLocs
+            # usedAP = wrapper_bd_prefs # Use this to test LaCAM with PIBT action preferences
             if at_goal_ratio > 0.90 and MAX_USE_LACAM >= 0: # Only use larger lookahead when at least 90% agents are at goal and have budget
                 scaled_lookahead = int(np.ceil(lacam_lookahead * at_goal_ratio)) # Scale lookahead based on how many agents are at goal
-                # usedAP = wrapper_bd_prefs
                 MAX_USE_LACAM -= 1
             next_locs, lacamFoundSolution, numNodesExpanded, numGenerated = lacam(cur_locs, goal_locations, 
-                                                    bd, grid_map, usedAP, scaled_lookahead)
+                                                    bd, grid_map, getActionPrefsFromLocs, scaled_lookahead)
             # Note: next_locs is (T1,N,2) where T1 is the lookahead depth
 
             if lacamFoundSolution:

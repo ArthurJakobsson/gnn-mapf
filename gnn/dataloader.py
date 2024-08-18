@@ -68,6 +68,8 @@ def get_bd_prefs(pos_list, bds, range_num_agents):
     bd_subset = bds[range_num_agents[:,None,None], x_mesh2, y_mesh2] # (N,3,3)
     flattened = np.reshape(bd_subset, (-1, 9)) # (N,9) order (top to bot) left mid right, left mid right, left mid right
     flattened = flattened[:,(4,5,7,1,3)] # (N,5) consistent with NN
+    flattened = flattened.astype(float) + np.random.random(flattened.shape)*1e-6 # Add noise to break ties
+    # NOTE: Random noise is extremely import for PIBT to work it seems
     prefs = np.argsort(flattened, axis=1, kind="quicksort") # (N,5) Stop, Right, Down, Up, Left
     # pdb.set_trace()
     return prefs
