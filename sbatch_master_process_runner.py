@@ -113,8 +113,8 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Invalid setting: {args.which_setting}")
 
-    if ".json" in args.numAgents:
-        args.numAgents = "map_configs/"+args.numAgents   
+    if ".json" in args.numAgents and "map_configs" not in args.numAgents:
+        args.numAgents = "map_configs/"+args.numAgents 
 
     if args.mini_test:
         # source_maps_scens = "./data_collection/data/mini_benchmark_data"
