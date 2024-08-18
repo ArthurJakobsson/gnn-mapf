@@ -22,8 +22,8 @@ def log_time(event_name):
 Small run: python master_process_runner.py 0 t --expName=EXP_400_agents  --data_folder=den312_benchmark --num_parallel=50 --k=4 --m=7 --lr=0.001 --relu_type=leaky_relu --numAgents=100,200,300,400 --which_setting=Arthur --extra_layers=agent_locations --bd_pred=t
 Big run: python -m master_process_runner 0 f t 100 1000 --num_parallel=50
 Old big run: python -m master_process_runner 0 f f 100 1000 --num_parallel=50
-Small run: python -m master_process_runner 0 t --numScensToCreate=10 --num_parallel=10 --expName=EXP_den312d_test6 \
-    --numAgents=100 --which_setting=Rishi
+Small run: python -m master_process_runner 0 t --numScensToCreate=20 --num_parallel=30 --expName=EXP_den312d_lacam2 \
+    --numAgents=100,200,400,600,800 --which_setting=Rishi
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     
 
     processed_folders_list = []
-    for iternum in range(15):
+    for iternum in range(8):
         iterFolder = f"{LE}/iter{iternum}"
         if not os.path.exists(iterFolder):
             os.makedirs(iterFolder)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                             "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
-                            "--cutoffTime=20",
+                            "--cutoffTime=60",
                             "--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         f"--firstIter=false",
-                        f"--cutoffTime=20",
+                        f"--cutoffTime=60",
                         f"--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -184,15 +184,17 @@ if __name__ == "__main__":
                         "\"pymodel\"",
                         f"--modelPath={iterFolder}/models/max_test_acc.pt",
                         "--useGPU=False",
-                        f"--k={args.k}",
-                        f"--m={args.m}",
+                        "--k=4",
+                        "--m=5",
                         "--maxSteps=3x",
+                        "--shieldType=LaCAM",
+                        "--lacamLookahead=50",
                         f"--numScensToCreate={args.numScensToCreate}",
                         f"--percentSuccessGenerationReduction={args.percent_for_succ}"])
         if args.extra_layers is not None:
             command += f" --extra_layers={args.extra_layers}"
         if args.bd_pred is not None:
-            command += f" --bd_pred={args.bd_pred}"
+            command += f" --bd_pred={args.bd_pred}"       
         if conda_env is not None:
             command += f" --condaEnv={conda_env}"
         print(command)

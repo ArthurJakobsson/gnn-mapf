@@ -342,7 +342,8 @@ def specificRunnerDictSetup(args):
                 "k": args.k,
                 "m": args.m,
                 "maxSteps": args.maxSteps,
-                "shieldType": args.shieldType
+                "shieldType": args.shieldType,
+                "lacamLookahead": args.lacamLookahead,
             },
             "percentSuccessGenerationReduction": args.percentSuccessGenerationReduction,
             "numScensToCreate": args.numScensToCreate
@@ -666,6 +667,7 @@ if __name__ == "__main__":
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
     pymodel_parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     pymodel_parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
+    pymodel_parser.add_argument('--lacamLookahead', type=int, default=0)
     # Output parameters
     pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)
     pymodel_parser.add_argument('--percentSuccessGenerationReduction', help="see simulator2", type=float, required=True)

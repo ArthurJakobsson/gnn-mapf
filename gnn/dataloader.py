@@ -54,9 +54,28 @@ def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
     assert(data.x[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     return data
 
-def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([])):
+def get_bd_prefs(pos_list, bds, range_num_agents):
     """
-    poslist: (N,2) positions
+    pos_list: (N,2) positions
+    bds: (N,W,H) bd's
+    range_num_agents: (N) range of number of agents
+    """
+    x_mesh2, y_mesh2 = np.meshgrid(np.arange(-1,1+1), np.arange(-1,1+1), indexing='ij') # assumes k at least 1; getting a 3x3 grid centered at the same place
+    # pdb.set_trace()
+    x_mesh2 = x_mesh2[None, :, :] + np.expand_dims(pos_list[:,0], axis=(1,2)) #  -> (N,3,3)
+    y_mesh2 = y_mesh2[None, :, :] + np.expand_dims(pos_list[:,1], axis=(1,2)) # -> (N,3,3)
+    bd_subset = bds[range_num_agents[:,None,None], x_mesh2, y_mesh2] # (N,3,3)
+    flattened = np.reshape(bd_subset, (-1, 9)) # (N,9) order (top to bot) left mid right, left mid right, left mid right
+    flattened = flattened[:,(4,5,7,1,3)] # (N,5) consistent with NN
+    flattened = flattened.astype(float) + np.random.random(flattened.shape)*1e-6 # Add noise to break ties
+    # NOTE: Random noise is extremely import for PIBT to work it seems
+    prefs = np.argsort(flattened, axis=1, kind="quicksort") # (N,5) Stop, Right, Down, Up, Left
+    # pdb.set_trace()
+    return prefs
+
+def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
+    """
+    pos_list: (N,2) positions
     bd_list: (N,W,H) bd's
     grid: (W,H) grid
     k: (int) local region size
@@ -73,19 +92,20 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         bd_predictions = True
     
     num_agents = len(pos_list)
-    # x = [np.array([slice_maps(pos, grid, k), slice_maps(pos, bd, k)]) for (pos, bd) in zip(pos_list, bd_list)]
-    # x = np.array(x) # (N,2,W,H)
+    range_num_agents = np.arange(num_agents)
+
     ### Numpy advanced indexing to get all agent slices at once
     rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
     colLocs = pos_list[:,1][:, None] # (N)->(N,1)
-    assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
+    if debug_checks:
+        assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
 
     x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
     # Adjust indices to gather slices
     x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     grid_slices = grid[x_mesh, y_mesh] # (N,D,D)
-    bd_slices = bd_list[np.arange(num_agents)[:,None,None], x_mesh, y_mesh] # (N,D,D)
+    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
     num_layers = 2
     node_features = np.stack([grid_slices, bd_slices], axis=1) # (N,2,D,D)
 
@@ -118,14 +138,19 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
 
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
     deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
-    dists = np.linalg.norm(deltas, axis=2, ord=1) # (N,N), the distance between each agent
+
+    ## Calculate the distance between each agent, einsum is faster than other options
+    dists = np.einsum('ijk,ijk->ij', deltas, deltas).astype(float) # (N,N), the L2^2 distance between each agent
+    # dists2 = np.linalg.norm(deltas, axis=2, ord=2) # (N,N), the distance between each agent
+    # dists3 = np.sum(np.abs(deltas)**2, axis=2) # (N,N), the distance between each agent
+    # assert(np.allclose(dists1, dists3)) # Make sure the two distance calculations are the same
+    # assert(np.allclose(dists1, np.sqrt(dists2))) # Make sure the two distance calculations are the same
+
     fov_dist = np.any(np.abs(deltas) > k, axis=2) # (N,N,2)->(N,N) bool for if the agent is within the field of view
     dists[fov_dist] = np.inf # Set the distance to infinity if the agent is out of the field of view
-    np.fill_diagonal(dists, np.inf) # Set the distance to itself to infinity
-    closest_neighbors = np.argsort(dists, axis=1)[:, :m] # (N,m), the indices of the 4 closest agents
-    distance_of_neighbors = dists[np.arange(num_agents)[:,None],closest_neighbors] # (N,m)
+    closest_neighbors = np.argsort(dists, axis=1, kind="quicksort")[:, 1:m+1] # (N,m), the indices of the 4 closest agents, ignore self
+    distance_of_neighbors = dists[range_num_agents[:,None],closest_neighbors] # (N,m)
     
-    # agent_inds = np.arange(num_agents)[:, None] # (N,1)
     neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
     selection = distance_of_neighbors != np.inf # (N,m)
     edge_indices = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
@@ -153,7 +178,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     # edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
     # labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
     # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
-    assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
+    if debug_checks:
+        assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     bd_pred_arr = None
     linear_dimensions = (grid_slices.shape[1]-2)**2 * num_layers
     if bd_predictions:
