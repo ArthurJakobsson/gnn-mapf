@@ -9,6 +9,7 @@ from collections import deque, OrderedDict # For the queue of constraints
 from functools import lru_cache # For caching the model calls
 import cProfile # For profiling
 import pstats # For profiling
+from tqdm import tqdm # For progress bar
 
 from gnn.dataloader import create_data_object, create_data_object_torch, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
@@ -467,7 +468,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
 
     solution_path = [cur_locs.copy()]
     success = False
-    for step in range(max_steps):
+    for step in tqdm(range(max_steps)):
         # Update priorities
         agents_at_goal = np.all(np.equal(cur_locs, goal_locations), axis=1) # (N)
         agent_priorities = updatePriorities(agent_priorities, agents_at_goal)
@@ -483,8 +484,12 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
                 raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
         else:
             # Run LaCAM
+            at_goal_ratio = np.mean(agents_at_goal)
+            scaled_lookahead = 1 # Use lookahead of 1 in the beginning
+            if at_goal_ratio > 0.9: # Only use larger lookahead when at least 90% agents are at goal
+                scaled_lookahead = int(np.ceil(lacam_lookahead * at_goal_ratio)) # Scale lookahead based on how many agents are at goal
             next_locs, lacamFoundSolution, numNodesExpanded, numGenerated = lacam(cur_locs, goal_locations, 
-                                                    bd, grid_map, getActionPrefsFromLocs, lacam_lookahead)
+                                                    bd, grid_map, getActionPrefsFromLocs, scaled_lookahead)
             # Note: next_locs is (T1,N,2) where T1 is the lookahead depth
 
             if lacamFoundSolution:
@@ -593,7 +598,7 @@ def main(args: argparse.ArgumentParser):
             writer.writerow(['mapName', 'scenFile', 'agentNum', 'seed', 'shieldType', 'lacamLookahead',
                              'modelPath', 'useGPU', 'k', 'm', 'maxSteps', 
                              'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
-                             'num_agents_at_goal'])
+                             'num_agents_at_goal', 'simulate_runtime'])
             
     with open(args.outputCSVFile, 'a') as f:
         writer = csv.writer(f, delimiter=',')
@@ -632,7 +637,17 @@ python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/consta
       --outputCSVFile=data_collection/data/logs/EXP_Test4/iter0/results.csv \
       --outputPathsFile=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
       --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-      --maxSteps=200 --seed=0 --shieldType=LaCAM --lacamLookahead=5
+      --maxSteps=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5
+
+python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
+      --mapName=den312d --scenFile=data_collection/data/benchmark_data/scens/den312d-random-1.scen \
+      --bdNpzFile=data_collection/data/benchmark_data/constant_npzs/den312d_bds.npz \
+      --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
+      --k=4 --m=5 \
+      --outputCSVFile=data_collection/data/logs/EXP_Test4/iter0/results.csv \
+      --outputPathsFile=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
+      --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
+      --maxSteps=500 --agentNum=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5
 """
 if __name__ == '__main__':
     # testGetCosts()

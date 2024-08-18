@@ -21,7 +21,7 @@ def log_time(event_name):
 """ 
 Old big run: python -m master_process_runner 0 f f 100 1000 --num_parallel=50
 Small run: python -m master_process_runner 0 t --numScensToCreate=20 --num_parallel=30 --expName=EXP_den312d_lacam2 \
-    --numAgents=100,200,400 --which_setting=Rishi
+    --numAgents=100,200,400,600,800 --which_setting=Rishi
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     
 
     processed_folders_list = []
-    for iternum in range(15):
+    for iternum in range(8):
         iterFolder = f"{LE}/iter{iternum}"
         if not os.path.exists(iterFolder):
             os.makedirs(iterFolder)
