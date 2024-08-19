@@ -97,9 +97,11 @@ if __name__ == "__main__":
                     "\"pymodel\"",
                     f"--modelPath={iterFolder}/models/max_test_acc.pt",
                     "--useGPU=False",
-                    f"--k={args.k}",
-                    f"--m={args.m}",
+                    "--k=4",
+                    "--m=5",
                     "--maxSteps=3x",
+                    "--shieldType=LaCAM",
+                    "--lacamLookahead=50",
                     f"--numScensToCreate={args.numScensToCreate}",
                     f"--percentSuccessGenerationReduction={args.percent_for_succ}"])
     if args.extra_layers is not None:

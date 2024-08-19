@@ -4,6 +4,32 @@ from scipy.ndimage import label
 import matplotlib.pyplot as plt
 import pdb
 
+def parse_map(mapfile):
+    '''
+    takes in a mapfile and returns a parsed np array
+    '''
+    with open(mapfile) as f:
+        line = f.readline()  # "type octile"
+
+        line = f.readline()  # "height 32"
+        height = int(line.split(' ')[1])
+
+        line = f.readline()  # width 32
+        width = int(line.split(' ')[1])
+
+        line = f.readline()  # "map\n"
+        assert(line == "map\n")
+
+        mapdata = np.array([list(line.rstrip()) for line in f])
+
+    mapdata.reshape((width,height))
+    mapdata[mapdata == '.'] = 0
+    mapdata[mapdata == '@'] = 1
+    mapdata[mapdata == 'T'] = 1
+    mapdata = mapdata.astype(int)
+    return mapdata
+
+
 def convert_to_map_format(array):
     # Convert the 2D array to a string format with '.' for 1s and '@' for 0s
     map_str = "\n".join("".join('.' if cell == 0 else '@' for cell in row) for row in array)
@@ -73,11 +99,13 @@ if __name__ == "__main__":
 
     for i in range(num_maps):
 
-        my_map = generate_connected_map(size, obstacle_prob)
-        print(my_map)
-        map_str = convert_to_map_format(my_map)
-        map_name = f"dense_map_{size}_{size}_{i}"
-        save_map_to_file(map_str, "new_map_generation/"+map_name+".map")
+        # my_map = generate_connected_map(size, obstacle_prob)
+        # print(my_map)
+        # map_str = convert_to_map_format(my_map)
+        # map_name = f"dense_map_{size}_{size}_{i}"
+        # save_map_to_file(map_str, "new_map_generation/maps/"+map_name+".map")
+        my_map = parse_map("new_map_generation/maps/corridor_30_30_0.map")
+        map_name="corridor_30_30_0"
 
         for j in range(num_scens):
 
@@ -94,4 +122,4 @@ if __name__ == "__main__":
             goal_locs = np.vstack([goal_rows, goal_cols]).T
             assert(np.all(my_map[goal_rows, goal_cols] == 0))
 
-            createScenFile(start_locs,goal_locs, map_name, f"new_map_generation/scens/{map_name}_{j}.scen")
+            createScenFile(start_locs,goal_locs, map_name, f"new_map_generation/scens/{map_name}-random-{j}.scen")

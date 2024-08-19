@@ -468,7 +468,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, args)
     def getActionPrefsFromLocs(locs):
         # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
-        probs = runNNOnState(locs, bd, grid_map, k, m, model, device)
+        probs = runNNOnState(locs, bd, grid_map, k, m, model, device, goal_locations, args)
         return convertProbsToPreferences(probs, "sampled")
     wrapper_bd_prefs = WrapperBDGetActionPrefs(bd, grid_map, k, m, len(start_locations)) # This returns PIBT action preferences
     cur_locs = start_locations # (N,2)
@@ -536,7 +536,6 @@ def main(args: argparse.ArgumentParser):
     # Setting constants
     torch.set_num_threads(1) # Make pytorch use only 1 thread, otherwise by default will try using all threads    
     k = args.k
-
     # Load the map
     if not os.path.exists(args.mapNpzFile):
         raise FileNotFoundError('Map file: {} not found.'.format(args.mapNpzFile))
@@ -629,14 +628,16 @@ def main(args: argparse.ArgumentParser):
 
     # subsample fewer scens if failure instance
     if success:
-        numToCreate *= chanceDecreasedForSuccess #TODO turn this into a argument
+        numToCreate *= chanceDecreasedForSuccess 
         numToCreate = int(numToCreate)
         sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False)
+        # pdb.set_trace()
     # if failure also sample more towards the end
     else:
         weights = np.arange(solution_path.shape[0]) + 1
         weights /= np.sum(weights)
         sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False, p=weights)        # Always include the first timestep + last 5 timesteps, then sample the rest
+        # pdb.set_trace()
     
     # Always include the first timestep + last 5 timesteps, then sample the rest
     # sampled_timesteps = np.concatenate([[0], sampled_timesteps, np.arange(solution_path.shape[0]-5, solution_path.shape[0])])    
@@ -716,4 +717,5 @@ if __name__ == '__main__':
     if args.shieldType == "LaCAM" and args.lacamLookahead == 0:
         raise ValueError('LaCAM lookahead must be set when using LaCAM shield type.')
     
+    # pdb.set_trace()
     main(args)

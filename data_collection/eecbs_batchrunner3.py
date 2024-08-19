@@ -42,6 +42,9 @@ mapsToMaxNumAgents = {
     "brc202d": 1000,
     "den312d": 1000, 
     "den520d": 1000,
+    "dense_map_15_15_0":50,
+    "dense_map_15_15_1":50,
+    "corridor_30_30_0":50,
     "empty_8_8": 32,
     "empty_16_16": 128,
     "empty_32_32": 512,
@@ -189,7 +192,6 @@ def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputFi
     runBefore, status = detectExistingStatus(runnerArgs, mapFile, curAgentNum, scen, combined_filename) # check in combinedDf
     if not runBefore:
         command = getCommandForSingleInstance(runnerArgs, outputFolder, workerOutputCSV, mapFile, curAgentNum, scen)
-        # print(command)
         runCommandWithTmux(worker_id, command)
         runBefore, status = detectExistingStatus(runnerArgs, mapFile, curAgentNum, scen, workerOutputCSV)  # check in worker's df
         if not runBefore:
@@ -377,6 +379,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
     numWorkersParallelForDataManipulator = 1
     for mapFile in mapsToScens.keys(): # mapFile is just the map name without the path or .map extension
         mapOutputFolder = static_dict[mapFile]["outputFolder"]
+        print(mapOutputFolder)
         pathsIn = f"{mapOutputFolder}/paths/"
 
         # mapOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_map.npz"
@@ -396,6 +399,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
                         f"--bdIn={mapOutputFolder}/bd", f"--bdOutFile={bdOutputNpz}", 
                         f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
+        # print(command)
         input_list.append((command,))
         # pdb.set_trace()
     
@@ -479,7 +483,7 @@ def generic_batch_runner(args):
             # Keep the csvs folder, it should just contain the combined.csv file
             continue
 
-        ### Checks if the finished txt already exists, if so skip
+        ## Checks if the finished txt already exists, if so skip
         if os.path.exists(idToWorkerOutputFilepath(-2, mapFile)): # Check for finished.txt which signifies if eecbs has already been run
             print("Skipping {} as finished.txt already exists".format(mapFile))
             continue
@@ -525,7 +529,7 @@ def generic_batch_runner(args):
         
         assert(len(static_dict[mapFile]["agentsPerScen"]) > 0)
         nameToNumRun[mapFile] = len(mapsToScens[mapFile])
-        # print(f"Map: {mapFile} requires {nameToNumRun[mapFile]} runs")
+        print(f"Map: {mapFile} requires {nameToNumRun[mapFile]} runs")
 
     if args.command == "clean":
         return
@@ -579,7 +583,7 @@ def generic_batch_runner(args):
     #         shutil.rmtree(f"{mapOutputFolder}/bd/") # Delete the bd folder
     #     if os.path.exists(f"{mapOutputFolder}/paths/"):
     #         shutil.rmtree(f"{mapOutputFolder}/paths/") # Delete the paths folder
-    #     # Keep the csvs folder, it should just contain the combined.csv file
+        # Keep the csvs folder, it should just contain the combined.csv file
     
     # Run data manipulator if running eecbs
     if args.command == "eecbs":

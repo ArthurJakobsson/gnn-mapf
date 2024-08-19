@@ -363,7 +363,7 @@ def batch_bd(dir, num_parallel):
     input: directory of backward djikstras (string)
     output: dictionary mapping filenames to backward djikstras
     '''
-    assert(1 + 1 == 3)
+    # assert(1 + 1 == 3)
     res = {} # string->np
     inputs_list = []
     filenames_list = []
@@ -374,8 +374,8 @@ def batch_bd(dir, num_parallel):
         if os.path.isfile(f):
             # parse the bd file and add to a global dictionary (or some class variable dictionary)
             # val = parse_bd(f)
-            scenname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. Paris_1_256-random-1.scen10.txt, where 1 is scen, 10 is agents
-            # scenname, agents = filename.split("."")[:2] # e.g. Paris_1_256-random-1.10.txt, where 1 is scen, 10 is agents
+            # scenname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. Paris_1_256-random-1.scen10.txt, where 1 is scen, 10 is agents
+            scenname, agents = filename.split(".")[:2] # e.g. Paris_1_256-random-1.10.txt, where 1 is scen, 10 is agents
             if num_parallel == 1:
                 res[scenname] = parse_bd(f)
             else:
@@ -467,15 +467,19 @@ def main():
     ct = CustomTimer()
     
     assert(args.mapOutFile.endswith(".npz"))
+    # print("hello world")
+    # args.mapOutFile="temp/all_maps.npz"
     if os.path.exists(args.mapOutFile):
         print("Map file already exists, skipping map parsing")
         pass
     else:
         with ct("Parsing maps"):
             maps = batch_map(args.mapIn, args.num_parallel) # maps mapname->np array containing the obstacles in map
-        np.savez_compressed(args.mapOutFile, **maps)
+        # args.mapOutFile="temp/all_maps.npz"
+        np.savez_compressed(f"{args.mapOutFile}", **maps)
         ct.printTimes("Parsing maps")
-
+    # quit()
+    # pdb.set_trace()
     # parse each bd, add to global dict
     assert(args.bdOutFile.endswith(".npz"))
     if os.path.exists(args.bdOutFile):
@@ -489,6 +493,7 @@ def main():
 
     # parse each path, add to global list
     assert(args.pathOutFile.endswith(".npz"))
+    print(args.pathOutFile)
     if os.path.exists(args.pathOutFile):
         print(f"Path file {args.pathOutFile} already exists, skipping path parsing")
     else:
