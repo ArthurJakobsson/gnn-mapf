@@ -379,7 +379,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
     numWorkersParallelForDataManipulator = 1
     for mapFile in mapsToScens.keys(): # mapFile is just the map name without the path or .map extension
         mapOutputFolder = static_dict[mapFile]["outputFolder"]
-        print(mapOutputFolder)
+        # print(mapOutputFolder)
         pathsIn = f"{mapOutputFolder}/paths/"
 
         # mapOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_map.npz"

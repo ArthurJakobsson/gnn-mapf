@@ -81,16 +81,6 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     k: (int) local region size
     m: (int) number of closest neighbors to consider
     """
-    agent_locations = agent_goal =  at_goal_grid = False
-    if "agent_locations" in extra_layers:
-        agent_locations=True
-    if "agent_goal" in extra_layers:
-        agent_goal=True
-    if "at_goal_grid" in extra_layers:
-        at_goal_grid=True
-    if bd_pred is not None:
-        bd_predictions = True
-    
     num_agents = len(pos_list)
     range_num_agents = np.arange(num_agents)
 
@@ -108,33 +98,53 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
     num_layers = 2
     node_features = np.stack([grid_slices, bd_slices], axis=1) # (N,2,D,D)
-
-    if agent_locations:
-        agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
-        agent_pos[rowLocs, colLocs] = 1 # (W,H)
-        agent_pos_slices = np.expand_dims(agent_pos[x_mesh, y_mesh], axis=1) # (N,1,D,D)
-        node_features = np.hstack([node_features,agent_pos_slices]) # (N,3,D,D)
-        num_layers+=1
     
     goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
     matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs)
-    if agent_goal: 
-            # NOTE: for 1 hot goal version
-        goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)   
-        goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
-        goal_pos = np.expand_dims(goal_pos,axis=1)
-        node_features = np.hstack([node_features,goal_pos]) # (N,`2or3`,D,D)
-        num_layers+=1
+    if extra_layers is not None:
+        if "agent_locations" in extra_layers:
+            agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
+            agent_pos[rowLocs, colLocs] = 1 # (W,H)
+            agent_pos_slices = np.expand_dims(agent_pos[x_mesh, y_mesh], axis=1) # (N,1,D,D)
+            node_features = np.hstack([node_features,agent_pos_slices]) # (N,3,D,D)
+            num_layers+=1
     
-    if at_goal_grid:
-        goal_pos_binary = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
-        # NOTE: for all agents on their goal turn to 1 version
-        goal_pos_binary[rowLocs[matches], colLocs[matches]] = 1 # Set goal positions to 1 where matches are found
-        goal_pos_slices = goal_pos_binary[x_mesh, y_mesh] # (N,D,D)
-        assert(goal_pos_slices.shape==bd_slices.shape)
-        goal_pos_slices = np.expand_dims(goal_pos_slices, axis=1)
-        node_features = np.hstack([node_features,goal_pos_slices]) # (N,`2,3or4`,D,D)
-        num_layers+=1
+        if "agent_goal" in extra_layers:
+            # NOTE: for 1 hot goal version
+            goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)   
+            goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
+            goal_pos = np.expand_dims(goal_pos,axis=1)
+            node_features = np.hstack([node_features,goal_pos]) # (N,`2or3`,D,D)
+            num_layers+=1
+            
+        if "near_goal_info" in extra_layers:
+            rowLocs_g = goal_locs[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
+            colLocs_g = goal_locs[:,1][:, None] # (N)->(N,1)
+            x_mesh_g, y_mesh_g = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
+            # Adjust indices to gather slices
+            x_mesh_g = x_mesh_g[None, :, :] + rowLocs_g[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
+            y_mesh_g = y_mesh_g[None, :, :] + colLocs_g[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
+            near_goal_grid_slices = grid[x_mesh_g, y_mesh_g]
+            near_goal_grid_slices = np.expand_dims(near_goal_grid_slices,axis=1)
+            node_features = np.hstack([node_features,near_goal_grid_slices])
+            num_layers+=1
+            
+            not_at_goal_binary = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
+            not_at_goal_binary[rowLocs[np.invert(matches)], colLocs[np.invert(matches)]] = 1 
+            not_at_goal_slices = not_at_goal_binary[x_mesh_g, y_mesh_g] # (N,D,D)
+            not_at_goal_slices = np.expand_dims(not_at_goal_slices,axis=1) # (N,1,D,D)
+            node_features = np.hstack([node_features,not_at_goal_slices]) # (N,~,D,D)
+            num_layers+=1
+        
+        if "at_goal_grid" in extra_layers:
+            goal_pos_binary = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
+            # NOTE: for all agents on their goal turn to 1 version
+            goal_pos_binary[rowLocs[matches], colLocs[matches]] = 1 # Set goal positions to 1 where matches are found
+            goal_pos_slices = goal_pos_binary[x_mesh, y_mesh] # (N,D,D)
+            assert(goal_pos_slices.shape==bd_slices.shape)
+            goal_pos_slices = np.expand_dims(goal_pos_slices, axis=1)
+            node_features = np.hstack([node_features,goal_pos_slices]) # (N,~,D,D)
+            num_layers+=1
 
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
     deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
@@ -149,6 +159,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     fov_dist = np.any(np.abs(deltas) > k, axis=2) # (N,N,2)->(N,N) bool for if the agent is within the field of view
     dists[fov_dist] = np.inf # Set the distance to infinity if the agent is out of the field of view
     closest_neighbors = np.argsort(dists, axis=1, kind="quicksort")[:, 1:m+1] # (N,m), the indices of the 4 closest agents, ignore self
+    # arg_dists = np.argpartition(dists, m+1, axis=1)
+    # closest_neighbors = arg_dists[:,1:m+1]
     distance_of_neighbors = dists[range_num_agents[:,None],closest_neighbors] # (N,m)
     
     neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
@@ -182,20 +194,18 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     bd_pred_arr = None
     linear_dimensions = (grid_slices.shape[1]-2)**2 * num_layers
-    if bd_predictions:
+    if bd_pred is not None:
         # TODO get the best location to go next, just according to the bd
         # NOTE: because we pad all bds with a large number, 
         # we should be able to get the up, down, left and right of each bd without fear of invalid indexing
         # (N, [Stop, Right, Down, Up, Left])
-        bd_tmp = np.copy(bd_list)
         x_mesh2, y_mesh2 = np.meshgrid(np.arange(-1,1+1), np.arange(-1,1+1), indexing='ij') # assumes k at least 1; getting a 3x3 grid centered at the same place
         x_mesh2 = x_mesh2[None, :, :] + rowLocs[:, None, :] #  -> (N,3,3)
         y_mesh2 = y_mesh2[None, :, :] + colLocs[:, None, :] # -> (N,3,3)
-        bd_tmp = bd_tmp[np.arange(num_agents)[:,None,None], x_mesh2, y_mesh2] # (N,3,3)
+        bd_list = bd_list[np.arange(num_agents)[:,None,None], x_mesh2, y_mesh2] # (N,3,3)
         # set diagonal entries to a big number
-        bd_tmp[:,0,0] = bd_tmp[:,0,2] = bd_tmp[:,2,0] = bd_tmp[:,2,2] = 1073741823
-        flattened = np.reshape(bd_tmp, (-1, 9)) # (order (top to bot) left mid right, left mid right, left mid right)
-        flattened = flattened[:,[(4,5,7,1,3)]].reshape((-1,5))
+        flattened = np.reshape(bd_list, (-1, 9)) # (N,9) # (order (top to bot) left mid right, left mid right, left mid right)
+        flattened = flattened[:,[(4,5,7,1,3)]].reshape((-1,5)) # (N,5)
 
         # Create a boolean array where each element is True if it is the minimum in its row
         min_indices = flattened == flattened.min(axis=1, keepdims=True)
@@ -204,6 +214,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         # min_indices = np.pad(min_indices, ((0,0),(k-1,k-1),(k-1,k-1)), constant_values=True) # (N,D,D) no-unique argmin solution
         bd_pred_arr = min_indices 
         linear_dimensions+=5
+    else:
+        bd_pred_arr = np.array([])
     
     # NOTE: calculate weights
     num_agent_goal_ratio = np.mean(matches)
@@ -505,7 +517,7 @@ if __name__ == "__main__":
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
-    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, required=True, default=None)
+    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     args = parser.parse_args()
 

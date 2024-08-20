@@ -176,7 +176,7 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
             continue
         # Skip if reverse edge occupied by higher agent
         rev_edge_key = tuple([*next_loc, *current_pos])
-        if rev_edge_key in occupied_edges:
+        if occupied_edges[rev_edge_key]:
             continue
         
         ### Pretend we move there

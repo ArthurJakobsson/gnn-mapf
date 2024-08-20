@@ -111,7 +111,7 @@ class CustomConv(pyg_nn.MessagePassing):
     def forward(self, x, bd_pred, edge_index):
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)
         flattened_conv = torch.flatten(self.conv_self(x), start_dim=1) # (1, ~)
-        if bd_pred[0] is not None:
+        if bd_pred.shape[0]>2:
             flattened_conv = torch.hstack([flattened_conv, bd_pred])
             
         if self.relu_type!="relu":

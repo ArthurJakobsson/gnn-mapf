@@ -31,8 +31,8 @@ if __name__ == "__main__":
     parser.add_argument('mini_test', type=lambda x: bool(str2bool(x)))
     # parser.add_argument('generate_initial', help="NOTE: We should NOT need to do this given constant_npzs/ folder", type=lambda x: bool(str2bool(x)))
     parser.add_argument('--numScensToCreate', type=int, help="number of scens to create per pymodel, see simulator2.py", default=20)
-    parser.add_argument('--num_parallel', type=int)
-    parser.add_argument('--data_folder', type=str, help="name of folder with data")
+    parser.add_argument('--num_parallel', type=int, default=64)
+    parser.add_argument('--data_folder', type=str, help="name of folder with data", required=True)
     parser.add_argument('--k', type=int, default=4)
     parser.add_argument('--m', type=int, default=5)
     parser.add_argument('--lr', type=float, default=0.005)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                             "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
-                            "--cutoffTime=60",
+                            "--cutoffTime=90",
                             "--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         f"--firstIter=false",
-                        f"--cutoffTime=60",
+                        f"--cutoffTime=90",
                         f"--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
