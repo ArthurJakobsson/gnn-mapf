@@ -468,7 +468,7 @@ def main():
     
     assert(args.mapOutFile.endswith(".npz"))
     # print("hello world")
-    args.mapOutFile="temp/all_maps.npz"
+    # args.mapOutFile="temp/all_maps.npz"
     if os.path.exists(args.mapOutFile):
         print("Map file already exists, skipping map parsing")
         pass

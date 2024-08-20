@@ -81,7 +81,7 @@ if __name__ == "__main__":
     
 
     processed_folders_list = []
-    for iternum in range(8):
+    for iternum in range(6):
         iterFolder = f"{LE}/iter{iternum}"
         if not os.path.exists(iterFolder):
             os.makedirs(iterFolder)
