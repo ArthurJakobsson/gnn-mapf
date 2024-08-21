@@ -3,6 +3,7 @@ from torch_geometric.data import Data, Dataset, download_url
 import numpy as np
 import pdb
 import pandas as pd # for loading status df
+from jax import jit
 
 from tqdm import tqdm
 import os
@@ -73,6 +74,7 @@ def get_bd_prefs(pos_list, bds, range_num_agents):
     # pdb.set_trace()
     return prefs
 
+
 def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
     """
     pos_list: (N,2) positions
@@ -81,6 +83,18 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     k: (int) local region size
     m: (int) number of closest neighbors to consider
     """
+    num_layers = 2 # grid and bd_slices intially
+    if extra_layers is not None:
+        if "agent_locations" in extra_layers:
+            num_layers+=1
+        if "agent_goal" in extra_layers:
+            num_layers+=1
+        if "near_goal_info" in extra_layers:
+            num_layers+=2
+        if "at_goal_grid" in extra_layers:
+            num_layers+=1
+    
+        
     num_agents = len(pos_list)
     range_num_agents = np.arange(num_agents)
 
@@ -96,26 +110,29 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     grid_slices = grid[x_mesh, y_mesh] # (N,D,D)
     bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
-    num_layers = 2
-    node_features = np.stack([grid_slices, bd_slices], axis=1) # (N,2,D,D)
-    
+    N,D = bd_slices.shape[0], bd_slices.shape[1]
+    node_features = np.empty((N,num_layers,D,D),dtype=np.float32)
+    node_feature_idx = 0
+    node_features[:,node_feature_idx] = grid_slices
+    node_feature_idx +=1
+    node_features[:,node_feature_idx] = bd_slices
+    node_feature_idx +=1
     goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
     matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs)
     if extra_layers is not None:
         if "agent_locations" in extra_layers:
             agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
             agent_pos[rowLocs, colLocs] = 1 # (W,H)
-            agent_pos_slices = np.expand_dims(agent_pos[x_mesh, y_mesh], axis=1) # (N,1,D,D)
-            node_features = np.hstack([node_features,agent_pos_slices]) # (N,3,D,D)
-            num_layers+=1
+            agent_pos_slices = agent_pos[x_mesh, y_mesh] # (N,D,D)
+            node_features[:,node_feature_idx] = agent_pos_slices
+            node_feature_idx +=1
     
         if "agent_goal" in extra_layers:
             # NOTE: for 1 hot goal version
             goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)   
             goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
-            goal_pos = np.expand_dims(goal_pos,axis=1)
-            node_features = np.hstack([node_features,goal_pos]) # (N,`2or3`,D,D)
-            num_layers+=1
+            node_features[:,node_feature_idx] = goal_pos
+            node_feature_idx +=1
             
         if "near_goal_info" in extra_layers:
             rowLocs_g = goal_locs[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
@@ -125,16 +142,14 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
             x_mesh_g = x_mesh_g[None, :, :] + rowLocs_g[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
             y_mesh_g = y_mesh_g[None, :, :] + colLocs_g[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
             near_goal_grid_slices = grid[x_mesh_g, y_mesh_g]
-            near_goal_grid_slices = np.expand_dims(near_goal_grid_slices,axis=1)
-            node_features = np.hstack([node_features,near_goal_grid_slices])
-            num_layers+=1
+            node_features[:,node_feature_idx] = near_goal_grid_slices
+            node_feature_idx +=1
             
             not_at_goal_binary = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
             not_at_goal_binary[rowLocs[np.invert(matches)], colLocs[np.invert(matches)]] = 1 
             not_at_goal_slices = not_at_goal_binary[x_mesh_g, y_mesh_g] # (N,D,D)
-            not_at_goal_slices = np.expand_dims(not_at_goal_slices,axis=1) # (N,1,D,D)
-            node_features = np.hstack([node_features,not_at_goal_slices]) # (N,~,D,D)
-            num_layers+=1
+            node_features[:,node_feature_idx] = not_at_goal_slices
+            node_feature_idx +=1
         
         if "at_goal_grid" in extra_layers:
             goal_pos_binary = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
@@ -142,15 +157,14 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
             goal_pos_binary[rowLocs[matches], colLocs[matches]] = 1 # Set goal positions to 1 where matches are found
             goal_pos_slices = goal_pos_binary[x_mesh, y_mesh] # (N,D,D)
             assert(goal_pos_slices.shape==bd_slices.shape)
-            goal_pos_slices = np.expand_dims(goal_pos_slices, axis=1)
-            node_features = np.hstack([node_features,goal_pos_slices]) # (N,~,D,D)
-            num_layers+=1
+            node_features[:,node_feature_idx] = goal_pos_slices
+            node_feature_idx +=1
 
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
     deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
 
     ## Calculate the distance between each agent, einsum is faster than other options
-    dists = np.einsum('ijk,ijk->ij', deltas, deltas).astype(float) # (N,N), the L2^2 distance between each agent
+    dists = np.einsum('ijk,ijk->ij', deltas, deltas, optimize='optimal').astype(float) # (N,N), the L2^2 distance between each agent
     # dists2 = np.linalg.norm(deltas, axis=2, ord=2) # (N,N), the distance between each agent
     # dists3 = np.sum(np.abs(deltas)**2, axis=2) # (N,N), the distance between each agent
     # assert(np.allclose(dists1, dists3)) # Make sure the two distance calculations are the same
@@ -225,7 +239,6 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     # weights[matches.flatten()] = 1/(np.sum(matches)+1)
     # weights += (num_agents-np.sum(weights))/num_agents # TODO this is buggy
     weights *= num_agents/np.sum(weights)
-    node_features=node_features.astype(np.float32)
     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
                 edge_attr=torch.from_numpy(edge_features), bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
                 weights = torch.from_numpy(weights), y = torch.from_numpy(labels))

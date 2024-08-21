@@ -18,6 +18,7 @@ new_map_generation/eecbs_output/*
 new_map_generation/maps/*
 new_map_generation/scens/*
 temp/*
+*.prof
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*

@@ -677,7 +677,7 @@ python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/consta
       --outputCSVFile=data_collection/data/logs/EXP_Test4/iter0/results.csv \
       --outputPathsFile=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
       --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-      --maxSteps=500 --agentNum=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5
+      --maxSteps=500 --agentNum=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5 --debug=true
 """
 if __name__ == '__main__':
     # testGetCosts()
