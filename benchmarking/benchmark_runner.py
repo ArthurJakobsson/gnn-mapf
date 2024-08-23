@@ -2,11 +2,8 @@ import argparse
 import subprocess
 import pandas as pd
 import os
-import tqdm
-
-def run_eecbs(scen, num_agents, args):
-    pass
-
+from tqdm import tqdm
+import pdb
 
 def parse_lacam_output(filename):
     f = open(filename, "r")
@@ -43,9 +40,17 @@ def run_lacam(scen, num_agents, args):
     
     result = parse_lacam_output(lacam_dict['o'])
     return result["success"], result["soc_cost"], result["runtime"]
-    
-    # run command with subprocess
-    # TODO: load in the txt from "o" and parse it to get succ rate, solution_cost and runtime
+
+def fetch_eecbs(num_agent, args):
+    eecbs_source = 'benchmarking/eecbs_all/eecbs_outputs/'
+    eecbs_map_folder = eecbs_source + args.mapname + '/csvs/combined.csv'
+    df = pd.read_csv(eecbs_map_folder)
+    filtered_df = df[df['agentNum'] == num_agent]
+    successes = filtered_df[filtered_df['solution cost'] > 0]
+    success_rate = len(successes.index)/len(filtered_df.index)
+    runtime  = successes['runtime'].mean()
+    solution_cost = successes['solution cost'].mean()
+    return success_rate, solution_cost, runtime
 
 def run_eph(scen, num_agents, args):
     pass
@@ -55,9 +60,9 @@ def run_gnn_mapf(scen, num_agents, args):
 
 def run_single_instance(scen, num_agents, which_program, args):
     
-    if which_program == "EECBS":
-        success, solution_cost, runtime = run_eecbs(scen, num_agents, args)
-    elif which_program == "LaCAM":
+    # if which_program == "EECBS":
+    #     success, solution_cost, runtime = run_eecbs(scen, num_agents, args)
+    if which_program == "LaCAM":
         success, solution_cost, runtime = run_lacam(scen, num_agents, args)
     elif which_program == "EPH":
         success, solution_cost, runtime = run_eph(scen, num_agents, args)
@@ -93,19 +98,22 @@ def main(args, mapname, numAgents):
     
     # Iterate through each agent size and run the three programs
     for num_agent in numAgents:
-        for program in ['LaCAM']: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
-            num_successes = 0
-            total_runtime = 0
-            total_solution_cost = 0
-            num_scens = len(scen_names)
-            for scen in tqdm(scen_names):
-                success, solution_cost, runtime  = run_single_instance(scen, num_agent, program, args)
-                num_successes += success
-                total_solution_cost += solution_cost
-                total_runtime += runtime
-            success_rate = num_successes/num_scens
-            runtime = total_runtime/num_successes
-            solution_cost = total_solution_cost/num_successes #TODO: check that should be dividing by runtime (soc is 0 if failed i think)
+        for program in ['LaCAM', 'EECBS']: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
+            if program=='EECBS':
+                success_rate, solution_cost, runtime = fetch_eecbs(num_agent, args)
+            else:
+                num_successes = 0
+                total_runtime = 0
+                total_solution_cost = 0
+                num_scens = len(scen_names)
+                for scen in tqdm(scen_names):
+                    success, solution_cost, runtime  = run_single_instance(scen, num_agent, program, args)
+                    num_successes += success
+                    total_solution_cost += solution_cost
+                    total_runtime += runtime
+                success_rate = num_successes/num_scens
+                runtime = total_runtime/num_successes
+                solution_cost = total_solution_cost/num_successes #TODO: check that should be dividing by runtime (soc is 0 if failed i think)
             
             new_row={
                 'Agent Size': num_agent,

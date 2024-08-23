@@ -19,7 +19,7 @@ def log_time(event_name):
 
 ### Example command for full benchmark
 """ 
-Small run: python master_process_runner.py 0 t --expName=EXP_400_agents  --data_folder=den312_benchmark --num_parallel=50 --k=4 --m=7 --lr=0.001 --relu_type=leaky_relu --numAgents=100,200,300,400 --which_setting=Arthur --extra_layers=agent_locations --bd_pred=t
+Small run: python master_process_runner.py 0 t --expName=EXP_400_agents  --data_folder=den312_benchmark --num_parallel=50 --k=4 --m=7 --lr=0.001 --relu_type=leaky_relu --numAgents=100,200,300,400 --which_setting=Arthur --extra_layers=agent_locations --bd_pred=t --percent_for_succ=0.5
 Big run: python -m master_process_runner 0 f t 100 1000 --num_parallel=50
 Old big run: python -m master_process_runner 0 f f 100 1000 --num_parallel=50
 Small run: python -m master_process_runner 0 t --numScensToCreate=20 --num_parallel=30 --expName=EXP_den312d_lacam2 \
@@ -140,6 +140,7 @@ if __name__ == "__main__":
                         f"--num_parallel_runs={args.num_parallel}",
                         "\"clean\" --keepNpys=false"])
         subprocess.run(command, shell=True, check=True)
+        quit()
 
         ### Process the data, i.e. create pt files from path npzs
         command = " ".join(["python", "-m", "gnn.dataloader", 
