@@ -20,6 +20,7 @@ new_map_generation/scens/*
 temp/*
 *.prof
 benchmarking/lacam/*
+benchmarking/results/*
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*
