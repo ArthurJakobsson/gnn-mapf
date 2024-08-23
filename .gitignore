@@ -19,6 +19,7 @@ new_map_generation/maps/*
 new_map_generation/scens/*
 temp/*
 *.prof
+benchmarking/lacam/*
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*
