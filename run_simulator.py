@@ -43,6 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--percent_for_succ', help="percent decreased scen creation for success instances in simulation", type=float, required=True)
     parser.add_argument('--which_section', help="[begin, setup, train, simulate]", required=True)
     parser.add_argument('--iternum', type=int)
+    parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
 
     args = parser.parse_args()
     if args.which_setting == "Arthur":
@@ -100,8 +101,9 @@ if __name__ == "__main__":
                     "--k=4",
                     "--m=5",
                     "--maxSteps=3x",
-                    "--shieldType=LaCAM",
-                    "--lacamLookahead=50",
+                    "--shieldType=CS-PIBT",
+                    f"--timeLimit={args.timeLimit}",
+                    # "--lacamLookahead=50",
                     f"--numScensToCreate={args.numScensToCreate}",
                     f"--percentSuccessGenerationReduction={args.percent_for_succ}"])
     if args.extra_layers is not None:
