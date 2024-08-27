@@ -177,7 +177,7 @@ def get_scens(folder_path, map_name):
 
     return matching_files
 
-def get_num_agents(args):
+def get_num_agents(args, mapname):
     if args.numAgents == "increment":
         increment = min(100,  mapsToMaxNumAgents[mapname])
         maximumAgents = mapsToMaxNumAgents[mapname] + 1
@@ -201,7 +201,7 @@ def main(args, mapname):
     results_df = pd.DataFrame(columns=columns)
     
     scen_names = get_scens(args.scen_folder, mapname)
-    num_agents_list = get_num_agents(args)
+    num_agents_list = get_num_agents(args, mapname)
 
         
     # Iterate through each agent size and run the three programs
@@ -262,27 +262,59 @@ def main(args, mapname):
 
 # plots results for all models, on a given map
 # assumes each model has been run for the same numbers of agents on each map
-def plot_map_results(mapname, df):
-    numAgents = get_num_agents(args)
-    models = set(df['Program'].tolist())
-    for column_name in ["Success_Rate", "Solution_Cost", "Runtime"]:
-        for model in models:
-            success_rates = df[df['Program'] == model][column_name].tolist()
-            plt.plot(numAgents, success_rates, label=model)
+# def plot_map_results(mapname, df):
+#     numAgents = get_num_agents(args)
+#     models = set(df['Program'].tolist())
+#     for column_name in ["Success_Rate", "Solution_Cost", "Runtime"]:
+#         for model in models:
+#             success_rates = df[df['Program'] == model][column_name].tolist()
+#             plt.plot(numAgents, success_rates, label=model)
 
-        plt.legend()
-        plt.ylabel(column_name)
-        plt.xlabel("Number_Agents")
-        plt.tight_layout()
+#         plt.legend()
+#         plt.ylabel(column_name)
+#         plt.xlabel("Number_Agents")
+#         plt.tight_layout()
+#         if not os.path.exists(f"benchmarking/results/{column_name}"):
+#             os.makedirs(f"benchmarking/results/{column_name}")
+#         plt.savefig(f"benchmarking/results/{column_name}/{mapname}.pdf", format="pdf", bbox_inches="tight")
+#         # Clear the current axes.
+#         plt.cla() 
+#         # Clear the current figure.
+#         plt.clf() 
+#         # Closes all the figure windows.
+#         plt.close('all')   
+#         gc.collect()
+
+def plot_all_maps_grid(mapnames, dfs, num_rows=5, num_cols=6):
+    models = set(dfs[0]['Program'].tolist())  # Assuming all DataFrames have the same models
+    for column_name in ["Success_Rate", "Solution_Cost", "Runtime"]:
+        fig, axes = plt.subplots(num_rows, num_cols, figsize=(20, 15))  # Adjust figsize as needed
+        # plt.subplots_adjust(left=0.7, bottom=0.7, right=0.8, top=0.8, wspace=0.8, hspace=0.8)
+        fig.tight_layout(pad=3)
+        axes = axes.flatten()  # Flatten to make indexing easier
+        
+        for i, (mapname, df) in enumerate(zip(mapnames, dfs)):
+            ax = axes[i]
+            numAgents = get_num_agents(args,mapname)
+            for model in models:
+                plot_topic = df[df['Program'] == model][column_name].tolist()
+                ax.plot(numAgents, plot_topic, label=model)
+            
+            ax.set_title(mapname)
+            ax.set_ylabel(column_name)
+            ax.set_xlabel("Number_Agents")
+            ax.legend()
+            # ax._in_layout()
+
+        # Hide any unused subplots
+        for j in range(i+1, num_rows*num_cols):
+            fig.delaxes(axes[j])
+
         if not os.path.exists(f"benchmarking/results/{column_name}"):
             os.makedirs(f"benchmarking/results/{column_name}")
-        plt.savefig(f"benchmarking/results/{column_name}/{mapname}.pdf", format="pdf", bbox_inches="tight")
-        # Clear the current axes.
-        plt.cla() 
-        # Clear the current figure.
-        plt.clf() 
-        # Closes all the figure windows.
-        plt.close('all')   
+        
+        plt.savefig(f"benchmarking/results/{column_name}/all_maps_grid.pdf", format="pdf")
+        plt.close(fig)  # Close the figure to free up memory
         gc.collect()
     
 
@@ -315,10 +347,11 @@ if __name__ == '__main__':
         all_maps = args.mapname.split(",")
 
     # get aggregate statistics for all maps
+    results_df = []
     for mapname in all_maps:
-        main(args, mapname)
-        results_df = pd.read_csv(f"benchmarking/results/results_{mapname}.csv")
-        plot_map_results(mapname, results_df)
+        # main(args, mapname)
+        results_df.append(pd.read_csv(f"benchmarking/results/results_{mapname}.csv"))
+    plot_all_maps_grid(all_maps, results_df)
         
     
     # make central csv with results for all maps
