@@ -233,15 +233,16 @@ def main(args, mapname):
                 for scen in tqdm(scen_names):
                     success, solution_cost, runtime  = run_single_instance(scen, mapname, num_agent, program, args)
                     num_successes += success
-                    total_solution_cost += solution_cost
-                    total_runtime += runtime
+                    if success:
+                        total_solution_cost += solution_cost
+                        total_runtime += runtime
                 success_rate = num_successes / num_scens
                 if num_successes > 0:
                     runtime = total_runtime / num_successes
                     solution_cost = total_solution_cost / num_successes
                 else:
-                    runtime = 0
-                    solution_cost = 0
+                    runtime = None
+                    solution_cost = None
             
             new_row={
                 'Map_Name': mapname,

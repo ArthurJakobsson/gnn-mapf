@@ -146,7 +146,7 @@ LABEL_TO_MOVES = np.array([[0,0], [0,1], [1,0], [-1,0], [0,-1]]) #  Stop, Right,
 
 def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_matrix, 
          occupied_nodes, occupied_edges, current_locs, current_locs_to_agent,
-         constrained_agents_to_action):
+         constrained_agents_to_action, start_time,timeLimit):
     """Inputs:
         grid_map: (H,W)
         agent_id: int
@@ -163,6 +163,10 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
     if agent_id in constrained_agents_to_action: # Force agent to only pick that action if constrained
         action_index = constrained_agents_to_action[agent_id]
         moves_ordered = moves_ordered[action_index:action_index+1] # Only consider that action
+    
+    cur_time=time.time()
+    if cur_time-start_time>timeLimit:
+        return False
 
     current_pos = current_locs[agent_id] # (2)
     for aMove in moves_ordered:
@@ -195,7 +199,7 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
             # Recurse
             isvalid = pibtRecursive(grid_map, conflicting_agent, action_preferences, planned_agents,
                                 move_matrix, occupied_nodes, occupied_edges, current_locs,
-                                current_locs_to_agent, constrained_agents_to_action)
+                                current_locs_to_agent, constrained_agents_to_action, start_time,timeLimit)
             if isvalid:
                 return True
             else:
@@ -211,7 +215,7 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
     # No valid move found
     return False
 
-def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_constraints):
+def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_constraints, start_time,timeLimit):
     """Inputs:
         grid_map: (H,W)
         action_preferences: (N,5)
@@ -247,7 +251,7 @@ def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_con
             continue
         pibt_worked = pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, 
                             move_matrix, occupied_nodes, occupied_edges, 
-                            current_locs, current_locs_to_agent, constrained_agents_to_action)
+                            current_locs, current_locs_to_agent, constrained_agents_to_action, start_time,timeLimit)
         if pibt_worked is False:
             break
     # if pibt_worked and len(constrained_agents_to_action):
@@ -275,7 +279,7 @@ def updatePriorities(prev_priorities, at_goal):
     # agent_priorities[at_goal] = 0 # Set priority to 0 if reached goal
     return agent_priorities
 
-def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs, lacamLimit):
+def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs, lacamLimit, start_time, timeLimit):
     """Inputs:
         bd: (N,H,W)
         grid_map: (H,W)
@@ -340,7 +344,7 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs,
                         self.queue_of_constraints.append(curConstraint + [(curAgent+1,i)])
 
             # Run PIBT
-            new_move, pibt_worked = pibt(grid_map, self.action_preferences, self.state, self.agent_priorities, curConstraint)
+            new_move, pibt_worked = pibt(grid_map, self.action_preferences, self.state, self.agent_priorities, curConstraint, start_time, timeLimit)
 
             if not pibt_worked: # Failed with the constraints
                 return None
@@ -490,16 +494,18 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         agents_at_goal = np.all(np.equal(cur_locs, goal_locations), axis=1) # (N)
         agent_priorities = updatePriorities(agent_priorities, agents_at_goal)
         cur_time = time.time()
-        print(cur_time-start_time)
         if cur_time-start_time > args.timeLimit and args.timeLimit > 0:
             print("time limit hit")
             break
         if shield_type == "CS-PIBT":
             # action_preferences = getActionPrefsFromLocs(cur_locs)
             action_preferences = wrapper_bd_prefs(cur_locs)
-            new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [])
+            new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [], start_time, args.timeLimit)
             if not cspibt_worked:
-                raise RuntimeError('CS-PIBT failed; should never fail when not using LaCAM constraints!')
+                print("hit timeout, or major error")
+                break
+            # if not cspibt_worked:
+            #     raise RuntimeError('CS-PIBT failed; should never fail when not using LaCAM constraints!')
         else:
             # Run LaCAM
             at_goal_ratio = np.mean(agents_at_goal)
@@ -510,7 +516,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
                 scaled_lookahead = int(np.ceil(lacam_lookahead * at_goal_ratio)) # Scale lookahead based on how many agents are at goal
                 MAX_USE_LACAM -= 1
             next_locs, lacamFoundSolution, numNodesExpanded, numGenerated = lacam(cur_locs, goal_locations, 
-                                                    bd, grid_map, getActionPrefsFromLocs, scaled_lookahead)
+                                                    bd, grid_map, getActionPrefsFromLocs, scaled_lookahead, start_time, timeLimit)
             # Note: next_locs is (T1,N,2) where T1 is the lookahead depth
 
             if lacamFoundSolution:
