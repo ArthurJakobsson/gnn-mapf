@@ -149,7 +149,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     if args.conda_env is not None:
         command += f" --condaEnv={args.conda_env}"
     print(command)
-    subprocess.run(command, shell=True, check=True)
+    # subprocess.run(command, shell=True, check=True)
     
     return parse_pymodel_output(pymodel_output_folder, mapname, num_agents)
 

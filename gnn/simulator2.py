@@ -255,7 +255,6 @@ def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_con
     #     for agent_id, action_index in constrained_agents_to_action.items():
     #         totalStr = f"{agent_id} at {current_locs[agent_id]} -> {action_index}; "
     #     print(totalStr)
-
     return move_matrix, pibt_worked
 
 def updatePriorities(prev_priorities, at_goal):
@@ -491,6 +490,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         agents_at_goal = np.all(np.equal(cur_locs, goal_locations), axis=1) # (N)
         agent_priorities = updatePriorities(agent_priorities, agents_at_goal)
         cur_time = time.time()
+        print(cur_time-start_time)
         if cur_time-start_time > args.timeLimit and args.timeLimit > 0:
             print("time limit hit")
             break
