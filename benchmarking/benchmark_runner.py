@@ -3,7 +3,53 @@ import subprocess
 import pandas as pd
 import os
 from tqdm import tqdm
+from matplotlib import pyplot as plt
+import gc
+from multiprocessing import Pool
 import pdb
+from itertools import repeat
+import time
+import torch_geometric.inspector
+
+
+mapsToMaxNumAgents = {
+    "Berlin_1_256": 1000,
+    "Boston_0_256": 1000,
+    "Paris_1_256": 1000,
+    "brc202d": 1000,
+    "den312d": 1000, 
+    "den520d": 1000,
+    # "dense_map_15_15_0":50,
+    # "dense_map_15_15_1":50,
+    # "corridor_30_30_0":50,
+    "empty_8_8": 32,
+    "empty_16_16": 128,
+    "empty_32_32": 512,
+    "empty_48_48": 1000,
+    "ht_chantry": 1000,
+    "ht_mansion_n": 1000,
+    "lak303d": 1000,
+    "lt_gallowstemplar_n": 1000,
+    # "maze_128_128_1": 1000,
+    # "maze_128_128_10": 1000,
+    "maze_128_128_2": 1000,
+    "maze_32_32_2": 333,
+    "maze_32_32_4": 395,
+    # "orz900d": 1000,
+    "ost003d": 1000,
+    "random_32_32_10": 461,
+    "random_32_32_20": 409,
+    "random_64_64_10": 1000,
+    "random_64_64_20": 1000,
+    "room_32_32_4": 341,
+    "room_64_64_16": 1000,
+    "room_64_64_8": 1000,
+    "w_woundedcoast": 1000,
+    "warehouse_10_20_10_2_1": 1000,
+    "warehouse_10_20_10_2_2": 1000,
+    "warehouse_20_40_10_2_1": 1000,
+    "warehouse_20_40_10_2_2": 1000,
+}
 
 def parse_lacam_output(filename):
     f = open(filename, "r")
@@ -16,38 +62,43 @@ def parse_lacam_output(filename):
     }
     for line in lines:
         if line.startswith("comp_time"):
-            result["runtime"] = float(line.split('=')[1])
+            result["runtime"] = float(line.split('=')[1])/1000 # ms -> sec
+            break #this is the last one that will show up
         elif line.startswith("solved"):
             result["success"] = bool(int(line.split('=')[1]))
         elif line.startswith("soc"):
             result["soc_cost"] = int(line.split('=')[1])
     return result
 
-def run_lacam(scen, num_agents, args):
+def run_lacam(scen,  mapname, num_agents, args):
     command = "benchmarking/lacam/build/main"
     lacam_dict = {
-        "m": f"{args.map_folder}/{args.mapname}.map",
+        "m": f"{args.map_folder}/{mapname}.map",
         "i": f"{args.scen_folder}/{scen}",
         "N": str(num_agents),
-        "o": f"benchmarking/lacam/build/result_txts/{args.mapname}_{scen}_{num_agents}.txt",
-        "v": 0
+        "o": f"benchmarking/lacam/build/result_txts/{mapname}_{scen}_{num_agents}.txt",
+        "v": 0,
+        "t": 10
     }
     
     for aKey in lacam_dict:
         command += f" -{aKey} {lacam_dict[aKey]}"
     
-    subprocess.run(command, check=True, shell=True)
+    if not os.path.exists(f"benchmarking/lacam/build/result_txts/{mapname}_{scen}_{num_agents}.txt"):
+        subprocess.run(command, check=True, shell=True)
+        time.sleep(1)
     
     result = parse_lacam_output(lacam_dict['o'])
     return result["success"], result["soc_cost"], result["runtime"]
 
-def fetch_eecbs(num_agent, args):
+def fetch_eecbs(mapname, num_agent, args):
     eecbs_source = 'benchmarking/eecbs_all/eecbs_outputs/'
-    eecbs_map_folder = eecbs_source + args.mapname + '/csvs/combined.csv'
+    eecbs_map_folder = eecbs_source + mapname + '/csvs/combined.csv'
     df = pd.read_csv(eecbs_map_folder)
     filtered_df = df[df['agentNum'] == num_agent]
     successes = filtered_df[filtered_df['solution cost'] > 0]
-    success_rate = len(successes.index)/len(filtered_df.index)
+    successes = successes[successes['runtime'] < args.eecbs_cutoff]
+    success_rate = len(successes.index)/len(filtered_df.index) if len(filtered_df.index)!=0 else 0
     runtime  = successes['runtime'].mean()
     solution_cost = successes['solution cost'].mean()
     return success_rate, solution_cost, runtime
@@ -55,19 +106,61 @@ def fetch_eecbs(num_agent, args):
 def run_eph(scen, num_agents, args):
     pass
 
-def run_gnn_mapf(scen, num_agents, args):
-    pass
+def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
+    df = pd.read_csv(f"{pymodel_output_folder}/{map_name}/csvs/combined.csv")
+    filtered_df = df[df['agentNum'] == num_agents]
+    successes = filtered_df[filtered_df['success']]
+    success_rate = len(successes.index)/len(filtered_df.index) if len(filtered_df.index)!=0 else 0
+    runtime  = successes['runtime'].mean()
+    solution_cost = successes['total_cost_true'].mean()
+    return success_rate, solution_cost, runtime
 
-def run_single_instance(scen, num_agents, which_program, args):
+def run_gnn_mapf(mapname,num_agents, args):
+    constantMapAndBDFolder = "data_collection/data/benchmark_data/constant_npzs"
+    # mini data folder used for this experiment
+    source_maps_scens = args.data_folder
+    # the experiment folder
+    # the iter we want to simulate with
+    pymodel_output_folder = "benchmarking/pymodel_results/"
+    model_path = f"data_collection/data/logs/{args.expname}/iter{args.iternum}/models/max_test_acc.pt"
+    
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+                f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
+                f"--numAgents={args.numAgents}",
+                f"--constantMapAndBDFolder={constantMapAndBDFolder}",
+                f"--outputFolder={pymodel_output_folder}", 
+                f"--num_parallel_runs={min(20, args.num_parallel)}",
+                # f"--chosen_map={mapname}",
+                "\"pymodel\"",
+                f"--modelPath={model_path}",
+                "--useGPU=False",
+                "--k=4",
+                "--m=5",
+                "--maxSteps=3x",
+                "--shieldType=CS-PIBT",
+                f"--timeLimit={args.simulator_cutoff}",
+                # "--lacamLookahead=50",
+                f"--numScensToCreate=0",
+                f"--percentSuccessGenerationReduction=0"])
+    if args.extra_layers is not None:
+        command += f" --extra_layers={args.extra_layers}"
+    if args.bd_pred is not None:
+        command += f" --bd_pred={args.bd_pred}"       
+    if args.conda_env is not None:
+        command += f" --condaEnv={args.conda_env}"
+    print(command)
+    subprocess.run(command, shell=True, check=True)
+    
+    return parse_pymodel_output(pymodel_output_folder, mapname, num_agents)
+
+def run_single_instance(scen, mapname, num_agents, which_program, args):
     
     # if which_program == "EECBS":
     #     success, solution_cost, runtime = run_eecbs(scen, num_agents, args)
     if which_program == "LaCAM":
-        success, solution_cost, runtime = run_lacam(scen, num_agents, args)
+        success, solution_cost, runtime = run_lacam(scen, mapname, num_agents, args)
     elif which_program == "EPH":
         success, solution_cost, runtime = run_eph(scen, num_agents, args)
-    else: #ours
-        success, solution_cost, runtime = run_gnn_mapf(scen, num_agents, args)
     
     return success, solution_cost, runtime
 
@@ -84,42 +177,78 @@ def get_scens(folder_path, map_name):
 
     return matching_files
 
+def get_num_agents(args):
+    if args.numAgents == "increment":
+        increment = min(100,  mapsToMaxNumAgents[mapname])
+        maximumAgents = mapsToMaxNumAgents[mapname] + 1
+        num_agents_list = list(range(increment, maximumAgents, increment))
+    else:
+        num_agents_list = [int(x) for x in args.numAgents.split(",")]
+    return num_agents_list
 
-def main(args, mapname, numAgents):
+def run_instance(info):
+    scen, mapname, num_agent, program, args = info
+    return run_single_instance(scen, mapname, num_agent, program, args)
+
+def main(args, mapname):
+    print(mapname)
     # Create a folder to save results if it doesn't exist
     results_folder = "benchmarking/results"
     os.makedirs(results_folder, exist_ok=True)
     
     # DataFrame to hold results
-    columns = ['Agent Size', 'Program', 'Success Rate', 'Solution Cost', 'Runtime']
+    columns = ['Agent_Size', 'Program', 'Success_Rate', 'Solution_Cost', 'Runtime']
     results_df = pd.DataFrame(columns=columns)
     
-    scen_names = get_scens(args.scen_folder, args.mapname)
-    
+    scen_names = get_scens(args.scen_folder, mapname)
+    num_agents_list = get_num_agents(args)
+
+        
     # Iterate through each agent size and run the three programs
-    for num_agent in numAgents:
-        for program in ['LaCAM', 'EECBS']: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
+    for num_agent in num_agents_list:
+        for program in ['LaCAM', 'EECBS', 'GNNMAPF']: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
             if program=='EECBS':
-                success_rate, solution_cost, runtime = fetch_eecbs(num_agent, args)
+                success_rate, solution_cost, runtime = fetch_eecbs(mapname, num_agent, args)
+            elif program=='GNNMAPF':
+                success_rate, solution_cost, runtime = run_gnn_mapf(mapname, num_agent, args)
             else:
+                assert(program=='LaCAM')
+                # num_successes = 0
+                # total_runtime = 0
+                # total_solution_cost = 0
+                # num_scens = len(scen_names)
+                
+                # with Pool() as pool:
+                #     results = list(tqdm(pool.imap(run_instance, zip(scen_names, repeat(mapname), repeat(num_agent), repeat(program), repeat(args))), total=num_scens))
+
+                # for success, solution_cost, runtime in results:
+                #     num_successes += success
+                #     total_solution_cost += solution_cost
+                #     total_runtime += runtime
+                
                 num_successes = 0
                 total_runtime = 0
                 total_solution_cost = 0
                 num_scens = len(scen_names)
                 for scen in tqdm(scen_names):
-                    success, solution_cost, runtime  = run_single_instance(scen, num_agent, program, args)
+                    success, solution_cost, runtime  = run_single_instance(scen, mapname, num_agent, program, args)
                     num_successes += success
                     total_solution_cost += solution_cost
                     total_runtime += runtime
-                success_rate = num_successes/num_scens
-                runtime = total_runtime/num_successes
-                solution_cost = total_solution_cost/num_successes #TODO: check that should be dividing by runtime (soc is 0 if failed i think)
+                success_rate = num_successes / num_scens
+                if num_successes > 0:
+                    runtime = total_runtime / num_successes
+                    solution_cost = total_solution_cost / num_successes
+                else:
+                    runtime = 0
+                    solution_cost = 0
             
             new_row={
-                'Agent Size': num_agent,
+                'Map_Name': mapname,
+                'Agent_Size': num_agent,
                 'Program': program,
-                'Success Rate': success_rate,
-                'Solution Cost': solution_cost,
+                'Success_Rate': success_rate,
+                'Solution_Cost': solution_cost,
                 'Runtime': runtime
             }
             # Append the results to the DataFrame
@@ -130,6 +259,32 @@ def main(args, mapname, numAgents):
     results_df.to_csv(csv_filename, index=False)
     print(f'Results saved to {csv_filename}')
 
+# plots results for all models, on a given map
+# assumes each model has been run for the same numbers of agents on each map
+def plot_map_results(mapname, df):
+    numAgents = get_num_agents(args)
+    models = set(df['Program'].tolist())
+    for column_name in ["Success_Rate", "Solution_Cost", "Runtime"]:
+        for model in models:
+            success_rates = df[df['Program'] == model][column_name].tolist()
+            plt.plot(numAgents, success_rates, label=model)
+
+        plt.legend()
+        plt.ylabel(column_name)
+        plt.xlabel("Number_Agents")
+        plt.tight_layout()
+        if not os.path.exists(f"benchmarking/results/{column_name}"):
+            os.makedirs(f"benchmarking/results/{column_name}")
+        plt.savefig(f"benchmarking/results/{column_name}/{mapname}.pdf", format="pdf", bbox_inches="tight")
+        # Clear the current axes.
+        plt.cla() 
+        # Clear the current figure.
+        plt.clf() 
+        # Closes all the figure windows.
+        plt.close('all')   
+        gc.collect()
+    
+
 if __name__ == '__main__':
     
     data_folder = "data_collection/data/benchmark_data"
@@ -139,10 +294,39 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run programs on different agent sizes and save results.')
     parser.add_argument('--mapname', type=str, help='Name of the map to use (without .map).')
     parser.add_argument('--numAgents', type=str, help='List of agent sizes to try.')
-    parser.add_argument('--data_folder', type=str, help="directory of data", required=False, default = data_folder)
+    parser.add_argument('--data_folder', type=str, help="directory of data (prefix to map_folder and scen_folder)", required=False, default = data_folder)
     parser.add_argument('--map_folder', type=str, help="directory of maps", required=False, default = map_folder)
     parser.add_argument('--scen_folder', type=str, help="directory of scens", required=False, default = scen_folder)
-    
+    parser.add_argument('--extra_layers', type=str, help="extra_layers used in the model", required=True)
+    parser.add_argument('--conda_env', type=str, help="conda env name", default=None)
+    parser.add_argument('--expname', type=str, help="name of model to run", required=True)
+    parser.add_argument('--iternum', type=str, help="iteration of model to run", required=True)
+    parser.add_argument('--num_parallel', type=int, help="number of parallel runs to do", default=20)
+    parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
+    parser.add_argument('--eecbs_cutoff', type=int, required=True, help="num seconds for eecbs cutoff (<720)")
+    parser.add_argument('--simulator_cutoff', type=int, required=True, help="num seconds for simulator cutoff")
+
     args = parser.parse_args()
-    args.numAgents = [int(x) for x in args.numAgents.split(",")]
-    main(args, args.mapname, args.numAgents)
+    
+    if args.mapname=="all":
+        all_maps = mapsToMaxNumAgents.keys()
+    else:
+        all_maps = args.mapname.split(",")
+
+    # get aggregate statistics for all maps
+    for mapname in all_maps:
+        main(args, mapname)
+        results_df = pd.read_csv(f"benchmarking/results/results_{mapname}.csv")
+        plot_map_results(mapname, results_df)
+        
+    
+    # make central csv with results for all maps
+    # final_df = None
+    # for mapname in all_maps:
+    #     results_df = pd.read_csv(f"benchmarking/results/results_{mapname}.csv")
+    #     if not final_df:
+    #         final_df = results_df
+    #     else:
+    #         final_df = pd.concat([final_df, results_df])
+    
+    # final_df.to_csv("benchmarking/results/all_maps.csv")

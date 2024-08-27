@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     parser.add_argument('--which_setting', help="[Arthur, Rishi, PSC]", required=True) # E.g. use --which_setting to determine using conda env or different aspects
     parser.add_argument('--percent_for_succ', help="percent decreased scen creation for success instances in simulation", type=float, required=True)
+    parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
 
     args = parser.parse_args()
     if args.which_setting == "Arthur":
@@ -105,7 +106,7 @@ if __name__ == "__main__":
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                             "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
-                            "--cutoffTime=90",
+                            "--cutoffTime=720",
                             "--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -125,7 +126,7 @@ if __name__ == "__main__":
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         f"--firstIter=false",
-                        f"--cutoffTime=90",
+                        f"--cutoffTime=720",
                         f"--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -140,8 +141,7 @@ if __name__ == "__main__":
                         f"--num_parallel_runs={args.num_parallel}",
                         "\"clean\" --keepNpys=false"])
         subprocess.run(command, shell=True, check=True)
-        quit()
-
+        
         ### Process the data, i.e. create pt files from path npzs
         command = " ".join(["python", "-m", "gnn.dataloader", 
                             f"--mapNpzFile={constantMapNpz}", 
@@ -188,8 +188,9 @@ if __name__ == "__main__":
                         "--k=4",
                         "--m=5",
                         "--maxSteps=3x",
-                        "--shieldType=LaCAM",
-                        "--lacamLookahead=50",
+                        "--shieldType=CS-PIBT",
+                        f"--timeLimit={args.timeLimit}",
+                        # "--lacamLookahead=50",
                         f"--numScensToCreate={args.numScensToCreate}",
                         f"--percentSuccessGenerationReduction={args.percent_for_succ}"])
         if args.extra_layers is not None:

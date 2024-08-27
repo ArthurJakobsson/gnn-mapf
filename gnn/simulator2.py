@@ -10,7 +10,11 @@ from functools import lru_cache # For caching the model calls
 import cProfile # For profiling
 import pstats # For profiling
 from tqdm import tqdm # For progress bar
+import time
+import datetime
 
+import torch_geometric.inspector
+import torch_geometric.nn as pyg_nn
 from gnn.dataloader import create_data_object, get_bd_prefs, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
 from custom_utils.common_helper import str2bool, getMapBDScenAgents
@@ -98,7 +102,6 @@ def testGetCosts():
         [[5,4],  [5,4],  [5,4],  [5,4],  [5,4]]   # TC=4, TNRAG=4
     ]) # (N=3,T=5,2)
     solution_path = np.swapaxes(solution_path, 0, 1) # (T,N,2)
-    # pdb.set_trace()
 
     total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal = getCosts(solution_path, goal_locs)
     assert(total_cost_true == 4+2+4)
@@ -482,17 +485,21 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     solution_path = [cur_locs.copy()]
     success = False
     MAX_USE_LACAM = 100  # Hardcoded limit on how many times to use LaCAM since it is slow
+    start_time = time.time()
     for step in tqdm(range(max_steps)):
         # Update priorities
         agents_at_goal = np.all(np.equal(cur_locs, goal_locations), axis=1) # (N)
         agent_priorities = updatePriorities(agent_priorities, agents_at_goal)
-
+        cur_time = time.time()
+        if cur_time-start_time > args.timeLimit and args.timeLimit > 0:
+            print("time limit hit")
+            break
         if shield_type == "CS-PIBT":
             # action_preferences = getActionPrefsFromLocs(cur_locs)
             action_preferences = wrapper_bd_prefs(cur_locs)
             new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [])
             if not cspibt_worked:
-                raise RuntimeError('CS-PIBT failed; should never fail when no using LaCAM constraints!')
+                raise RuntimeError('CS-PIBT failed; should never fail when not using LaCAM constraints!')
         else:
             # Run LaCAM
             at_goal_ratio = np.mean(agents_at_goal)
@@ -584,16 +591,20 @@ def main(args: argparse.ArgumentParser):
         max_steps = int(args.maxSteps[:-1]) * longest_single_path
     else:
         max_steps = int(args.maxSteps)
-
+        
     # Simulate
     if args.debug:
         profiler = cProfile.Profile()
         profiler.enable()
+        
+    starttime = time.time()
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
             model, k, args.m, map_grid, bd, start_locations, goal_locations, 
             max_steps, args.shieldType, args.lacamLookahead, args)
-    print("Success: {}, Total cost true: {}, Total cost not at goal: {}, Num agents at goal: {}/{}".format(success, 
-                                    total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, num_agents))
+    endtime = time.time()
+    runtime = endtime - starttime
+    print("Success: {}, Total cost true: {}, Total cost not at goal: {}, Num agents at goal: {}/{}, Seconds spent: {}".format(success, 
+                                    total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, num_agents, runtime))
     solution_path = solution_path - k # (T,N,2) Removes padding
     goal_locations = goal_locations - k # (N,2) Removes padding
     if args.debug:
@@ -610,13 +621,13 @@ def main(args: argparse.ArgumentParser):
             writer.writerow(['mapName', 'scenFile', 'agentNum', 'seed', 'shieldType', 'lacamLookahead',
                              'modelPath', 'useGPU', 'k', 'm', 'maxSteps', 
                              'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
-                             'num_agents_at_goal'])
+                             'num_agents_at_goal', 'runtime'])
             
     with open(args.outputCSVFile, 'a') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow([args.mapName, args.scenFile, args.agentNum, args.seed, args.shieldType, args.lacamLookahead,
                          args.modelPath, args.useGPU, args.k, args.m, args.maxSteps,
-                         success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal])
+                         success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, runtime])
 
     # Save the paths
     assert(args.outputPathsFile.endswith('.npy'))
@@ -625,7 +636,8 @@ def main(args: argparse.ArgumentParser):
     # Create the scen files
     numToCreate = args.numScensToCreate
     chanceDecreasedForSuccess = args.percentSuccessGenerationReduction
-
+    if numToCreate<1:
+        return
     # subsample fewer scens if failure instance
     if success:
         numToCreate *= chanceDecreasedForSuccess 
@@ -637,8 +649,8 @@ def main(args: argparse.ArgumentParser):
         weights = np.arange(solution_path.shape[0]) + 1
         weights /= np.sum(weights)
         sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False, p=weights)        # Always include the first timestep + last 5 timesteps, then sample the rest
-        # pdb.set_trace()
-    
+    # pdb.set_trace()
+
     # Always include the first timestep + last 5 timesteps, then sample the rest
     # sampled_timesteps = np.concatenate([[0], sampled_timesteps, np.arange(solution_path.shape[0]-5, solution_path.shape[0])])    
     # sampled_timesteps = np.unique(sampled_timesteps)
@@ -699,6 +711,7 @@ if __name__ == '__main__':
     parser.add_argument('--percentSuccessGenerationReduction', type=float, default=0.7)
     parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'LaCAM'])
     parser.add_argument('--lacamLookahead', type=int, help="LaCAM node expansion limit", default=0)
+    parser.add_argument('--timeLimit', type=int, required=True, help="optional time limit for cs-pibt/lacam -1 for no time limit")
     # Output parameters
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
     parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", required=True)
@@ -718,4 +731,5 @@ if __name__ == '__main__':
         raise ValueError('LaCAM lookahead must be set when using LaCAM shield type.')
     
     # pdb.set_trace()
+
     main(args)

@@ -111,6 +111,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
         command += " --{}={}".format(aKey, runnerArgs["args"][aKey])
     
     command += f" --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz"
+    command == "--sipp=1"
     command += f" --mapName={mapname} --scenFile={scenfile} --agentNum={numAgents}"
     bdFile = f"data_collection/data/benchmark_data/constant_npzs/{mapname}_bds.npz"
     command += f" --bdNpzFile={bdFile}"
@@ -146,7 +147,7 @@ def detectExistingStatus(runnerArgs, mapfile, aNum, scenfile, df): # TODO update
 
     ### Grabs the correct row from the dataframe based on arguments
     for aKey, aValue in runnerArgs["args"].items():
-        if aKey == "extra_layers" or aKey == "bd_pred":
+        if aKey == "extra_layers" or aKey == "bd_pred" or aKey=="timeLimit":
             continue
         if aKey not in df.columns:
             
@@ -346,6 +347,7 @@ def specificRunnerDictSetup(args):
                 "maxSteps": args.maxSteps,
                 "shieldType": args.shieldType,
                 "lacamLookahead": args.lacamLookahead,
+                "timeLimit": args.timeLimit,
             },
             "percentSuccessGenerationReduction": args.percentSuccessGenerationReduction,
             "numScensToCreate": args.numScensToCreate
@@ -446,6 +448,8 @@ def generic_batch_runner(args):
     mapsToScens = defaultdict(list)
     # mapsToScens = dict()
     all_scen_files = list(os.listdir(scenInputFolder))
+    if args.chosen_map:
+        all_scen_files = [scen_name for scen_name in all_scen_files if args.chosen_map in scen_name]
     for dir_path in all_scen_files:
         if dir_path == ".DS_Store" or not dir_path.endswith(".scen"):
             continue 
@@ -639,6 +643,8 @@ if __name__ == "__main__":
                         type=str, required=True)
     parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 
                         type=int, required=True)
+    parser.add_argument('--chosen_map', help="For benchmarking choose just one map from all the maps", 
+                        type=str, default=None)
 
     # Subparses for C++ EECBS or Python ML model
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -675,6 +681,7 @@ if __name__ == "__main__":
     # Output parameters
     pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)
     pymodel_parser.add_argument('--percentSuccessGenerationReduction', help="see simulator2", type=float, required=True)
+    pymodel_parser.add_argument('--timeLimit', help="cs-pibt/lacam timeout", type=int, required=True)
     
  
 

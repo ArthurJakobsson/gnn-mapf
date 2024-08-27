@@ -22,6 +22,8 @@ temp/*
 benchmarking/lacam/*
 benchmarking/results/*
 benchmarking/eecbs_all
+benchmarking/pymodel_results/*
+benchmarking/pymodel_results_old/*
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*
