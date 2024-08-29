@@ -92,7 +92,7 @@ def run_lacam(scen,  mapname, num_agents, args):
     return result["success"], result["soc_cost"], result["runtime"]
 
 def fetch_eecbs(mapname, num_agent, args):
-    eecbs_source = 'benchmarking/eecbs_all/eecbs_outputs/'
+    eecbs_source = 'benchmarking/eecbs_all_new/eecbs_outputs/'
     eecbs_map_folder = eecbs_source + mapname + '/csvs/combined.csv'
     df = pd.read_csv(eecbs_map_folder)
     filtered_df = df[df['agentNum'] == num_agent]
@@ -288,7 +288,7 @@ def main(args, mapname):
 def plot_all_maps_grid(mapnames, dfs, num_rows=5, num_cols=6):
     models = set(dfs[0]['Program'].tolist())  # Assuming all DataFrames have the same models
     for column_name in ["Success_Rate", "Solution_Cost", "Runtime"]:
-        fig, axes = plt.subplots(num_rows, num_cols, figsize=(20, 15))  # Adjust figsize as needed
+        fig, axes = plt.subplots(num_rows, num_cols, figsize=(25, 15))  # Adjust figsize as needed
         # plt.subplots_adjust(left=0.7, bottom=0.7, right=0.8, top=0.8, wspace=0.8, hspace=0.8)
         fig.tight_layout(pad=3)
         axes = axes.flatten()  # Flatten to make indexing easier
@@ -298,7 +298,7 @@ def plot_all_maps_grid(mapnames, dfs, num_rows=5, num_cols=6):
             numAgents = get_num_agents(args,mapname)
             for model in models:
                 plot_topic = df[df['Program'] == model][column_name].tolist()
-                ax.plot(numAgents, plot_topic, label=model)
+                ax.plot(numAgents, plot_topic, label=model, marker="*")
             
             ax.set_title(mapname)
             ax.set_ylabel(column_name)

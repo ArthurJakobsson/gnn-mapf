@@ -3,7 +3,6 @@ from torch_geometric.data import Data, Dataset, download_url
 import numpy as np
 import pdb
 import pandas as pd # for loading status df
-from jax import jit
 
 from tqdm import tqdm
 import os
@@ -454,6 +453,8 @@ class MyOwnDataset(Dataset):
                 else:
                     self.df = pd.concat([self.df, new_df], ignore_index=True)
                 self.df.to_csv(self.df_path, index=False)
+                
+                # del cur_dataset
             # self.length = idx
         
         self.length = self.df["num_pts"].sum()
