@@ -469,6 +469,7 @@ def simulate(model_path, scen_file_pth, shield_type, lacam_lookahead, args):
     """
     
     
+    
     # if shield_type not in ["CS-PIBT", "LaCAM"]:
     #     raise KeyError('Invalid shield type: {}'.format(shield_type))
     
