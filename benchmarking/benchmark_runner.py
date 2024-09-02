@@ -204,14 +204,14 @@ def run_instance(info):
 def run_eph(args):
     # mapnames = str(list(mapsToMaxNumAgents.keys()))
     # print(mapnames)
-    mapnames = "den312d" #all
-    agentNums = "64" #increment
+    mapnames = "all" 
+    agentNums = "increment"
     command = " ".join(["python", "-m", "eph_mapf.simulator_eph", 
                 f"--mapname={mapnames}", f"--agentNums={agentNums}",
                 "--debug=True", 
                 "--modelPath=nothing", 
                 "--useGPU=t",
-                f"--timeLimit={args.simulator_cutoff}",
+                f"--timeLimit=600",#{args.simulator_cutoff}",
                 "--outputCSVFile=./benchmarking/eph_results.csv"  
                 ])
     print(command)

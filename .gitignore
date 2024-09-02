@@ -25,23 +25,23 @@ benchmarking/eecbs_all/*
 benchmarking/eecbs_all_new/*
 benchmarking/pymodel_results/*
 benchmarking/pymodel_results_old/*
-eph_mapf/__pycache__/
-eph_mapf/assets
-eph_mapf/configs
-eph_mapf/eph_mapf.egg-info
-eph_maps/results
-eph_mapf/saved_models
-eph_mapf/src
-eph_mapf/test_set
-eph_mapf/tset_set_old
-eph_mapf/valid_set
-eph_mapf/.gitignore
-eph_mapf/pyproject.toml
-eph_mapf/quickstart.ipynb
-eph_mapf/README.md
-eph_mapf/test2.py
-eph_mapf/train.py
-eph_mapf/validate.py
+# eph_mapf/__pycache__/
+# eph_mapf/assets
+# eph_mapf/configs
+# eph_mapf/eph_mapf.egg-info
+# eph_maps/results
+# eph_mapf/saved_models
+# eph_mapf/src
+# eph_mapf/test_set
+# eph_mapf/tset_set_old
+# eph_mapf/valid_set
+# eph_mapf/.gitignore
+# eph_mapf/pyproject.toml
+# eph_mapf/quickstart.ipynb
+# eph_mapf/README.md
+# eph_mapf/test2.py
+# eph_mapf/train.py
+# eph_mapf/validate.py
 
 # data collection stuff
 data_collection/eecbs/py/npzs/*
