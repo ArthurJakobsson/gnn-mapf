@@ -103,8 +103,19 @@ def fetch_eecbs(mapname, num_agent, args):
     solution_cost = successes['solution cost'].mean()
     return success_rate, solution_cost, runtime
 
-def run_eph(scen, num_agents, args):
-    pass
+
+
+def parse_eph(mapname, num_agent, eph_results):
+    df = eph_results
+    filtered_df = df[df['agentNum'] == num_agent]
+    filtered_df = filtered_df[filtered_df['mapName'] == mapname]
+    # successes = filtered_df[filtered_df['success']==True]
+    
+    success_rate = filtered_df['success']
+    runtime  = filtered_df['runtime']
+    solution_cost = filtered_df['total_cost_true']
+    return success_rate, solution_cost, runtime 
+
 
 def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
     df = pd.read_csv(f"{pymodel_output_folder}/{map_name}/csvs/combined.csv")
@@ -160,7 +171,7 @@ def run_single_instance(scen, mapname, num_agents, which_program, args):
     if which_program == "LaCAM":
         success, solution_cost, runtime = run_lacam(scen, mapname, num_agents, args)
     elif which_program == "EPH":
-        success, solution_cost, runtime = run_eph(scen, num_agents, args)
+        success, solution_cost, runtime = parse_eph(scen, num_agents, args)
     
     return success, solution_cost, runtime
 
@@ -190,6 +201,23 @@ def run_instance(info):
     scen, mapname, num_agent, program, args = info
     return run_single_instance(scen, mapname, num_agent, program, args)
 
+def run_eph(args):
+    # mapnames = str(list(mapsToMaxNumAgents.keys()))
+    # print(mapnames)
+    mapnames = "den312d" #all
+    agentNums = "64" #increment
+    command = " ".join(["python", "-m", "eph_mapf.simulator_eph", 
+                f"--mapname={mapnames}", f"--agentNums={agentNums}",
+                "--debug=True", 
+                "--modelPath=nothing", 
+                "--useGPU=t",
+                f"--timeLimit={args.simulator_cutoff}",
+                "--outputCSVFile=./benchmarking/eph_results.csv"  
+                ])
+    print(command)
+    subprocess.run(command, shell=True, check=True)
+
+
 def main(args, mapname):
     print(mapname)
     # Create a folder to save results if it doesn't exist
@@ -202,15 +230,18 @@ def main(args, mapname):
     
     scen_names = get_scens(args.scen_folder, mapname)
     num_agents_list = get_num_agents(args, mapname)
-
+    run_eph(args)
+    eph_results = pd.read_csv("./benchmarking/eph_results.csv")
         
     # Iterate through each agent size and run the three programs
     for num_agent in num_agents_list:
-        for program in ['LaCAM', 'EECBS', 'GNNMAPF']: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
+        for program in ['LaCAM', 'EECBS', 'GNNMAPF', "EPH"]: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
             if program=='EECBS':
                 success_rate, solution_cost, runtime = fetch_eecbs(mapname, num_agent, args)
             elif program=='GNNMAPF':
                 success_rate, solution_cost, runtime = run_gnn_mapf(mapname, num_agent, args)
+            elif program=="EPH":
+                success_rate, solution_cost, runtime = parse_eph(mapname, num_agent, eph_results)
             else:
                 assert(program=='LaCAM')
                 # num_successes = 0
@@ -349,7 +380,7 @@ if __name__ == '__main__':
     # get aggregate statistics for all maps
     results_df = []
     for mapname in all_maps:
-        # main(args, mapname)
+        main(args, mapname)
         results_df.append(pd.read_csv(f"benchmarking/results/results_{mapname}.csv"))
     plot_all_maps_grid(all_maps, results_df)
         
