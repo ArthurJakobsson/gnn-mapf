@@ -61,7 +61,11 @@ mapsToMaxNumAgents = {
     "orz900d": 1000,
     "ost003d": 1000,
     "random_32_32_10": 461,
+    "random_32_32_10_custom_0": 461,
+    "random_32_32_10_custom_1": 461,
     "random_32_32_20": 409,
+    "random_64_64_10_custom_0": 1000,
+    "random_64_64_10_custom_1": 1000,
     "random_64_64_10": 1000,
     "random_64_64_20": 1000,
     "room_32_32_4": 341,
@@ -510,6 +514,9 @@ def generic_batch_runner(args):
                     f = open(args.numAgents)
                     agent_json_dict = json.load(f)['map_agent_counts']
                 agentNumbers = agent_json_dict[mapFile]
+            elif args.numAgents=="max":
+                maximumAgents = mapsToMaxNumAgents[mapFile]
+                agentNumbers = [maximumAgents]
             else:
                 agentNumbers = [int(x) for x in args.numAgents.split(",")]
             # maximumAgents = increment + 1 # Just run one setting as of now

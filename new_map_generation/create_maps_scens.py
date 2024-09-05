@@ -29,6 +29,36 @@ def parse_map(mapfile):
     mapdata = mapdata.astype(int)
     return mapdata
 
+def parse_scene(scen_file):
+    """Input: scenfile
+    Output: start_locations, goal_locations
+    """
+    start_locations = []
+    goal_locations = []
+
+    with open(scen_file) as f:
+        line = f.readline().strip()
+        # if line[0] == 'v':  # Nathan's benchmark
+        start_locations = list()
+        goal_locations = list()
+        # sep = "\t"
+        for line in f:
+            line = line.rstrip() #remove the new line
+            # line = line.replace("\t", " ") # Most instances have tabs, but some have spaces
+            # tokens = line.split(" ")
+            tokens = line.split("\t") # Everything is tab separated
+            assert(len(tokens) == 9) 
+            # num_of_cols = int(tokens[2])
+            # num_of_rows = int(tokens[3])
+            tokens = tokens[4:]  # Skip the first four elements
+            col = int(tokens[0])
+            row = int(tokens[1])
+            start_locations.append((row,col)) # This is consistent with usage
+            col = int(tokens[2])
+            row = int(tokens[3])
+            goal_locations.append((row,col)) # This is consistant with usage
+    return np.array(start_locations, dtype=int), np.array(goal_locations, dtype=int)
+
 
 def convert_to_map_format(array):
     # Convert the 2D array to a string format with '.' for 1s and '@' for 0s
@@ -88,24 +118,25 @@ def createScenFile(locs, goal_locs, map_name, scenFilepath):
             f.write(f"0\t{map_name}\t{0}\t{0}\t{locs[i,1]}\t{locs[i,0]}\t{goal_locs[i,1]}\t{goal_locs[i,0]}\t0\n")
     print("Scen file created at: {}".format(scenFilepath))
 
+
 if __name__ == "__main__":
     num_maps = 2
-    num_scens = 25
-    num_agents = 50
+    num_scens = 153
+    num_agents = 500
 
     # Parameters
-    size = 15
-    obstacle_prob = 0.2
+    size = 32
+    obstacle_prob = 0.1
 
     for i in range(num_maps):
 
-        # my_map = generate_connected_map(size, obstacle_prob)
-        # print(my_map)
-        # map_str = convert_to_map_format(my_map)
-        # map_name = f"dense_map_{size}_{size}_{i}"
-        # save_map_to_file(map_str, "new_map_generation/maps/"+map_name+".map")
-        my_map = parse_map("new_map_generation/maps/corridor_30_30_0.map")
-        map_name="corridor_30_30_0"
+        my_map = generate_connected_map(size, obstacle_prob)
+        print(my_map)
+        map_str = convert_to_map_format(my_map)
+        map_name = f"random_32_32_10_custom_{i}"
+        save_map_to_file(map_str, "new_map_generation/maps/"+map_name+".map")
+        # my_map = parse_map(f"new_map_generation/maps/random_64_64_10_{i}.map")
+        # map_name=f"random_64_64_10_custom_{i}"
 
         for j in range(num_scens):
 

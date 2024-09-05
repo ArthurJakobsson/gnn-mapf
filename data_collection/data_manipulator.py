@@ -475,6 +475,7 @@ def main():
     else:
         with ct("Parsing maps"):
             maps = batch_map(args.mapIn, args.num_parallel) # maps mapname->np array containing the obstacles in map
+            print("Created all maps")
         # args.mapOutFile="temp/all_maps.npz"
         np.savez_compressed(f"{args.mapOutFile}", **maps)
         ct.printTimes("Parsing maps")

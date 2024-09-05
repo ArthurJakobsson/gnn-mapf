@@ -18,9 +18,9 @@ def flood_fill(matrix, x, y, old_value, new_value):
         return
     matrix[x, y] = new_value
     flood_fill(matrix, x + 1, y, old_value, new_value)
-    flood_fill(matrix, x - 1, y, old_value, new_value)
+    # flood_fill(matrix, x - 1, y, old_value, new_value)
     flood_fill(matrix, x, y + 1, old_value, new_value)
-    flood_fill(matrix, x, y - 1, old_value, new_value)
+    # flood_fill(matrix, x, y - 1, old_value, new_value)
 
 
 def generate_map(width, height, density, tolerance=0.005):
@@ -111,7 +111,7 @@ def main(height, width, density, num_agents, num_instances):
         map_partitions = map_partition(map_)
         starts, goals = generate_random_agents(map_, map_partitions, num_agents)
         instances.append((map_, starts, goals))
-    file_name = f"./test_set/{height}length_{num_agents}agents_{density}density.pth"
+    file_name = f"./eph_mapf/new_maps/{height}length_{num_agents}agents_{density}density.pth"
     with open(file_name, "wb") as f:
         pickle.dump(instances, f)
 

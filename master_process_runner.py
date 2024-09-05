@@ -93,7 +93,7 @@ if __name__ == "__main__":
         pymodel_outputs_folder = f"{iterFolder}/pymodel_outputs"
         encountered_scens = f"{iterFolder}/encountered_scens"
 
-        ### Run EECBS labeller
+        # Run EECBS labeller
         if iternum == 0: # Special logic in the first iteration
             # if args.generate_initial:
             # Run initial data collection
@@ -105,8 +105,8 @@ if __name__ == "__main__":
                             f"--num_parallel_runs={args.num_parallel}",
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
-                            "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
-                            "--cutoffTime=720",
+                            "--firstIter=true", # Note we should not need to create bds anymore, which is what this is used for
+                            "--cutoffTime=1",
                             "--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -125,8 +125,8 @@ if __name__ == "__main__":
                         f"--num_parallel_runs={args.num_parallel}",
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
-                        f"--firstIter=false",
-                        f"--cutoffTime=720",
+                        f"--firstIter=true",
+                        f"--cutoffTime=1",
                         f"--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -141,6 +141,7 @@ if __name__ == "__main__":
                         f"--num_parallel_runs={args.num_parallel}",
                         "\"clean\" --keepNpys=false"])
         subprocess.run(command, shell=True, check=True)
+        quit()
         
         ### Process the data, i.e. create pt files from path npzs
         command = " ".join(["python", "-m", "gnn.dataloader", 

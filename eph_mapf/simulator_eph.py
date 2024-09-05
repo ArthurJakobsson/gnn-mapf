@@ -672,7 +672,7 @@ def main(args: argparse.ArgumentParser):
         
     starttime = time.time()
     if args.mapname=="all":
-        mapname = list(mapsToMaxNumAgents.keys())[:2]
+        mapname = list(mapsToMaxNumAgents.keys())[:2] #TODO let it run all
     else:
         mapname = [str(x) for x in args.mapname.split(",")]
     print("arg", args.mapname)

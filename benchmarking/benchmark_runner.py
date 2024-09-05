@@ -132,7 +132,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     source_maps_scens = args.data_folder
     # the experiment folder
     # the iter we want to simulate with
-    pymodel_output_folder = "benchmarking/pymodel_results/"
+    pymodel_output_folder = "benchmarking/pymodel_results_test/"
     model_path = f"data_collection/data/logs/{args.expname}/iter{args.iternum}/models/max_test_acc.pt"
     
     command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
@@ -160,7 +160,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     if args.conda_env is not None:
         command += f" --condaEnv={args.conda_env}"
     print(command)
-    # subprocess.run(command, shell=True, check=True)
+    subprocess.run(command, shell=True, check=True)
     
     return parse_pymodel_output(pymodel_output_folder, mapname, num_agents)
 
@@ -211,7 +211,7 @@ def run_eph(args):
                 "--debug=True", 
                 "--modelPath=nothing", 
                 "--useGPU=t",
-                f"--timeLimit=600",#{args.simulator_cutoff}",
+                f"--timeLimit=5",#{args.simulator_cutoff}",
                 "--outputCSVFile=./benchmarking/eph_results.csv"  
                 ])
     print(command)
@@ -230,12 +230,12 @@ def main(args, mapname):
     
     scen_names = get_scens(args.scen_folder, mapname)
     num_agents_list = get_num_agents(args, mapname)
-    run_eph(args)
-    eph_results = pd.read_csv("./benchmarking/eph_results.csv")
+    # run_eph(args)
+    # eph_results = pd.read_csv("./benchmarking/eph_results.csv")
         
     # Iterate through each agent size and run the three programs
     for num_agent in num_agents_list:
-        for program in ['LaCAM', 'EECBS', 'GNNMAPF', "EPH"]: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
+        for program in ["GNNMAPF"]:#['LaCAM', 'EECBS', 'GNNMAPF', "EPH"]: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
             if program=='EECBS':
                 success_rate, solution_cost, runtime = fetch_eecbs(mapname, num_agent, args)
             elif program=='GNNMAPF':

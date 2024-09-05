@@ -215,7 +215,7 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
     # No valid move found
     return False
 
-def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_constraints, start_time,timeLimit):
+def pibt(grid_map, action_preferences, current_locs, agent_priorities, agent_constraints, start_time, timeLimit):
     """Inputs:
         grid_map: (H,W)
         action_preferences: (N,5)

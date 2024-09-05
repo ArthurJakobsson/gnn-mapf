@@ -25,7 +25,7 @@ TIMEOUT_STEP_VAL = 1e9
 
 
 @timeout(
-    config.test_timeout, default_value=(False, TIMEOUT_STEP_VAL, 0, 0, [])
+    600, default_value=(False, TIMEOUT_STEP_VAL, 0, 0, [])
 )  # default value for timeout is not success and large steps
 def test_one_case(
     args,
@@ -53,7 +53,7 @@ def test_one_case(
     env_set, network, config = args
 
     env = Environment()
-    # print("1")
+    
     env.load(env_set[0], env_set[1], env_set[2])
     # print("2")
     # Setting for inference techniques
@@ -97,9 +97,9 @@ def test_one_case(
 
     # device is taken from network parameters
     device = next(network.parameters()).device
-    # print('yeehaw')
     agent_positions = []
     while not done and env.steps < max_episode_length:
+        print("steps:", env.steps, "max_episode_len: ", max_episode_length)
         actions, q_val, _, _, comm_mask = network.step(
             torch.as_tensor(obs.astype(np.float32)).to(device),
             torch.as_tensor(last_act.astype(np.float32)).to(device),
@@ -114,7 +114,6 @@ def test_one_case(
         step += 1
         num_comm += np.sum(comm_mask)
         agent_positions.append(np.copy(env.agents_pos))
-    # print('made it')
     arrived_num = np.sum(np.all(env.agents_pos == env.goals_pos, axis=1))
     # agent_positions = [] #temp fix since we don't care about agent position
     # print("eq: ", np.array_equal(env.agents_pos, env.goals_pos),"\n")
@@ -145,6 +144,7 @@ def test_instance(args):
 
     test, network, config = args
     ensemble = config.ensemble
+    # print(config.test_timeout)
     start_time = time.time()
     # Take best result from ensemble
     if ensemble is not None:
@@ -321,7 +321,7 @@ def test_model(checkpoint_name: Union[int, str], config=config):
             else:
                 subf_name = f"{case[0]}_{case[1]}agents"
 
-            folder = f"./results/{subf_name}"
+            folder = f"./eph_mapf/results/{subf_name}"
             os.makedirs(folder, exist_ok=True)
             # create dictionary of default results
             results = {
@@ -376,7 +376,7 @@ def test_model(checkpoint_name: Union[int, str], config=config):
 
             # return results
             all_results[case] = results
-
+            print(f"---------------------------------------------------------")
         return all_results
 
 
