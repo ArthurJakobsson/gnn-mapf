@@ -454,7 +454,7 @@ class MyOwnDataset(Dataset):
                     self.df = pd.concat([self.df, new_df], ignore_index=True)
                 self.df.to_csv(self.df_path, index=False)
                 
-                # del cur_dataset
+                del cur_dataset
             # self.length = idx
         
         self.length = self.df["num_pts"].sum()

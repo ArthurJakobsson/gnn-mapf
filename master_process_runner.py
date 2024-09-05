@@ -105,8 +105,8 @@ if __name__ == "__main__":
                             f"--num_parallel_runs={args.num_parallel}",
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
-                            "--firstIter=true", # Note we should not need to create bds anymore, which is what this is used for
-                            "--cutoffTime=1",
+                            "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
+                            "--cutoffTime=120",
                             "--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -125,8 +125,8 @@ if __name__ == "__main__":
                         f"--num_parallel_runs={args.num_parallel}",
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
-                        f"--firstIter=true",
-                        f"--cutoffTime=1",
+                        f"--firstIter=false",
+                        f"--cutoffTime=120",
                         f"--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)

@@ -56,7 +56,7 @@ class PipelineDataset(Dataset):
         # self.numpy_data_path = numpy_data_path
         assert(mapFileNpz.endswith(".npz") and bdFileNpz.endswith(".npz") and pathFileNpz.endswith(".npz"))
         self.maps = dict(np.load(mapFileNpz))
-        self.bds = dict(np.load(bdFileNpz))
+        self.bds = np.load(bdFileNpz)
         self.tn2 = dict(np.load(pathFileNpz)) # Note: Very important to make this a dict() otherwise lazy loading kills performance later on
         self.k = k
         self.size = size
@@ -154,8 +154,8 @@ class PipelineDataset(Dataset):
         max_timesteps = paths.shape[0]
         num_agents = paths.shape[1]
         assert(self.bds[bdname].shape[0] >= num_agents)
-        bd = self.bds[bdname][:num_agents] # (N,H,W)
-
+        npads = ((0,0),(self.k, self.k), (self.k, self.k))
+        bd = np.pad(self.bds[bdname][:num_agents], npads, mode="constant", constant_values=1073741823)
         return bd, grid, paths, timestep_to_use, max_timesteps
 
     def parse_npz(self, loaded_paths, loaded_maps, loaded_bds):
@@ -171,8 +171,8 @@ class PipelineDataset(Dataset):
         self.length = totalT # number of paths = number of timesteps
         # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form
         npads = ((0,0),(self.k, self.k), (self.k, self.k))
-        for key in self.bds:
-            self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
+        # for key in self.bds:
+        #     self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
             # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
         for key in self.maps:
             self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
