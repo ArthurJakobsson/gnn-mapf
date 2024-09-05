@@ -103,6 +103,7 @@ if __name__ == "__main__":
     parser.add_argument('--which_section', help="[begin, setup, train, simulate]", required=True)
     parser.add_argument('--iternum', type=int)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
+    parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=int, required=True)
 
     args = parser.parse_args()
     if args.which_setting == "Arthur":
@@ -122,6 +123,19 @@ if __name__ == "__main__":
         source_maps_scens = f"./data_collection/data/{args.data_folder}"
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
+    
+    # for each map, save only the first {args.num_scens} scen files
+    os.makedirs(f"{source_maps_scens}_{args.num_scens}")
+    # copy over the maps
+    shutil.copytree(f"{source_maps_scens}/maps", f"{source_maps_scens}_{args.num_scens}/maps", dirs_exist_ok=True)
+    # copy over only necessary scens
+    os.makedirs(f"{source_maps_scens}_{args.num_scens}/scens")
+    for i in range(1,args.num_scens+1):
+        for scen_path in os.listdir(f"{source_maps_scens}/scens"):
+            if scen_path.endswith(f"{i}.scen"):
+                shutil.copyfile(os.path.join(source_maps_scens, 'scens', scen_path), os.path.join(f"{source_maps_scens}_{args.num_scens}", 'scens', scen_path))
+    # reset the source_maps_scens folder
+    source_maps_scens = f"{source_maps_scens}_{args.num_scens}"
 
     LE = f"data_collection/data/logs/{args.expName}"
     os.makedirs(LE, exist_ok=True)
