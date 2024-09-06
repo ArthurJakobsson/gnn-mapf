@@ -360,7 +360,7 @@ if __name__ == "__main__":
         if not os.path.exists(folder):
             raise Exception(f"Folder {folder} does not exist!")
         dataset = MyOwnDataset(mapNpzFile=None, bdNpzFolder=None, pathNpzFolder=None,
-                            processedOutputFolder=folder, num_cores=1, k=args.k, m=args.m, extra_layers=args.extra_layers, bd_pred=args.bd_pred)
+                            processedOutputFolder=folder, num_cores=1, k=args.k, m=args.m, extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=16)
         dataset_list.append(dataset)
     # Combine into single large dataset
     dataset = torch.utils.data.ConcatDataset(dataset_list)

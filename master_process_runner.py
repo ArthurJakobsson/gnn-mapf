@@ -106,7 +106,7 @@ if __name__ == "__main__":
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                             "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
-                            "--cutoffTime=120",
+                            "--cutoffTime=1",
                             "--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -126,11 +126,12 @@ if __name__ == "__main__":
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         f"--firstIter=false",
-                        f"--cutoffTime=120",
+                        f"--cutoffTime=1",
                         f"--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: Finished eecbs")
+        
         
         ### Clean up the eecbs_outputs_folder
         command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 

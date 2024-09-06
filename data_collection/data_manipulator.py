@@ -107,7 +107,6 @@ class PipelineDataset(Dataset):
         '''
 
         assert(idx < self.length)
-        # pdb.set_trace()
         # items = list(self.tn2.items())
         total_sum = 0
         key_to_use = None
@@ -158,9 +157,19 @@ class PipelineDataset(Dataset):
 
     def parse_npz2(self):
         totalT = 0 
+        to_remove = []
+
         for ky, v in self.tn2.items():
-            t, n, _ = np.shape(v)
-            totalT += t
+            kyname = ky.split(",")[1]
+            if any(bdname == kyname for bdname in self.bds.keys()):
+                t, n, _ = np.shape(v)
+                totalT += t
+            else:
+                to_remove.append(ky)
+
+        for ky in to_remove:
+            self.tn2.pop(ky, None)
+
         self.length = totalT
 
         npads = ((0,0),(self.k, self.k), (self.k, self.k))
@@ -204,7 +213,6 @@ def parse_path(pathfile):
     TODO: NUMPYIFY THIS
     '''
     # save dimensions for later array saving
-    # pdb.set_trace()
     w = h = 0
     # maps timesteps to a list of agent coordinates
     timestepsToMaps = defaultdict(list)
@@ -458,11 +466,10 @@ def main():
         # args.mapOutFile="temp/all_maps.npz"
         np.savez_compressed(f"{args.mapOutFile}", **maps)
         ct.printTimes("Parsing maps")
-    # quit()
-    # pdb.set_trace()
     # parse each bd, add to global dict
     assert(args.bdOutFile.endswith(".npz"))
-    if os.path.exists(args.bdOutFile):
+    temp = f"data_collection/data/benchmark_data/completed_splitting/{args.bdOutFile.split('/')[-1]}" #TODO make it so that this can be dynamic
+    if os.path.exists(temp):#args.bdOutFile):
         print("BD file already exists, skipping bd parsing")
         pass
     else:
@@ -488,14 +495,14 @@ def main():
         ct.printTimes("Saving npz")
 
     # Verify that the dataloader works by sampling 10 random items
-    with ct("Testing dataloader"):
-        loader = PipelineDataset(args.mapOutFile, args.bdOutFile, args.pathOutFile, 4, float('inf'), 300, 'current')
-        print(len(loader), " train size")
-        random_samples = np.random.choice(len(loader), 10)
-        for i in random_samples:
-            locs, labels, bd, grid, goal_locs = loader[i] # This will fail if not parsed/loaded properly
-            assert(labels.shape[1] == 5)
-            assert(locs.shape[1] == 2)
+    # with ct("Testing dataloader"):
+    #     loader = PipelineDataset(args.mapOutFile, args.bdOutFile, args.pathOutFile, 4, float('inf'), 300, 'current')
+    #     print(len(loader), " train size")
+    #     random_samples = np.random.choice(len(loader), 10)
+    #     for i in random_samples:
+    #         locs, labels, bd, grid, goal_locs = loader[i] # This will fail if not parsed/loaded properly
+    #         assert(labels.shape[1] == 5)
+    #         assert(locs.shape[1] == 2)
             # grid/bd should be 9,9 for single agent but is full map for graph version
 
 

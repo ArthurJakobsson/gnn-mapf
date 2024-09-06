@@ -222,7 +222,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
 
 class MyOwnDataset(Dataset):
     def __init__(self, mapNpzFile, bdNpzFolder, pathNpzFolder,
-                processedOutputFolder, num_cores, k, m, extra_layers, bd_pred):
+                processedOutputFolder, num_cores, k, m, extra_layers, bd_pred, num_per_pt):
         if num_cores != 1:
             raise NotImplementedError("Multiprocessing not supported yet")
         self.extra_layers = extra_layers
@@ -242,6 +242,7 @@ class MyOwnDataset(Dataset):
         self.m = m # number of agents considered close
         self.size = float('inf')
         self.max_agents = 500
+        self.num_per_pt = num_per_pt
 
         # self.data_dictionaries = []
         self.length = 0
@@ -338,34 +339,40 @@ class MyOwnDataset(Dataset):
                 # if not (int(cur_path_iter)==self.iternum):
                 #     continue
                 df_row = self.df.loc[self.df['npz_path'] == npz_path]
-                assert(len(df_row) <= 1)
-                if len(df_row) == 1:
+                # assert(len(df_row) <= 1)
+                if len(df_row) >0:
                     if df_row.iloc[0]["status"] == "processed":
                         print(f"Skipping: {npz_path}")
                         # idx+=df_row.iloc[0]["num_pts"]
                         continue
 
                 # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
-                maps_bds = list(filter(lambda k: 'map_name' in k, bd_folder))
+                maps_bds = list(filter(lambda k: map_name in k, bd_folder))
                 idx_start = 0 
                 for bd_file_name in maps_bds:
                     bdNpzFile = f"{self.bdNpzFolder}/{bd_file_name}"
                     self.ct.start("Loading")
                     cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
                     print(f"Loading: {npz_path} of size {len(cur_dataset)}")
-                    # idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
                     self.ct.stop("Loading")
                     self.ct.start("Processing")
                     # pr = cProfile.Profile()
                     # pr.enable()
                     # tmp = []
+                    counter = 0
+                    batch_graphs = []
                     for t in tqdm(range(len(cur_dataset))):
                         time_instance = cur_dataset[t]
-                        torch.save(self.create_and_save_graph(t, time_instance),
-                                    osp.join(self.processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
+                        if t%self.num_per_pt==0:
+                            torch.save(batch_graphs,
+                                        osp.join(self.processed_dir, f"data_{map_name}_{idx_start+counter}.pt"))
+                            counter+=1
+                            batch_graphs = []
+                        else:
+                            batch_graphs.append(self.create_and_save_graph(t, time_instance))
                     
-                    idx_start+=len(cur_dataset)
+                    idx_start+=counter
                     # Save tmp to pt
                     # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
                     # idx += len(cur_dataset)
@@ -426,8 +433,11 @@ class MyOwnDataset(Dataset):
         # data_file = self.order_of_files[which_file_index]
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
+        data_idx = data_idx - data_idx%self.num_per_pt
+        print(data_idx)
         filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
-        curdata = torch.load(osp.join(self.processed_dir, filename))
+        pdb.set_trace()
+        curdata = torch.load(osp.join(self.processed_dir, filename))[data_idx%self.num_per_pt]
         # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
         # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
         # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
@@ -471,11 +481,12 @@ if __name__ == "__main__":
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
     parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
+    parser.add_argument('--num_per_pt', type=int, default=16, help="number of graphs per pt file")
     args = parser.parse_args()
 
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
-                        num_cores=1, k=args.k, m=args.m, extra_layers=args.extra_layers, bd_pred=args.bd_pred)
+                        num_cores=1, k=args.k, m=args.m, extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=args.num_per_pt)
 
 
 

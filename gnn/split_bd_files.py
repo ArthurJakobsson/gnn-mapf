@@ -8,7 +8,7 @@ def split_bd(bd_folder, num_partitions):
     bd_files_list = os.listdir(bd_folder)
     completed_folder = "data_collection/data/benchmark_data/completed_splitting"
     for bd_file in bd_files_list:
-        if bd_file == "all_maps.npz":
+        if bd_file == "all_maps.npz" or "part" in bd_file:
             continue
         bd_file_path = os.path.join(bd_folder, bd_file)
         bd_loaded = np.load(bd_file_path)
