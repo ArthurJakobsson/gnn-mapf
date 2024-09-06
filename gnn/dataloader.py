@@ -181,28 +181,7 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     edge_indices = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
     edge_features = deltas[edge_indices[0], edge_indices[1]] # (num_edges,2), the difference between each agent
     edge_features = edge_features.astype(np.float32)
-    # test_neighbors = []
-    # totalCount = 0
-    # for i in range(num_agents):
-    #     cur_delta = np.abs(pos_list - pos_list[i]) # (N,2)
-    #     dists = np.sum(cur_delta, axis=1) # (N)
-    #     tmp = np.argsort(dists)[:m] # (m,)
-    #     curN = []
-    #     for j in tmp:
-    #         if j == i or cur_delta[j][0] > k or cur_delta[j][1] > k:
-    #             continue
-    #         curN.append(j)
-    #         totalCount+=1
-    #     test_neighbors.append(curN)
 
-    # m_closest_nborsIdx_list = [get_neighbors(m, pos, pos_list, k) for pos in pos_list] # (m,n) THE OUTPUT LOOKS WRONG
-    # m_closest_nborsIdx_list = test_neighbors
-    # edge_index = convert_neighbors_to_edge_list(num_agents, m_closest_nborsIdx_list) # (2, num_edges)
-    # edge_attr = get_edge_attributes(edge_index, pos_list) # (num_edges,2 )
-    # x = torch.tensor(np.array(x), dtype=torch.float)
-    # edge_attr = torch.tensor(np.array(edge_attr), dtype=torch.float)
-    # labels = torch.tensor(labels, dtype=torch.int8) # up down left right stay (5 options)
-    # return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y = labels)
     if debug_checks:
         assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     bd_pred_arr = None
@@ -223,8 +202,6 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
         # Create a boolean array where each element is True if it is the minimum in its row
         min_indices = flattened == flattened.min(axis=1, keepdims=True)
         min_indices = min_indices.astype(int) # (N, 5) non-unique argmin solution
-        # min_indices = bd_tmp == mins[:, None]
-        # min_indices = np.pad(min_indices, ((0,0),(k-1,k-1),(k-1,k-1)), constant_values=True) # (N,D,D) no-unique argmin solution
         bd_pred_arr = min_indices 
         linear_dimensions+=5
     else:
@@ -342,57 +319,13 @@ class MyOwnDataset(Dataset):
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata
-    
-    def process_single(self, npz_path):
-        """
-        Still in progress, do not use!
-        """
-        shared_lock = self.shared_lock
-        assert(npz_path.endswith(".npz"))
-        map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
-        shared_lock.acquire()
-        df_row = self.df.loc[self.df['npz_path'] == npz_path]
-        assert(len(df_row) <= 1)
-        if len(df_row) == 1:
-            if df_row.iloc[0]["status"] == "processed":
-                print(f"Skipping: {npz_path}")
-            else:
-                print(f"WARNING: Unexpected status for {map_name}: {df_row.iloc[0]['status']}")
-        shared_lock.release()
-
-        bdNpzFile = f"{self.bdNpzFolder}/{map_name}_bds.npz"
-        cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
-        print(f"Loading: {npz_path} of size {len(cur_dataset)}")
-
-        tmp = []
-        for t in tqdm(range(len(cur_dataset))):
-            time_instance = cur_dataset[t]
-            tmp.append(self.create_and_save_graph(idx+t, time_instance))
-        torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
-        idx += len(cur_dataset)
-
-        new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                        "pt_path": [f"data_{map_name}.pt"],
-                                        "status": ["processed"], 
-                                        "num_pts": [len(cur_dataset)],
-                                        "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                        "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
-        
-        shared_lock.acquire()
-        if len(self.df) == 0:
-            self.df = new_df
-        else:
-            self.df = pd.concat([self.df, new_df], ignore_index=True)
-        self.df.to_csv(self.df_path, index=False)
-        shared_lock.release()
-        raise NotImplementedError("Not implemented yet")
-
 
     def custom_process(self):
         self.load_status_data() # This loads self.df which is used for checking if should process or skip
 
         if self.pathNpzFolder is not None: # Run process
             # idx = 0
+            bd_folder = os.listdir(self.bdNpzFolder)
             print(f"Num cores: {self.num_cores}")
             for npz_path in self.raw_paths: #TODO check if new npzs are read
                 # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
@@ -413,48 +346,53 @@ class MyOwnDataset(Dataset):
                         continue
 
                 # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
-                bdNpzFile = f"{self.bdNpzFolder}/{map_name}_bds.npz"
-                self.ct.start("Loading")
-                cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
-                print(f"Loading: {npz_path} of size {len(cur_dataset)}")
-                # idx_list = np.array(range(len(cur_dataset)))+int(idx)
+                maps_bds = list(filter(lambda k: 'map_name' in k, bd_folder))
+                idx_start = 0 
+                for bd_file_name in maps_bds:
+                    bdNpzFile = f"{self.bdNpzFolder}/{bd_file_name}"
+                    self.ct.start("Loading")
+                    cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
+                    print(f"Loading: {npz_path} of size {len(cur_dataset)}")
+                    # idx_list = np.array(range(len(cur_dataset)))+int(idx)
 
-                self.ct.stop("Loading")
-                self.ct.start("Processing")
-                # pr = cProfile.Profile()
-                # pr.enable()
-                # tmp = []
-                for t in tqdm(range(len(cur_dataset))):
-                    time_instance = cur_dataset[t]
-                    torch.save(self.create_and_save_graph(t, time_instance),
-                                osp.join(self.processed_dir, f"data_{map_name}_{t}.pt"))
-                # Save tmp to pt
-                # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
-                # idx += len(cur_dataset)
-                self.ct.stop("Processing")
-                # pr.disable()
-                # ps = pstats.Stats(pr).sort_stats('cumtime')
-                # ps.print_stats(10)
-                # self.ct.start("Parallel Processing")
-                ### Note: Multiprocessing seems slower than single processing
-                # with Pool(self.num_cores) as p: #change number of workers later
-                #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
-                # self.ct.stop("Parallel Processing")
+                    self.ct.stop("Loading")
+                    self.ct.start("Processing")
+                    # pr = cProfile.Profile()
+                    # pr.enable()
+                    # tmp = []
+                    for t in tqdm(range(len(cur_dataset))):
+                        time_instance = cur_dataset[t]
+                        torch.save(self.create_and_save_graph(t, time_instance),
+                                    osp.join(self.processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
+                    
+                    idx_start+=len(cur_dataset)
+                    # Save tmp to pt
+                    # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
+                    # idx += len(cur_dataset)
+                    self.ct.stop("Processing")
+                    # pr.disable()
+                    # ps = pstats.Stats(pr).sort_stats('cumtime')
+                    # ps.print_stats(10)
+                    # self.ct.start("Parallel Processing")
+                    ### Note: Multiprocessing seems slower than single processing
+                    # with Pool(self.num_cores) as p: #change number of workers later
+                    #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
+                    # self.ct.stop("Parallel Processing")
 
-                self.ct.printTimes()
-                new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                                "pt_path": [f"data_{map_name}"],
-                                                "status": ["processed"], 
-                                                "num_pts": [len(cur_dataset)],
-                                                "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                                "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
-                if len(self.df) == 0:
-                    self.df = new_df
-                else:
-                    self.df = pd.concat([self.df, new_df], ignore_index=True)
-                self.df.to_csv(self.df_path, index=False)
-                
-                del cur_dataset
+                    self.ct.printTimes()
+                    new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                                    "pt_path": [f"data_{map_name}"],
+                                                    "status": ["processed"], 
+                                                    "num_pts": [len(cur_dataset)],
+                                                    "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+                                                    "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+                    if len(self.df) == 0:
+                        self.df = new_df
+                    else:
+                        self.df = pd.concat([self.df, new_df], ignore_index=True)
+                    self.df.to_csv(self.df_path, index=False)
+                    
+                    del cur_dataset
             # self.length = idx
         
         self.length = self.df["num_pts"].sum()
@@ -574,3 +512,49 @@ if __name__ == "__main__":
     #         if left == min_act:
     #             best_moves2[i,4] = 1    
     # assert(np.all(bd_pred_arr==best_moves2))
+    
+    
+    
+    # def process_single(self, npz_path):
+    #     """
+    #     Still in progress, do not use!
+    #     """
+    #     shared_lock = self.shared_lock
+    #     assert(npz_path.endswith(".npz"))
+    #     map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
+    #     shared_lock.acquire()
+    #     df_row = self.df.loc[self.df['npz_path'] == npz_path]
+    #     assert(len(df_row) <= 1)
+    #     if len(df_row) == 1:
+    #         if df_row.iloc[0]["status"] == "processed":
+    #             print(f"Skipping: {npz_path}")
+    #         else:
+    #             print(f"WARNING: Unexpected status for {map_name}: {df_row.iloc[0]['status']}")
+    #     shared_lock.release()
+
+    #     bdNpzFile = f"{self.bdNpzFolder}/{map_name}_bds.npz"
+    #     cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
+    #     print(f"Loading: {npz_path} of size {len(cur_dataset)}")
+
+    #     tmp = []
+    #     for t in tqdm(range(len(cur_dataset))):
+    #         time_instance = cur_dataset[t]
+    #         tmp.append(self.create_and_save_graph(idx+t, time_instance))
+    #     torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
+    #     idx += len(cur_dataset)
+
+    #     new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+    #                                     "pt_path": [f"data_{map_name}.pt"],
+    #                                     "status": ["processed"], 
+    #                                     "num_pts": [len(cur_dataset)],
+    #                                     "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+    #                                     "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+        
+    #     shared_lock.acquire()
+    #     if len(self.df) == 0:
+    #         self.df = new_df
+    #     else:
+    #         self.df = pd.concat([self.df, new_df], ignore_index=True)
+    #     self.df.to_csv(self.df_path, index=False)
+    #     shared_lock.release()
+    #     raise NotImplementedError("Not implemented yet")
