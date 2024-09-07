@@ -66,7 +66,7 @@ if __name__ == "__main__":
         source_maps_scens = "./data_collection/data/benchmark_data"
 
     
-    scen_dir = f"{source_maps_scens}_{args.num_scens}"
+    source_maps_scens = f"{source_maps_scens}_{args.num_scens}"
     LE = f"data_collection/data/logs/{args.expName}"
     os.makedirs(LE, exist_ok=True)
     

@@ -65,7 +65,7 @@ if __name__ == "__main__":
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
         
-    scen_dir = f"{source_maps_scens}_{args.num_scens}"
+    source_maps_scens = f"{source_maps_scens}_{args.num_scens}"
 
     LE = f"data_collection/data/logs/{args.expName}"
     print(LE)
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
-                        "--cutoffTime=720",
+                        "--cutoffTime=120",
                         "--suboptimality=2"])
         print(command)
         subprocess.run(command, shell=True, check=True)
@@ -123,7 +123,7 @@ if __name__ == "__main__":
                     "\"eecbs\"",
                     f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                     f"--firstIter=false",
-                    f"--cutoffTime=720",
+                    f"--cutoffTime=120",
                     f"--suboptimality=2"])
         print(command)
         subprocess.run(command, shell=True, check=True)
