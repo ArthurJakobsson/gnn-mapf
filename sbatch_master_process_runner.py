@@ -137,7 +137,7 @@ if __name__ == "__main__":
                 if scen_path.endswith(f"{i}.scen"):
                     shutil.copyfile(os.path.join(source_maps_scens, 'scens', scen_path), os.path.join(scen_dir, 'scens', scen_path))
         # reset the source_maps_scens folder
-        source_maps_scens = scen_dir
+    source_maps_scens = scen_dir
 
     LE = f"data_collection/data/logs/{args.expName}"
     os.makedirs(LE, exist_ok=True)
