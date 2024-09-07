@@ -13,6 +13,7 @@ def run_sbatch(my_input):
         if key=="expName":
             value = args.expName+f"_{num_scens}agents"
         command+= " --{}={}".format(key, value)
+    command += f" --num_scens={num_scens}"
     subprocess.run(command.split(" "))
 
 if __name__ == "__main__":
