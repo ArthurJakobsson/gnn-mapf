@@ -134,7 +134,7 @@ if __name__ == "__main__":
         os.makedirs(f"{scen_dir}/scens")
         for i in range(26,args.num_scens+26):
             for scen_path in os.listdir(f"{source_maps_scens}/scens"):
-                if scen_path.endswith(f"{i}.scen"):
+                if scen_path.endswith(f"-{i}.scen"):
                     shutil.copyfile(os.path.join(source_maps_scens, 'scens', scen_path), os.path.join(scen_dir, 'scens', scen_path))
         # reset the source_maps_scens folder
     source_maps_scens = scen_dir

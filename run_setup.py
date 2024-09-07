@@ -68,6 +68,8 @@ if __name__ == "__main__":
     scen_dir = f"{source_maps_scens}_{args.num_scens}"
 
     LE = f"data_collection/data/logs/{args.expName}"
+    print(LE)
+    print(scen_dir)
     os.makedirs(LE, exist_ok=True)
     
     num_cores = multiprocessing.cpu_count()
