@@ -7,11 +7,11 @@ from itertools import repeat
 
 def run_sbatch(my_input):
     num_scens, args = my_input
-    command = "python -m master_process_runner"
+    command = "python -m sbatch_master_process_runner"
     for var in vars(args):
         key, value = var, getattr(args, var)
         if key=="expName":
-            key = args.expName+f"_{num_scens}agents"
+            value = args.expName+f"_{num_scens}agents"
         command+= " --{}={}".format(key, value)
     subprocess.run(command.split(" "))
 
