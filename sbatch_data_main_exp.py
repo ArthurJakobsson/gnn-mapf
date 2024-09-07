@@ -5,7 +5,8 @@ from multiprocessing import Pool
 from itertools import repeat
 
 
-def run_sbatch(num_scens, args):
+def run_sbatch(my_input):
+    num_scens, args = my_input
     command = "python -m master_process_runner"
     for key, value in vars(args):
         if key=="expName":
