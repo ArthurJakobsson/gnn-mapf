@@ -574,6 +574,7 @@ def main(args: argparse.ArgumentParser):
         raise FileNotFoundError('BD file: {} not found.'.format(args.bdNpzFile))
     scen_num = args.scenFile.split('-')[-1].split('.')[0]
     bd_key = f"{args.mapName}-random-{scen_num}"
+    print(args.bdNpzFile)
     bd_npz = np.load(args.bdNpzFile)
     if bd_key not in bd_npz:
         raise ValueError('BD key {} not found in the bd file'.format(bd_key))

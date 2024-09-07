@@ -117,7 +117,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     command += f" --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz"
     command == "--sipp=1"
     command += f" --mapName={mapname} --scenFile={scenfile} --agentNum={numAgents}"
-    bdFile = f"data_collection/data/benchmark_data/constant_npzs/{mapname}_bds.npz"
+    bdFile = f"data_collection/data/benchmark_original/constant_npzs/{mapname}_bds.npz"
     command += f" --bdNpzFile={bdFile}"
     command += f" --outputCSVFile={outputfile}"
     # tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.npy" # Note scenname ends with a .scen

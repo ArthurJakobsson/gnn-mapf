@@ -127,20 +127,22 @@ def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
     return success_rate, solution_cost, runtime
 
 def run_gnn_mapf(mapname,num_agents, args):
-    constantMapAndBDFolder = "data_collection/data/benchmark_data/constant_npzs"
+    constantMapAndBDFolder = "data_collection/data/benchmark_original/constant_npzs"
     # mini data folder used for this experiment
     source_maps_scens = args.data_folder
     # the experiment folder
     # the iter we want to simulate with
-    pymodel_output_folder = "benchmarking/pymodel_results_test/"
-    model_path = f"data_collection/data/logs/{args.expname}/iter{args.iternum}/models/max_test_acc.pt"
+    os.makedirs(args.pymodel_out, exist_ok=True)
+    pymodel_output_folder = args.pymodel_out#"benchmarking/pymodel_results_test/"
+    model_path = args.model_path
+    # model_path = f"data_collection/data/logs/{args.expname}/iter{args.iternum}/models/max_test_acc.pt"
     
     command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
                 f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                 f"--numAgents={args.numAgents}",
                 f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                 f"--outputFolder={pymodel_output_folder}", 
-                f"--num_parallel_runs={min(20, args.num_parallel)}",
+                f"--num_parallel_runs={min(64, args.num_parallel)}",
                 # f"--chosen_map={mapname}",
                 "\"pymodel\"",
                 f"--modelPath={model_path}",
@@ -221,7 +223,7 @@ def run_eph(args):
 def main(args, mapname):
     print(mapname)
     # Create a folder to save results if it doesn't exist
-    results_folder = "benchmarking/results"
+    results_folder = f"benchmarking/{args.pymodel_out}"
     os.makedirs(results_folder, exist_ok=True)
     
     # DataFrame to hold results
@@ -235,13 +237,13 @@ def main(args, mapname):
         
     # Iterate through each agent size and run the three programs
     for num_agent in num_agents_list:
-        for program in ["GNNMAPF"]:#['LaCAM', 'EECBS', 'GNNMAPF', "EPH"]: #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
+        for program in ['LaCAM', 'EECBS', 'GNNMAPF']: # ["GNNMAPF"]:# #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
             if program=='EECBS':
                 success_rate, solution_cost, runtime = fetch_eecbs(mapname, num_agent, args)
             elif program=='GNNMAPF':
                 success_rate, solution_cost, runtime = run_gnn_mapf(mapname, num_agent, args)
-            elif program=="EPH":
-                success_rate, solution_cost, runtime = parse_eph(mapname, num_agent, eph_results)
+            # elif program=="EPH":
+            #     success_rate, solution_cost, runtime = parse_eph(mapname, num_agent, eph_results)
             else:
                 assert(program=='LaCAM')
                 # num_successes = 0
@@ -363,12 +365,15 @@ if __name__ == '__main__':
     parser.add_argument('--scen_folder', type=str, help="directory of scens", required=False, default = scen_folder)
     parser.add_argument('--extra_layers', type=str, help="extra_layers used in the model", required=True)
     parser.add_argument('--conda_env', type=str, help="conda env name", default=None)
-    parser.add_argument('--expname', type=str, help="name of model to run", required=True)
-    parser.add_argument('--iternum', type=str, help="iteration of model to run", required=True)
+    # parser.add_argument('--expname', type=str, help="name of model to run", required=True)
+    parser.add_argument('--model_path', type=str, help="model path", required=True)
+    # parser.add_argument('--iternum', type=str, help="iteration of model to run", required=True)
     parser.add_argument('--num_parallel', type=int, help="number of parallel runs to do", default=20)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     parser.add_argument('--eecbs_cutoff', type=int, required=True, help="num seconds for eecbs cutoff (<720)")
     parser.add_argument('--simulator_cutoff', type=int, required=True, help="num seconds for simulator cutoff")
+    parser.add_argument('--pymodel_out', type=str, required=True, help="num seconds for simulator cutoff")
+
 
     args = parser.parse_args()
     
@@ -381,7 +386,7 @@ if __name__ == '__main__':
     results_df = []
     for mapname in all_maps:
         main(args, mapname)
-        results_df.append(pd.read_csv(f"benchmarking/results/results_{mapname}.csv"))
+        results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
     plot_all_maps_grid(all_maps, results_df)
         
     
