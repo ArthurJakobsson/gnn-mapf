@@ -132,7 +132,7 @@ if __name__ == "__main__":
         shutil.copytree(f"{source_maps_scens}/maps", f"{scen_dir}/maps", dirs_exist_ok=True)
         # copy over only necessary scens
         os.makedirs(f"{scen_dir}/scens")
-        for i in range(1,args.num_scens+1):
+        for i in range(26,args.num_scens+26):
             for scen_path in os.listdir(f"{source_maps_scens}/scens"):
                 if scen_path.endswith(f"{i}.scen"):
                     shutil.copyfile(os.path.join(source_maps_scens, 'scens', scen_path), os.path.join(scen_dir, 'scens', scen_path))
