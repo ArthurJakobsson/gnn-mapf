@@ -8,7 +8,8 @@ from itertools import repeat
 def run_sbatch(my_input):
     num_scens, args = my_input
     command = "python -m master_process_runner"
-    for key, value in vars(args):
+    for var in vars(args):
+        key, value = var, getattr(args, var)
         if key=="expName":
             key = args.expName+f"_{num_scens}agents"
         command+= " --{}={}".format(key, value)
