@@ -230,14 +230,12 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
         # if train_acc > 95:
         #     break
 
-        if epoch % 5 == 0:
-            test_acc, double_test_acc = test(test_loader, model)
-            print(f"Epoch {epoch}. Loss: {total_loss:.4f}. Train accuracy: {train_acc:.2f}%. Train Top2 accuracy: {train_top2_acc:.2f}%. Test accuracy: {test_acc:.4f}. Top2 Test accuracy: {double_test_acc:.4f}")
-            writer.add_scalar("test_accuracy", test_acc, epoch)
-            writer.add_scalar("test_top2_accuracy", double_test_acc, epoch)
+        test_acc, double_test_acc = test(test_loader, model)
+        print(f"Epoch {epoch}. Loss: {total_loss:.4f}. Train accuracy: {train_acc:.2f}%. Train Top2 accuracy: {train_top2_acc:.2f}%. Test accuracy: {test_acc:.4f}. Top2 Test accuracy: {double_test_acc:.4f}")
+        writer.add_scalar("test_accuracy", test_acc, epoch)
+        writer.add_scalar("test_top2_accuracy", double_test_acc, epoch)
 
-            if epoch != 0:
-                save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc)
+        save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc)
 
             # # Early stopping logic
             # if total_loss < min_loss:
