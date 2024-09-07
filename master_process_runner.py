@@ -106,7 +106,7 @@ if __name__ == "__main__":
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                             "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
-                            "--cutoffTime=1",
+                            "--cutoffTime=120",
                             "--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)
@@ -126,7 +126,7 @@ if __name__ == "__main__":
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         f"--firstIter=false",
-                        f"--cutoffTime=1",
+                        f"--cutoffTime=120",
                         f"--suboptimality=2"])
             print(command)
             subprocess.run(command, shell=True, check=True)

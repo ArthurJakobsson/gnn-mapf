@@ -173,7 +173,7 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
     no_improvement = 0
     results = []
 
-    for epoch in range(30+1):
+    for epoch in range(2):
         total_loss = 0
         correct = 0
         second_correct = 0

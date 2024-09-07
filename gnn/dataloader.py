@@ -364,7 +364,7 @@ class MyOwnDataset(Dataset):
                     batch_graphs = []
                     for t in tqdm(range(len(cur_dataset))):
                         time_instance = cur_dataset[t]
-                        if t%self.num_per_pt==0:
+                        if (t-(self.num_per_pt-1))%self.num_per_pt==0: #TODO it goes by self.num_per_pt-1 for some reason
                             torch.save(batch_graphs,
                                         osp.join(self.processed_dir, f"data_{map_name}_{idx_start+counter}.pt"))
                             counter+=1
@@ -433,11 +433,9 @@ class MyOwnDataset(Dataset):
         # data_file = self.order_of_files[which_file_index]
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
-        data_idx = data_idx - data_idx%self.num_per_pt
-        print(data_idx)
+        data_idx = int(data_idx/self.num_per_pt)
         filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
-        pdb.set_trace()
-        curdata = torch.load(osp.join(self.processed_dir, filename))[data_idx%self.num_per_pt]
+        curdata = torch.load(osp.join(self.processed_dir, filename))[data_idx%(self.num_per_pt-1)]
         # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
         # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
         # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
