@@ -118,7 +118,7 @@ def parse_eph(mapname, num_agent, eph_results):
 
 
 def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
-    df = pd.read_csv(f"{pymodel_output_folder}/{map_name}/csvs/combined.csv")
+    df = pd.read_csv(f"benchmarking/{pymodel_output_folder}/{map_name}/csvs/combined.csv")
     filtered_df = df[df['agentNum'] == num_agents]
     successes = filtered_df[filtered_df['success']]
     success_rate = len(successes.index)/len(filtered_df.index) if len(filtered_df.index)!=0 else 0
