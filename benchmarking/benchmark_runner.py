@@ -118,7 +118,7 @@ def parse_eph(mapname, num_agent, eph_results):
 
 
 def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
-    df = pd.read_csv(f"benchmarking/{pymodel_output_folder}/{map_name}/csvs/combined.csv")
+    df = pd.read_csv(f"{pymodel_output_folder}/{map_name}/csvs/combined.csv")
     filtered_df = df[df['agentNum'] == num_agents]
     successes = filtered_df[filtered_df['success']]
     success_rate = len(successes.index)/len(filtered_df.index) if len(filtered_df.index)!=0 else 0
@@ -162,7 +162,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     if args.conda_env is not None:
         command += f" --condaEnv={args.conda_env}"
     print(command)
-    subprocess.run(command, shell=True, check=True)
+    # subprocess.run(command, shell=True, check=True)
     
     return parse_pymodel_output(pymodel_output_folder, mapname, num_agents)
 
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     # get aggregate statistics for all maps
     results_df = []
     for mapname in all_maps:
-        # main(args, mapname)
+        main(args, mapname)
         results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
     plot_all_maps_grid(all_maps, results_df, args)
         
