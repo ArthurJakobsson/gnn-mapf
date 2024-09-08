@@ -26,6 +26,7 @@ benchmarking/eecbs_all_new/*
 benchmarking/pymodel_results/*
 benchmarking/pymodel_results_old/*
 benchmarking/*_results/*
+benchmarking/benchmarking/*
 # eph_mapf/__pycache__/
 # eph_mapf/assets
 # eph_mapf/configs

@@ -16,13 +16,13 @@ mapsToMaxNumAgents = {
     "Berlin_1_256": 1000,
     "Boston_0_256": 1000,
     "Paris_1_256": 1000,
-    "brc202d": 1000,
+    # "brc202d": 1000,
     "den312d": 1000, 
     "den520d": 1000,
     # "dense_map_15_15_0":50,
     # "dense_map_15_15_1":50,
     # "corridor_30_30_0":50,
-    "empty_8_8": 32,
+    #"empty_8_8": 32,
     "empty_16_16": 128,
     "empty_32_32": 512,
     "empty_48_48": 1000,
@@ -44,7 +44,7 @@ mapsToMaxNumAgents = {
     "room_32_32_4": 341,
     "room_64_64_16": 1000,
     "room_64_64_8": 1000,
-    "w_woundedcoast": 1000,
+    #"w_woundedcoast": 1000,
     "warehouse_10_20_10_2_1": 1000,
     "warehouse_10_20_10_2_2": 1000,
     "warehouse_20_40_10_2_1": 1000,
@@ -318,7 +318,7 @@ def main(args, mapname):
 #         plt.close('all')   
 #         gc.collect()
 
-def plot_all_maps_grid(mapnames, dfs, num_rows=5, num_cols=6):
+def plot_all_maps_grid(mapnames, dfs, args, num_rows=5, num_cols=6):
     models = set(dfs[0]['Program'].tolist())  # Assuming all DataFrames have the same models
     for column_name in ["Success_Rate", "Solution_Cost", "Runtime"]:
         fig, axes = plt.subplots(num_rows, num_cols, figsize=(25, 15))  # Adjust figsize as needed
@@ -343,10 +343,10 @@ def plot_all_maps_grid(mapnames, dfs, num_rows=5, num_cols=6):
         for j in range(i+1, num_rows*num_cols):
             fig.delaxes(axes[j])
 
-        if not os.path.exists(f"benchmarking/results/{column_name}"):
-            os.makedirs(f"benchmarking/results/{column_name}")
+        if not os.path.exists(f"benchmarking/{args.pymodel_out}/{column_name}"):
+            os.makedirs(f"benchmarking/{args.pymodel_out}/{column_name}")
         
-        plt.savefig(f"benchmarking/results/{column_name}/all_maps_grid.pdf", format="pdf")
+        plt.savefig(f"benchmarking/{args.pymodel_out}/{column_name}/all_maps_grid.pdf", format="pdf")
         plt.close(fig)  # Close the figure to free up memory
         gc.collect()
     
@@ -385,9 +385,9 @@ if __name__ == '__main__':
     # get aggregate statistics for all maps
     results_df = []
     for mapname in all_maps:
-        main(args, mapname)
+        # main(args, mapname)
         results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
-    plot_all_maps_grid(all_maps, results_df)
+    plot_all_maps_grid(all_maps, results_df, args)
         
     
     # make central csv with results for all maps
