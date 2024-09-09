@@ -392,17 +392,18 @@ class MyOwnDataset(Dataset):
                     #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
                     # self.ct.stop("Parallel Processing")
                     self.ct.printTimes()
-                    new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                                    "pt_path": [f"data_{map_name}"],
-                                                    "status": ["processed"], 
-                                                    "num_pts": [len(cur_dataset)],
-                                                    "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                                    "pxrocessing_time": [self.ct.getTimes("Processing", "list")[-1]]})
-                    if len(self.df) == 0:
-                        self.df = new_df
-                    else:
-                        self.df = pd.concat([self.df, new_df], ignore_index=True)
-                    self.df.to_csv(self.df_path, index=False)
+                    if(len(cur_dataset)>0):
+                        new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                                        "pt_path": [f"data_{map_name}"],
+                                                        "status": ["processed"], 
+                                                        "num_pts": [len(cur_dataset)],
+                                                        "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+                                                        "pxrocessing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+                        if len(self.df) == 0:
+                            self.df = new_df
+                        else:
+                            self.df = pd.concat([self.df, new_df], ignore_index=True)
+                        self.df.to_csv(self.df_path, index=False)
                     
                     del cur_dataset
             # self.length = idx
@@ -441,9 +442,10 @@ class MyOwnDataset(Dataset):
         file_idx = data_idx//self.num_per_pt
         filename = f"{self.order_of_files[which_file_index]}_{file_idx}.pt"
         curdata = torch.load(osp.join(self.processed_dir, filename))
-        if data_idx%(self.num_per_pt)>=len(curdata):
-            print(data_idx, file_idx)
-        curdata=curdata[data_idx%(self.num_per_pt)]
+        if idx%(self.num_per_pt)>=len(curdata):
+            # print(which_file_index, data_idx)
+            print(idx, len(curdata))
+        curdata=curdata[idx%(self.num_per_pt)]
         # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
         # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
         # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
