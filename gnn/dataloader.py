@@ -385,19 +385,19 @@ class MyOwnDataset(Dataset):
                     # with Pool(self.num_cores) as p: #change number of workers later
                     #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
                     # self.ct.stop("Parallel Processing")
-
-                    self.ct.printTimes()
-                    new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                                    "pt_path": [f"data_{map_name}"],
-                                                    "status": ["processed"], 
-                                                    "num_pts": [len(cur_dataset)],
-                                                    "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                                    "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
-                    if len(self.df) == 0:
-                        self.df = new_df
-                    else:
-                        self.df = pd.concat([self.df, new_df], ignore_index=True)
-                    self.df.to_csv(self.df_path, index=False)
+                    if len(cur_dataset)>0:
+                        self.ct.printTimes()
+                        new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                                        "pt_path": [f"data_{map_name}"],
+                                                        "status": ["processed"], 
+                                                        "num_pts": [len(cur_dataset)],
+                                                        "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+                                                        "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+                        if len(self.df) == 0:
+                            self.df = new_df
+                        else:
+                            self.df = pd.concat([self.df, new_df], ignore_index=True)
+                        self.df.to_csv(self.df_path, index=False)
                     
                     del cur_dataset
             # self.length = idx
