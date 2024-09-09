@@ -118,6 +118,8 @@ if __name__ == "__main__":
     if ".json" in args.numAgents and "map_configs" not in args.numAgents:
         args.numAgents = "map_configs/"+args.numAgents 
 
+    if args.iternum>0:
+        quit()
     if args.mini_test:
         # source_maps_scens = "./data_collection/data/mini_benchmark_data"
         source_maps_scens = f"./data_collection/data/{args.data_folder}"
