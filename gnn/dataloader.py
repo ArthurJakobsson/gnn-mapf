@@ -371,14 +371,12 @@ class MyOwnDataset(Dataset):
                     batch_graphs = []
                     for t in tqdm(range(len(cur_dataset))):
                         time_instance = cur_dataset[t]
-                        if ((t-(self.num_per_pt-1))%self.num_per_pt==0) or (t==len(cur_dataset)-1): #TODO it goes by self.num_per_pt-1 for some reason
-                            batch_graphs.append(self.create_and_save_graph(t, time_instance))
+                        batch_graphs.append(self.create_and_save_graph(t, time_instance))
+                        if len(batch_graphs)==self.num_per_pt or t==len(cur_dataset)-1:
                             torch.save(batch_graphs,
                                         osp.join(self.processed_dir, f"data_{map_name}_{idx_start+counter}.pt"))
                             counter+=1
                             batch_graphs = []
-                        else:
-                            batch_graphs.append(self.create_and_save_graph(t, time_instance))
                     
                     idx_start+=counter
                     # Save tmp to pt
@@ -393,19 +391,18 @@ class MyOwnDataset(Dataset):
                     # with Pool(self.num_cores) as p: #change number of workers later
                     #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
                     # self.ct.stop("Parallel Processing")
-                    if len(cur_dataset)>0:
-                        self.ct.printTimes()
-                        new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                                        "pt_path": [f"data_{map_name}"],
-                                                        "status": ["processed"], 
-                                                        "num_pts": [len(cur_dataset)],
-                                                        "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                                        "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
-                        if len(self.df) == 0:
-                            self.df = new_df
-                        else:
-                            self.df = pd.concat([self.df, new_df], ignore_index=True)
-                        self.df.to_csv(self.df_path, index=False)
+                    self.ct.printTimes()
+                    new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                                    "pt_path": [f"data_{map_name}"],
+                                                    "status": ["processed"], 
+                                                    "num_pts": [len(cur_dataset)],
+                                                    "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+                                                    "pxrocessing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+                    if len(self.df) == 0:
+                        self.df = new_df
+                    else:
+                        self.df = pd.concat([self.df, new_df], ignore_index=True)
+                    self.df.to_csv(self.df_path, index=False)
                     
                     del cur_dataset
             # self.length = idx
@@ -441,10 +438,12 @@ class MyOwnDataset(Dataset):
         # data_file = self.order_of_files[which_file_index]
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
-        old_data_idx = data_idx
-        data_idx = int(data_idx/self.num_per_pt)
-        filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
-        curdata = torch.load(osp.join(self.processed_dir, filename))[old_data_idx%(self.num_per_pt)]
+        file_idx = data_idx//self.num_per_pt
+        filename = f"{self.order_of_files[which_file_index]}_{file_idx}.pt"
+        curdata = torch.load(osp.join(self.processed_dir, filename))
+        if data_idx%(self.num_per_pt)>=len(curdata):
+            print(data_idx, file_idx)
+        curdata=curdata[data_idx%(self.num_per_pt)]
         # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
         # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
         # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
