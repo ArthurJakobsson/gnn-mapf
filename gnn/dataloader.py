@@ -215,6 +215,10 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     # weights[matches.flatten()] = 1/(np.sum(matches)+1)
     # weights += (num_agents-np.sum(weights))/num_agents # TODO this is buggy
     weights *= num_agents/np.sum(weights)
+    
+    # stay_locations = labels[:,0] == 1
+    # weights[stay_locations] = 0
+    
     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
                 edge_attr=torch.from_numpy(edge_features), bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
                 weights = torch.from_numpy(weights), y = torch.from_numpy(labels))
