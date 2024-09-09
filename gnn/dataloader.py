@@ -372,7 +372,9 @@ class MyOwnDataset(Dataset):
                     for t in tqdm(range(len(cur_dataset))):
                         time_instance = cur_dataset[t]
                         batch_graphs.append(self.create_and_save_graph(t, time_instance))
-                        if len(batch_graphs)==self.num_per_pt or t==len(cur_dataset)-1:
+                        if len(batch_graphs)==self.num_per_pt or (t==(len(cur_dataset)-1)):
+                            if (t==(len(cur_dataset)-1)):
+                                print("YAHOOO")
                             torch.save(batch_graphs,
                                         osp.join(self.processed_dir, f"data_{map_name}_{idx_start+counter}.pt"))
                             counter+=1
