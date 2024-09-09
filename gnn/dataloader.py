@@ -371,16 +371,10 @@ class MyOwnDataset(Dataset):
                     batch_graphs = []
                     for t in tqdm(range(len(cur_dataset))):
                         time_instance = cur_dataset[t]
-                        batch_graphs.append(self.create_and_save_graph(t, time_instance))
-                        if len(batch_graphs)==self.num_per_pt or (t==(len(cur_dataset)-1)):
-                            if (t==(len(cur_dataset)-1)):
-                                print("YAHOOO")
-                            torch.save(batch_graphs,
-                                        osp.join(self.processed_dir, f"data_{map_name}_{idx_start+counter}.pt"))
-                            counter+=1
-                            batch_graphs = []
+                        torch.save(self.create_and_save_graph(t, time_instance),
+                                    osp.join(self.processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
                     
-                    idx_start+=counter
+                    idx_start+=len(cur_dataset)
                     # Save tmp to pt
                     # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
                     # idx += len(cur_dataset)
@@ -436,31 +430,12 @@ class MyOwnDataset(Dataset):
 
     def get(self, idx):
         """Require to override Dataset get()"""
-        # assert(self.df is not None and len(self.df) > 0)
         which_file_index = np.searchsorted(self.order_of_indices, idx, side='right')-1 # (num_maps)
         # data_file = self.order_of_files[which_file_index]
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
-        file_idx = data_idx//self.num_per_pt
-        filename = f"{self.order_of_files[which_file_index]}_{file_idx}.pt"
+        filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
         curdata = torch.load(osp.join(self.processed_dir, filename))
-        if idx%(self.num_per_pt)>=len(curdata):
-            print(data_idx, self.order_of_indices[which_file_index])
-            print(osp.join(self.processed_dir, filename))
-            print(idx, len(curdata))
-            # filename = f"{self.order_of_files[which_file_index]}_{file_idx+1}.pt" #TEMPORARY FIX
-            # curdata = torch.load(osp.join(self.processed_dir, filename))#TEMPORARY FIX
-        curdata=curdata[idx%(self.num_per_pt)]
-        # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
-        # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
-        # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
-        # curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
-        # curdata = curdata.to(self.device) # Do not move it to device here, this slows stuff down and prevents pin_memory
-
-        # normalize bd, normalize edge attributes
-        # edge_weights, bd_and_grids = curdata.edge_attr, curdata.x
-        # curdata.edge_attr = apply_edge_normalization(edge_weights)
-        # curdata.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
 
         return normalize_graph_data(curdata, self.k, edge_normalize="k", bd_normalize="center")
 
