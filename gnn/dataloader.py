@@ -217,7 +217,10 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     weights *= num_agents/np.sum(weights)
     
     # stay_locations = labels[:,0] == 1
-    # weights[stay_locations] = 0
+
+    # random_values = np.random.rand(*stay_locations.shape)
+    # flip_mask = (stay_locations == 1) & (random_values > 0.2) # make it so that with 80% probability it gets flipped to 0
+    # weights[flip_mask] = 0
     
     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
                 edge_attr=torch.from_numpy(edge_features), bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
@@ -368,12 +371,12 @@ class MyOwnDataset(Dataset):
                     batch_graphs = []
                     for t in tqdm(range(len(cur_dataset))):
                         time_instance = cur_dataset[t]
-                        if (t-(self.num_per_pt-1))%self.num_per_pt==0: #TODO it goes by self.num_per_pt-1 for some reason
-                            if len(batch_graphs)>0: 
-                                torch.save(batch_graphs,
-                                            osp.join(self.processed_dir, f"data_{map_name}_{idx_start+counter}.pt"))
-                                counter+=1
-                                batch_graphs = []
+                        if ((t-(self.num_per_pt-1))%self.num_per_pt==0) or (t==len(cur_dataset-1)): #TODO it goes by self.num_per_pt-1 for some reason
+                            batch_graphs.append(self.create_and_save_graph(t, time_instance))
+                            torch.save(batch_graphs,
+                                        osp.join(self.processed_dir, f"data_{map_name}_{idx_start+counter}.pt"))
+                            counter+=1
+                            batch_graphs = []
                         else:
                             batch_graphs.append(self.create_and_save_graph(t, time_instance))
                     
@@ -440,7 +443,7 @@ class MyOwnDataset(Dataset):
         assert(data_idx >= 0)
         data_idx = int(data_idx/self.num_per_pt)
         filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
-        curdata = torch.load(osp.join(self.processed_dir, filename))[data_idx%(self.num_per_pt-1)]
+        curdata = torch.load(osp.join(self.processed_dir, filename))[data_idx%(self.num_per_pt)]
         # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
         # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
         # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
