@@ -445,11 +445,11 @@ class MyOwnDataset(Dataset):
         filename = f"{self.order_of_files[which_file_index]}_{file_idx}.pt"
         curdata = torch.load(osp.join(self.processed_dir, filename))
         if idx%(self.num_per_pt)>=len(curdata):
-            # print(data_idx, self.order_of_indices[which_file_index])
-            # print(osp.join(self.processed_dir, filename))
-            # print(idx, len(curdata))
-            filename = f"{self.order_of_files[which_file_index]}_{file_idx+1}.pt"
-            curdata = torch.load(osp.join(self.processed_dir, filename))
+            print(data_idx, self.order_of_indices[which_file_index])
+            print(osp.join(self.processed_dir, filename))
+            print(idx, len(curdata))
+            # filename = f"{self.order_of_files[which_file_index]}_{file_idx+1}.pt" #TEMPORARY FIX
+            # curdata = torch.load(osp.join(self.processed_dir, filename))#TEMPORARY FIX
         curdata=curdata[idx%(self.num_per_pt)]
         # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
         # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
