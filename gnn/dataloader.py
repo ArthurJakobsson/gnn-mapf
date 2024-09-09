@@ -441,9 +441,10 @@ class MyOwnDataset(Dataset):
         # data_file = self.order_of_files[which_file_index]
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
+        old_data_idx = data_idx
         data_idx = int(data_idx/self.num_per_pt)
         filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
-        curdata = torch.load(osp.join(self.processed_dir, filename))[data_idx%(self.num_per_pt)]
+        curdata = torch.load(osp.join(self.processed_dir, filename))[old_data_idx%(self.num_per_pt)]
         # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
         # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
         # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
