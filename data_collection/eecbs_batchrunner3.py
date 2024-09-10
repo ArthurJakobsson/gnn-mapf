@@ -97,6 +97,7 @@ def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, sce
                 numAgents, scenfile, outputPathFile, firstIter, bd_path)
     # command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
     command += " --output={} --map={}".format(outputfile, mapfile)
+    command += "--sipp=1"
     # print(command.split("suboptimality=1")[1])
     return command
     
@@ -115,7 +116,6 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
         command += " --{}={}".format(aKey, runnerArgs["args"][aKey])
     
     command += f" --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz"
-    command == "--sipp=1"
     command += f" --mapName={mapname} --scenFile={scenfile} --agentNum={numAgents}"
     bdFile = f"data_collection/data/benchmark_original/constant_npzs/{mapname}_bds.npz"
     command += f" --bdNpzFile={bdFile}"
