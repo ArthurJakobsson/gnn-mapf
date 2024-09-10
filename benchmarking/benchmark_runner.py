@@ -163,7 +163,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     if args.conda_env is not None:
         command += f" --condaEnv={args.conda_env}"
     print(command)
-    subprocess.run(command, shell=True, check=True)
+    # subprocess.run(command, shell=True, check=True)
     
     command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
                 f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
@@ -172,7 +172,7 @@ def run_gnn_mapf(mapname,num_agents, args):
                 f"--outputFolder={pymodel_output_folder}", 
                 f"--num_parallel_runs={args.num_parallel}",
                 "\"clean\" --keepNpys=false"])
-    subprocess.run(command, shell=True, check=True)
+    # subprocess.run(command, shell=True, check=True)
     
     return parse_pymodel_output(pymodel_output_folder, mapname, num_agents)
 
@@ -256,18 +256,6 @@ def main(args, mapname):
             #     success_rate, solution_cost, runtime = parse_eph(mapname, num_agent, eph_results)
             else:
                 assert(program=='LaCAM')
-                # num_successes = 0
-                # total_runtime = 0
-                # total_solution_cost = 0
-                # num_scens = len(scen_names)
-                
-                # with Pool() as pool:
-                #     results = list(tqdm(pool.imap(run_instance, zip(scen_names, repeat(mapname), repeat(num_agent), repeat(program), repeat(args))), total=num_scens))
-
-                # for success, solution_cost, runtime in results:
-                #     num_successes += success
-                #     total_solution_cost += solution_cost
-                #     total_runtime += runtime
                 
                 num_successes = 0
                 total_runtime = 0
@@ -303,32 +291,15 @@ def main(args, mapname):
     results_df.to_csv(csv_filename, index=False)
     print(f'Results saved to {csv_filename}')
 
-# plots results for all models, on a given map
-# assumes each model has been run for the same numbers of agents on each map
-# def plot_map_results(mapname, df):
-#     numAgents = get_num_agents(args)
-#     models = set(df['Program'].tolist())
-#     for column_name in ["Success_Rate", "Solution_Cost", "Runtime"]:
-#         for model in models:
-#             success_rates = df[df['Program'] == model][column_name].tolist()
-#             plt.plot(numAgents, success_rates, label=model)
-
-#         plt.legend()
-#         plt.ylabel(column_name)
-#         plt.xlabel("Number_Agents")
-#         plt.tight_layout()
-#         if not os.path.exists(f"benchmarking/results/{column_name}"):
-#             os.makedirs(f"benchmarking/results/{column_name}")
-#         plt.savefig(f"benchmarking/results/{column_name}/{mapname}.pdf", format="pdf", bbox_inches="tight")
-#         # Clear the current axes.
-#         plt.cla() 
-#         # Clear the current figure.
-#         plt.clf() 
-#         # Closes all the figure windows.
-#         plt.close('all')   
-#         gc.collect()
 
 def plot_all_maps_grid(mapnames, dfs, args, num_rows=5, num_cols=6):
+    model_colors = {
+        "EECBS": "blue",
+        "GNNMAPF": "green",
+        "LaCAM": "red"
+    }
+    held_maps = ["den312d","den520d", "empty_48_48", "maze_128_128_2", "Paris_1_256", "random_32_32_10", "random_64_64_10","warehouse_10_20_10_2_1"]
+    
     models = set(dfs[0]['Program'].tolist())  # Assuming all DataFrames have the same models
     for column_name in ["Success_Rate", "Solution_Cost", "Runtime"]:
         fig, axes = plt.subplots(num_rows, num_cols, figsize=(25, 15))  # Adjust figsize as needed
@@ -338,10 +309,13 @@ def plot_all_maps_grid(mapnames, dfs, args, num_rows=5, num_cols=6):
         
         for i, (mapname, df) in enumerate(zip(mapnames, dfs)):
             ax = axes[i]
+            if mapname in held_maps:
+                ax.set_facecolor((1, 0.75, 0.75, 0.5))
             numAgents = get_num_agents(args,mapname)
             for model in models:
                 plot_topic = df[df['Program'] == model][column_name].tolist()
-                ax.plot(numAgents, plot_topic, label=model, marker="*")
+                color = model_colors.get(model, 'black')
+                ax.plot(numAgents, plot_topic, label=model, marker="*", color=color)
             
             ax.set_title(mapname)
             ax.set_ylabel(column_name)
@@ -395,7 +369,7 @@ if __name__ == '__main__':
     # get aggregate statistics for all maps
     results_df = []
     for mapname in all_maps:
-        main(args, mapname)
+        # main(args, mapname)
         results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
     plot_all_maps_grid(all_maps, results_df, args)
         

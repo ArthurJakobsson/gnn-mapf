@@ -45,6 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--iternum', type=int)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
     parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=int, required=True)
+    parser.add_argument('--suboptimality', help="eecbs suboptimality level", type=float, default=2)
 
     args = parser.parse_args()
     if args.which_setting == "Arthur":
@@ -103,7 +104,7 @@ if __name__ == "__main__":
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
                         "--cutoffTime=120",
-                        "--suboptimality=2"])
+                        "--suboptimality={args.suboptimality}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
         # else:
@@ -123,7 +124,7 @@ if __name__ == "__main__":
                     f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                     f"--firstIter=false",
                     f"--cutoffTime=120",
-                    f"--suboptimality=2"])
+                    f"--suboptimality={args.suboptimality}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
     log_time(f"Iter {args.iternum}: Finished eecbs")

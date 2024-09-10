@@ -45,6 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--iternum', type=int)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
     parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=int, required=True)
+    parser.add_argument('--suboptimality', help="eecbs suboptimality level", type=float, default=2)
 
     args = parser.parse_args()
     if args.which_setting == "Arthur":
