@@ -151,7 +151,7 @@ def run_gnn_mapf(mapname,num_agents, args):
                 "--k=4",
                 "--m=5",
                 "--maxSteps=3x",
-                "--shieldType=CS-PIBT",
+                f"--shieldType={args.shieldType}",
                 f"--timeLimit={args.simulator_cutoff}",
                 # "--lacamLookahead=50",
                 f"--numScensToCreate=0",
@@ -163,7 +163,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     if args.conda_env is not None:
         command += f" --condaEnv={args.conda_env}"
     print(command)
-    # subprocess.run(command, shell=True, check=True)
+    subprocess.run(command, shell=True, check=True)
     
     command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
                 f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
@@ -172,7 +172,7 @@ def run_gnn_mapf(mapname,num_agents, args):
                 f"--outputFolder={pymodel_output_folder}", 
                 f"--num_parallel_runs={args.num_parallel}",
                 "\"clean\" --keepNpys=false"])
-    # subprocess.run(command, shell=True, check=True)
+    subprocess.run(command, shell=True, check=True)
     
     return parse_pymodel_output(pymodel_output_folder, mapname, num_agents)
 
@@ -351,6 +351,7 @@ if __name__ == '__main__':
     parser.add_argument('--conda_env', type=str, help="conda env name", default=None)
     # parser.add_argument('--expname', type=str, help="name of model to run", required=True)
     parser.add_argument('--model_path', type=str, help="model path", required=True)
+    parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'CS-Freeze', 'LaCAM'])
     # parser.add_argument('--iternum', type=str, help="iteration of model to run", required=True)
     parser.add_argument('--num_parallel', type=int, help="number of parallel runs to do", default=20)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
@@ -369,9 +370,9 @@ if __name__ == '__main__':
     # get aggregate statistics for all maps
     results_df = []
     for mapname in all_maps:
-        # main(args, mapname)
-        results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
-    plot_all_maps_grid(all_maps, results_df, args)
+        main(args, mapname)
+        # results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
+    # plot_all_maps_grid(all_maps, results_df, args)
         
     
     # make central csv with results for all maps
