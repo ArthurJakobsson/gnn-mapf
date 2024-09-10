@@ -18,6 +18,7 @@ import torch_geometric.nn as pyg_nn
 from gnn.dataloader import create_data_object, get_bd_prefs, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
 from custom_utils.common_helper import str2bool, getMapBDScenAgents
+from custom_utils.custom_timer import CustomTimer
 
 ####################################################
 #### Helper functions
@@ -428,7 +429,7 @@ class WrapperNNWithCache:
             self.saved_calls[key] = probs
             return probs
 
-def runNNOnState(cur_locs, bd, grid_map, k, m, model, device, goal_locations, args):
+def runNNOnState(cur_locs, bd, grid_map, k, m, model, device, goal_locations, args, timer: CustomTimer):
     """Inputs:
         cur_locs: (N,2)
     Outputs:
@@ -437,17 +438,21 @@ def runNNOnState(cur_locs, bd, grid_map, k, m, model, device, goal_locations, ar
 
     with torch.no_grad():
         # Create the data object
+        timer.start("create_nn_data")
         data = create_data_object(cur_locs, bd, grid_map, k, m, goal_locations, args.extra_layers, args.bd_pred)
         data = normalize_graph_data(data, k)
         data = data.to(device)
+        timer.stop("create_nn_data")
 
         # Forward pass
+        timer.start("forward_pass")
         _, predictions = model(data)
         # print(predictions.shape, torch.softmax(predictions, dim=1)[0])
         # predictions = torch.zeros_like(predictions)# TODO REMOVE THIS
         # predictions[:,0] = 1
         # print(predictions.shape, torch.softmax(predictions, dim=1)[0])
         probabilities = torch.softmax(predictions, dim=1) # More general version
+        timer.stop("forward_pass")
 
         # Get the action preferences
         probs = probabilities.cpu().detach().numpy() # (N,5)
@@ -465,7 +470,7 @@ class WrapperBDGetActionPrefs:
         return get_bd_prefs(locs, self.bd, self.range_num_agents)
 
 def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
-             max_steps, shield_type,lacam_lookahead,args):
+             max_steps, shield_type, lacam_lookahead, args, timer: CustomTimer):
     """Inputs:
         grid_map: (H,W), note includes padding
         bd: (N,H,W), note includes padding
@@ -478,7 +483,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, args)
     def getActionPrefsFromLocs(locs):
         # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
-        probs = runNNOnState(locs, bd, grid_map, k, m, model, device, goal_locations, args)
+        probs = runNNOnState(locs, bd, grid_map, k, m, model, device, goal_locations, args, timer)
         return convertProbsToPreferences(probs, "sampled")
     wrapper_bd_prefs = WrapperBDGetActionPrefs(bd, grid_map, k, m, len(start_locations)) # This returns PIBT action preferences
     cur_locs = start_locations # (N,2)
@@ -504,7 +509,9 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         if shield_type == "CS-PIBT":
             action_preferences = getActionPrefsFromLocs(cur_locs)
             # action_preferences = wrapper_bd_prefs(cur_locs)
+            timer.start("cs-pibt")
             new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [], start_time, args.timeLimit)
+            timer.stop("cs-pibt")
             if not cspibt_worked:
                 print("hit timeout, or major error")
                 break
@@ -609,14 +616,15 @@ def main(args: argparse.ArgumentParser):
         profiler = cProfile.Profile()
         profiler.enable()
         
-    starttime = time.time()
+    timer = CustomTimer()
+    timer.start("total_simulate")
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
             model, k, args.m, map_grid, bd, start_locations, goal_locations, 
-            max_steps, args.shieldType, args.lacamLookahead, args)
-    endtime = time.time()
-    runtime = endtime - starttime
+            max_steps, args.shieldType, args.lacamLookahead, args, timer)
+    timer.stop("total_simulate")
+    total_simulate_time = timer.getTimes("total_simulate")
     print("Success: {}, Total cost true: {}, Total cost not at goal: {}, Num agents at goal: {}/{}, Seconds spent: {}".format(success, 
-                                    total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, num_agents, runtime))
+                                    total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, num_agents, total_simulate_time))
     solution_path = solution_path - k # (T,N,2) Removes padding
     goal_locations = goal_locations - k # (N,2) Removes padding
     if args.debug:
@@ -633,13 +641,14 @@ def main(args: argparse.ArgumentParser):
             writer.writerow(['mapName', 'scenFile', 'agentNum', 'seed', 'shieldType', 'lacamLookahead',
                              'modelPath', 'useGPU', 'k', 'm', 'maxSteps', 
                              'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
-                             'num_agents_at_goal', 'runtime'])
+                             'num_agents_at_goal', 'runtime', 'create_nn_data', 'forward_pass', 'cs-pibt'])
             
     with open(args.outputCSVFile, 'a') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow([args.mapName, args.scenFile, args.agentNum, args.seed, args.shieldType, args.lacamLookahead,
                          args.modelPath, args.useGPU, args.k, args.m, args.maxSteps,
-                         success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, runtime])
+                         success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, total_simulate_time,
+                         timer.getTimes("create_nn_data"), timer.getTimes("forward_pass"), timer.getTimes("cs-pibt")])
 
     # Save the paths
     assert(args.outputPathsFile.endswith('.npy'))
