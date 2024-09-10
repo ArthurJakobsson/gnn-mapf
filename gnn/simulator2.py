@@ -498,8 +498,8 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
             print("time limit hit")
             break
         if shield_type == "CS-PIBT":
-            # action_preferences = getActionPrefsFromLocs(cur_locs)
-            action_preferences = wrapper_bd_prefs(cur_locs)
+            action_preferences = getActionPrefsFromLocs(cur_locs)
+            # action_preferences = wrapper_bd_prefs(cur_locs)
             new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [], start_time, args.timeLimit)
             if not cspibt_worked:
                 print("hit timeout, or major error")
