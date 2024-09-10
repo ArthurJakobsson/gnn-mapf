@@ -477,7 +477,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         start_locations: (N,2)
         goal_locations: (N,2)
     """
-    if shield_type not in ["CS-PIBT", "LaCAM"]:
+    if shield_type not in ["CS-PIBT", "CS-Freeze", "LaCAM"]:
         raise KeyError('Invalid shield type: {}'.format(shield_type))
     
     wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, args)
@@ -506,14 +506,18 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         if cur_time-start_time > args.timeLimit and args.timeLimit > 0:
             print("time limit hit")
             break
-        if shield_type == "CS-PIBT":
-            action_preferences = getActionPrefsFromLocs(cur_locs)
+        if shield_type in ["CS-PIBT", "CS-Freeze"]:
+            action_preferences = getActionPrefsFromLocs(cur_locs) # (N,5)
+            if shield_type == "CS-Freeze":
+                action_preferences = action_preferences[:,:2] # (N,2)
+                action_preferences[:,1] = 0  # 0 action index corresponds to stop
             # action_preferences = wrapper_bd_prefs(cur_locs)
-            timer.start("cs-pibt")
+            timer.start("cs-time")
             new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [], start_time, args.timeLimit)
-            timer.stop("cs-pibt")
+            timer.stop("cs-time")
             if not cspibt_worked:
-                print("hit timeout, or major error")
+                if (time.time() - start_time < args.timeLimit):
+                    print("ERROR: CS-PIBT failed even though it did not time out! This should never happen!")
                 break
             # if not cspibt_worked:
             #     raise RuntimeError('CS-PIBT failed; should never fail when not using LaCAM constraints!')
@@ -527,7 +531,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
                 scaled_lookahead = int(np.ceil(lacam_lookahead * at_goal_ratio)) # Scale lookahead based on how many agents are at goal
                 MAX_USE_LACAM -= 1
             next_locs, lacamFoundSolution, numNodesExpanded, numGenerated = lacam(cur_locs, goal_locations, 
-                                                    bd, grid_map, getActionPrefsFromLocs, scaled_lookahead, start_time, timeLimit)
+                                                    bd, grid_map, getActionPrefsFromLocs, scaled_lookahead, start_time, args.timeLimit)
             # Note: next_locs is (T1,N,2) where T1 is the lookahead depth
 
             if lacamFoundSolution:
@@ -641,14 +645,14 @@ def main(args: argparse.ArgumentParser):
             writer.writerow(['mapName', 'scenFile', 'agentNum', 'seed', 'shieldType', 'lacamLookahead',
                              'modelPath', 'useGPU', 'k', 'm', 'maxSteps', 
                              'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
-                             'num_agents_at_goal', 'runtime', 'create_nn_data', 'forward_pass', 'cs-pibt'])
+                             'num_agents_at_goal', 'runtime', 'create_nn_data', 'forward_pass', 'cs-time'])
             
     with open(args.outputCSVFile, 'a') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow([args.mapName, args.scenFile, args.agentNum, args.seed, args.shieldType, args.lacamLookahead,
                          args.modelPath, args.useGPU, args.k, args.m, args.maxSteps,
                          success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, total_simulate_time,
-                         timer.getTimes("create_nn_data"), timer.getTimes("forward_pass"), timer.getTimes("cs-pibt")])
+                         timer.getTimes("create_nn_data"), timer.getTimes("forward_pass"), timer.getTimes("cs-time")])
 
     # Save the paths
     assert(args.outputPathsFile.endswith('.npy'))
@@ -667,7 +671,7 @@ def main(args: argparse.ArgumentParser):
         # pdb.set_trace()
     # if failure also sample more towards the end
     else:
-        weights = np.arange(solution_path.shape[0]) + 1
+        weights = np.arange(solution_path.shape[0], dtype=np.float64) + 1
         weights /= np.sum(weights)
         sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False, p=weights)        # Always include the first timestep + last 5 timesteps, then sample the rest
     # pdb.set_trace()
@@ -730,7 +734,7 @@ if __name__ == '__main__':
     parser.add_argument('--maxSteps', type=str, help="int or [int]x, e.g. 100 or 2x to denote multiplicative factor", required=True)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--percentSuccessGenerationReduction', type=float, default=0.7)
-    parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'LaCAM'])
+    parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'CS-Freeze', 'LaCAM'])
     parser.add_argument('--lacamLookahead', type=int, help="LaCAM node expansion limit", default=0)
     parser.add_argument('--timeLimit', type=int, required=True, help="optional time limit for cs-pibt/lacam -1 for no time limit")
     # Output parameters
