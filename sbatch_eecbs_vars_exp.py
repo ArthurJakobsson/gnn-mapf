@@ -43,10 +43,10 @@ if __name__ == "__main__":
     parser.add_argument('--iternum', type=int)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
     parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=int, required=True)
-    parser.add_argument('--eecbs_suboptimalities', help="list of suboptimalies to use", type=int, required=True)
+    parser.add_argument('--eecbs_suboptimalities', help="list of suboptimalies to use", type=str, required=True)
     
     args = parser.parse_args()
-    suboptimalities = [float(x) for x in args.num_scens_list.split(",")] #[1,2,4,8,16,32,64,128]
+    suboptimalities = [float(x) for x in args.eecbs_suboptimalities.split(",")] #[1,2,4,8,16,32,64,128]
 
     with Pool() as pool:
         results = pool.map(run_sbatch, zip(suboptimalities, repeat(args)))
