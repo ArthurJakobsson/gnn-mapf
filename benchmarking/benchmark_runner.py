@@ -165,6 +165,15 @@ def run_gnn_mapf(mapname,num_agents, args):
     print(command)
     subprocess.run(command, shell=True, check=True)
     
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+                f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
+                f"--numAgents={args.numAgents}",
+                f"--constantMapAndBDFolder={constantMapAndBDFolder}",
+                f"--outputFolder={pymodel_output_folder}", 
+                f"--num_parallel_runs={args.num_parallel}",
+                "\"clean\" --keepNpys=false"])
+    subprocess.run(command, shell=True, check=True)
+    
     return parse_pymodel_output(pymodel_output_folder, mapname, num_agents)
 
 def run_single_instance(scen, mapname, num_agents, which_program, args):

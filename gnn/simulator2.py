@@ -585,6 +585,7 @@ def main(args: argparse.ArgumentParser):
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.useGPU else "cpu") # Use GPU if available
     if not os.path.exists(args.modelPath):
         raise FileNotFoundError('Model file: {} not found.'.format(args.modelPath))
+    print(args.modelPath)
     model = torch.load(args.modelPath, map_location=device)
     model.eval()
 
