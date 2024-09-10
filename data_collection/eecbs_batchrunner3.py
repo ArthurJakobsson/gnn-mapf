@@ -97,7 +97,7 @@ def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, sce
                 numAgents, scenfile, outputPathFile, firstIter, bd_path)
     # command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
     command += " --output={} --map={}".format(outputfile, mapfile)
-    command += "--sipp=1"
+    command += " --sipp=1"
     # print(command.split("suboptimality=1")[1])
     return command
     

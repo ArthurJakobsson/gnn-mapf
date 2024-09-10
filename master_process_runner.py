@@ -143,7 +143,7 @@ if __name__ == "__main__":
                         f"--num_parallel_runs={args.num_parallel}",
                         "\"clean\" --keepNpys=false"])
         subprocess.run(command, shell=True, check=True)
-        
+        quit()
         ### Process the data, i.e. create pt files from path npzs
         command = " ".join(["python", "-m", "gnn.dataloader", 
                             f"--mapNpzFile={constantMapNpz}", 

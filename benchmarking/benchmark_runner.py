@@ -371,8 +371,8 @@ if __name__ == '__main__':
     results_df = []
     for mapname in all_maps:
         main(args, mapname)
-        # results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
-    # plot_all_maps_grid(all_maps, results_df, args)
+        results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
+    plot_all_maps_grid(all_maps, results_df, args)
         
     
     # make central csv with results for all maps
