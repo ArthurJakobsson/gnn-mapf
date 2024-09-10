@@ -104,7 +104,7 @@ if __name__ == "__main__":
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
                         "--cutoffTime=120",
-                        "--suboptimality={args.suboptimality}"])
+                        f"--suboptimality={args.suboptimality}"])
         print(command)
         subprocess.run(command, shell=True, check=True)
         # else:
