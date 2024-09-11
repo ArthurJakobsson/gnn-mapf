@@ -25,7 +25,7 @@ TIMEOUT_STEP_VAL = 1e9
 
 
 @timeout(
-    600, default_value=(False, TIMEOUT_STEP_VAL, 0, 0, [])
+    360, default_value=(False, TIMEOUT_STEP_VAL, 0, 0, [])
 )  # default value for timeout is not success and large steps
 def test_one_case(
     args,
@@ -78,22 +78,24 @@ def test_one_case(
     # set history to -1 for first step to avoid conflict
     loc_history[:, :] = -42
 
-    if env_set[0].shape[0] == 40:
-        max_episode_length = config.max_episode_length
-    elif env_set[0].shape[0] == 80:
-        max_episode_length = config.max_episode_length_80
-    else:
-        # raise ValueError("Invalid map length")
-        if config.data_mode == "normal":
-            # print("adurrr")
-            raise ValueError("Invalid map length")
-        else:
-            if env_set[0].shape[0] == 63:
-                # as per SACHA's paper
-                max_episode_length = config.max_episode_warehouse
-            else:
-                max_episode_length = config.max_episode_length
-            # TODO: if there is "warehouse, then more"
+    # if env_set[0].shape[0] == 40:
+    #     max_episode_length = config.max_episode_length
+    # elif env_set[0].shape[0] == 80:
+    #     max_episode_length = config.max_episode_length_80
+    # else:
+    #     # raise ValueError("Invalid map length")
+    #     if config.data_mode == "normal":
+    #         # print("adurrr")
+    #         raise ValueError("Invalid map length")
+    #     else:
+    #         if env_set[0].shape[0] == 63:
+    #             # as per SACHA's paper
+    #             max_episode_length = config.max_episode_warehouse
+    #         else:
+    #             max_episode_length = config.max_episode_length
+    #         # TODO: if there is "warehouse, then more"
+    print(env_set[0].shape)
+    max_episode_length = env_set[0].shape[0] * env_set[0].shape[1] * 2
 
     # device is taken from network parameters
     device = next(network.parameters()).device

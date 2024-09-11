@@ -26,8 +26,8 @@ from eph_mapf.src.data.generate_data import generate_movingai
 ####################################################
 #### Helper functions
 mapsToMaxNumAgents = {
-    "Berlin_1_256": 1000,
-    "Boston_0_256": 1000,
+    "Berlin_1_256": 1000 // 5,
+    "Boston_0_256": 1000 // 5,
     "Paris_1_256": 1000,
     "brc202d": 1000,
     "den312d": 1000, 

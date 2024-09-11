@@ -124,7 +124,17 @@ def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
     success_rate = len(successes.index)/len(filtered_df.index) if len(filtered_df.index)!=0 else 0
     runtime  = successes['runtime'].mean()
     solution_cost = successes['total_cost_true'].mean()
-    return success_rate, solution_cost, runtime
+    # 'create_nn_data', 'forward_pass', 'cs-time'
+    create_nn_data = None
+    forward_pass = None
+    cs_time = None
+
+    if 'create_nn_data' in successes.columns and 'forward_pass' in successes.columns and 'cs-time' in successes.columns
+        create_nn_data = successes['create_nn_data'].mean()
+        forward_pass = successes['forward_pass'].mean()
+        cs_time = successes['cs-time'].mean()
+
+    return success_rate, solution_cost, runtime, create_nn_data, forward_pass, cs_time
 
 def run_gnn_mapf(mapname,num_agents, args):
     constantMapAndBDFolder = "data_collection/data/benchmark_original/constant_npzs"
@@ -213,7 +223,7 @@ def run_eph(args):
                 "--debug=True", 
                 "--modelPath=nothing", 
                 "--useGPU=t",
-                f"--timeLimit=5",#{args.simulator_cutoff}",
+                f"--timeLimit=500",#{args.simulator_cutoff}",
                 "--outputCSVFile=./benchmarking/eph_results.csv"  
                 ])
     print(command)
@@ -227,7 +237,7 @@ def main(args, mapname):
     os.makedirs(results_folder, exist_ok=True)
     
     # DataFrame to hold results
-    columns = ['Agent_Size', 'Program', 'Success_Rate', 'Solution_Cost', 'Runtime']
+    columns = ['Agent_Size', 'Program', 'Success_Rate', 'Solution_Cost', 'Runtime', 'Create_NN_Data', 'Forward_Pass', 'CS_Time']
     results_df = pd.DataFrame(columns=columns)
     
     scen_names = get_scens(args.scen_folder, mapname)
@@ -238,10 +248,11 @@ def main(args, mapname):
     # Iterate through each agent size and run the three programs
     for num_agent in num_agents_list:
         for program in ['LaCAM', 'EECBS', 'GNNMAPF']: # ["GNNMAPF"]:# #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
+            create_nn_data, forward_pass, cs_time = None, None, None # in case we are not running GNNMAPF
             if program=='EECBS':
                 success_rate, solution_cost, runtime = fetch_eecbs(mapname, num_agent, args)
             elif program=='GNNMAPF':
-                success_rate, solution_cost, runtime = run_gnn_mapf(mapname, num_agent, args)
+                success_rate, solution_cost, runtime, create_nn_data, forward_pass, cs_time = run_gnn_mapf(mapname, num_agent, args)
             # elif program=="EPH":
             #     success_rate, solution_cost, runtime = parse_eph(mapname, num_agent, eph_results)
             else:
@@ -276,14 +287,17 @@ def main(args, mapname):
                 else:
                     runtime = None
                     solution_cost = None
-            
+            # create_nn_data', 'forward_pass', 'cs-time'
             new_row={
                 'Map_Name': mapname,
                 'Agent_Size': num_agent,
                 'Program': program,
                 'Success_Rate': success_rate,
                 'Solution_Cost': solution_cost,
-                'Runtime': runtime
+                'Runtime': runtime,
+                'Create_NN_Data': create_nn_data,
+                'Forward_Pass': forward_pass,
+                'CS_Time': cs_time
             }
             # Append the results to the DataFrame
             results_df =  pd.concat([results_df,pd.DataFrame([new_row])], ignore_index=True)
@@ -381,13 +395,15 @@ if __name__ == '__main__':
         all_maps = mapsToMaxNumAgents.keys()
     else:
         all_maps = args.mapname.split(",")
+    
+    run_eph(args)
 
     # get aggregate statistics for all maps
-    results_df = []
-    for mapname in all_maps:
-        main(args, mapname)
-        results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
-    plot_all_maps_grid(all_maps, results_df)
+    # results_df = []
+    # for mapname in all_maps:
+    #     main(args, mapname)
+    #     results_df.append(pd.read_csv(f"benchmarking/{args.pymodel_out}/results_{mapname}.csv"))
+    # plot_all_maps_grid(all_maps, results_df)
         
     
     # make central csv with results for all maps
