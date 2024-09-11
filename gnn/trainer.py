@@ -343,7 +343,10 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     writer = SummaryWriter(f"./data_collection/data/logs/train_logs/"+expname+"_"+itername)
-    model_path = exp_folder+f"/{itername}"+"/models/"
+    if args.dataset_size>0:
+        model_path = exp_folder+f"/{itername}"+f"/models_{args.dataset_size}/"
+    else:
+        model_path = exp_folder+f"/{itername}"+"/models/"
     finished_file = model_path + "/finished.txt"
     if os.path.exists(finished_file):
         print(f"Model already trained for {expname} {itername}")
