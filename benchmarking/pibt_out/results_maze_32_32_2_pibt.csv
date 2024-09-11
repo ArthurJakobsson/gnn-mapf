@@ -1,0 +1,4 @@
+Agent_Size,Program,Success_Rate,Solution_Cost,Runtime,Map_Name
+100,PIBT,0.68,9148.35294117647,0.2362763741437126,maze_32_32_2
+200,PIBT,0.08,26680.0,1.523027777671814,maze_32_32_2
+300,PIBT,0.0,,,maze_32_32_2

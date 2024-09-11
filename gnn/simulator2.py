@@ -507,11 +507,11 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
             print("time limit hit")
             break
         if shield_type in ["CS-PIBT", "CS-Freeze"]:
-            action_preferences = getActionPrefsFromLocs(cur_locs) # (N,5)
-            if shield_type == "CS-Freeze":
-                action_preferences = action_preferences[:,:2] # (N,2)
-                action_preferences[:,1] = 0  # 0 action index corresponds to stop
-            # action_preferences = wrapper_bd_prefs(cur_locs)
+            # action_preferences = getActionPrefsFromLocs(cur_locs) # (N,5)
+            # if shield_type == "CS-Freeze":
+            #     action_preferences = action_preferences[:,:2] # (N,2)
+            #     action_preferences[:,1] = 0  # 0 action index corresponds to stop
+            action_preferences = wrapper_bd_prefs(cur_locs)
             timer.start("cs-time")
             new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [], start_time, args.timeLimit)
             timer.stop("cs-time")

@@ -1,0 +1,5 @@
+Agent_Size,Program,Success_Rate,Solution_Cost,Runtime,Map_Name
+100,PIBT,0.8,3130.95,0.0862911581993102,random_32_32_20
+200,PIBT,0.36,8112.0,0.2069943481021457,random_32_32_20
+300,PIBT,0.0,,,random_32_32_20
+400,PIBT,0.0,,,random_32_32_20

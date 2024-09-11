@@ -62,6 +62,7 @@ which_folders = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results",
 def load_csv_data(which_map, which_folders):
     data_frames = []
     first_df_loaded = False
+    
     for folder in which_folders:
         pattern = os.path.join(folder, f"results_{which_map}.csv")
         matching_files = glob.glob(pattern)
@@ -79,7 +80,11 @@ def load_csv_data(which_map, which_folders):
                 print(f"Loaded {my_file} from {folder}")
             except Exception as e:
                 print(f"Error loading {my_file}: {e}")
-    
+                
+    pibt_folder = 'benchmarking/pibt_out/'
+    pibt_file = os.path.join(pibt_folder, f"results_{which_map}_pibt.csv")
+    pibt_df = pd.read_csv(pibt_file)
+    data_frames.append(pibt_df)
 
     if data_frames:
         combined_df = pd.concat(data_frames, ignore_index=True)
