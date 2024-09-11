@@ -66,8 +66,9 @@ if __name__ == "__main__":
         source_maps_scens = f"./data_collection/data/{args.data_folder}"
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
-        
-    source_maps_scens = f"{source_maps_scens}_{args.num_scens}"
+    
+    if args.num_scens!=0:
+        source_maps_scens = f"{source_maps_scens}_{args.num_scens}"
 
     LE = f"data_collection/data/logs/{args.expName}"
     print(LE)
