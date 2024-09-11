@@ -161,7 +161,7 @@ if __name__ == "__main__":
     
     def call_setup():
         # call sbatch for run_setup
-        generate_sh_script(LE,"setup", "run_setup.py", args)
+        generate_sh_script(LE,f"setup{args.dataset_size}", "run_setup.py", args)
         command = [
             'sbatch',
             '-p', 'RM-shared',
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     
     def call_train():
         # call sbatch for run_train
-        generate_sh_script(LE,"train", "run_train.py", args)
+        generate_sh_script(LE,f"train{args.dataset_size}", "run_train.py", args)
         command = [
             'sbatch',
             '-p', 'GPU-shared',
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     
     def call_simulate():
         # call sbatch for simulation
-        generate_sh_script(LE,"simulate", "run_simulator.py", args)
+        generate_sh_script(LE,f"simulate{args.dataset_size}", "run_simulator.py", args)
         command = [
             'sbatch',
             '-p', 'RM-shared',
