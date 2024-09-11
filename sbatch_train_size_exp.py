@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset_size_list', type=str, required=True)
     
     args = parser.parse_args()
-    dataset_sizes = [int(x) for x in args.num_scens_list.split(",")] #[1,2,4,8,16,32,64,128]
+    dataset_sizes = [int(x) for x in args.dataset_size_list.split(",")] #[1,2,4,8,16,32,64,128]
 
     with Pool() as pool:
         results = pool.map(run_sbatch, zip(dataset_sizes, repeat(args)))
