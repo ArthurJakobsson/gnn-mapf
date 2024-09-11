@@ -31,6 +31,7 @@ benchmarking/*_results/*
 benchmarking/benchmarking/*
 benchmarking/old_run/*
 benchmarking/eecbs_all_old/*
+benchmarking/visualization_out/*
 # eph_mapf/__pycache__/
 # eph_mapf/assets
 # eph_mapf/configs
