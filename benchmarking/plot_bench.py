@@ -101,15 +101,13 @@ def load_csv_data(which_map, which_folders):
         return combined_df
     else:
         return pd.DataFrame()  
-
+    
+    
+    
 # Assuming `result_data` is the DataFrame you're working with
-def plot_success_rate(data, output_path, mapname, info_type):
+def plot_success_rate(data, ax, mapname, info_type):
     # Filter the data for the specific programs
     filtered_data = data[data['Program'].isin(['LaCAM', 'PIBT', 'EECBS', 'GNNMAPF', 'EPH'])]
-    
-    # Create the plot
-    plt.figure(figsize=(10, 6))
-    sns.set(style="whitegrid")
     
     marker_style = {
         'style':{
@@ -125,49 +123,123 @@ def plot_success_rate(data, output_path, mapname, info_type):
             "LaCAM": "red",
             "PIBT": "orange",
             'EPH': "brown"
-        }}
+        }
+    }
     
-    # Plot lines for LaCAM, PIBT, and EECBS
-    for program in ['LaCAM', 'PIBT', 'EECBS','EPH']:
-        if program =='EPH' and info_type != "Success_Rate":
+    # Plot lines for LaCAM, PIBT, EECBS, and EPH
+    for program in ['LaCAM', 'PIBT', 'EECBS', 'EPH']:
+        if program == 'EPH' and info_type != "Success_Rate":
             continue
         program_data = filtered_data[filtered_data['Program'] == program]
-        plt.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program])
+        ax.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program])
     
     # Plot points for GNNMAPF and label with the folder it came from
     for folder in which_folders:
         folder_focus = folder.split('/')[-1]
         gnnmapf_data = filtered_data[filtered_data['source_folder'] == folder]
         gnnmapf_data = gnnmapf_data[gnnmapf_data['Program'] == 'GNNMAPF']
-        plt.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}",marker=marker_style['style']['GNNMAPF'])
-    # plt.scatter(gnnmapf_data['Agent_Size'], gnnmapf_data['Success_Rate'], color='green', label='GNNMAPF')
+        ax.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}", marker=marker_style['style']['GNNMAPF'])
     
-    # for i, row in gnnmapf_data.iterrows():
-    #     plt.text(row['Agent_Size'], row['Success_Rate'], row['source_folder'], fontsize=8, ha='right')
-
     # Set labels and title
-    plt.xlabel('Agent Size')
-    plt.ylabel(info_type)
-    plt.title(f'{info_type} vs Agent Size for {mapfile}')
-    plt.legend()
+    ax.set_xlabel('Agent Size')
+    ax.set_ylabel(info_type)
+    ax.set_title(f'{info_type} for {mapname}')
+    ax.legend()
 
+# Main function to plot all maps on a grid
+def plot_all_maps(maps, which_folders, info_type, output_path):
+    # Create a 6x5 grid for subplots
+    fig, axes = plt.subplots(6, 5, figsize=(25, 30))
+    axes = axes.flatten()  # Flatten the axes array to easily iterate over
+
+    # Plot each map in a separate subplot
+    for i, mapfile in enumerate(maps):
+        if i >= len(axes):
+            break  # Prevent index out of range if there are more than 30 maps
+        
+        # Load data for the map
+        result_data = load_csv_data(mapfile, which_folders)
+
+        # Plot the success rate for this map on the respective axis
+        plot_success_rate(result_data, axes[i], mapfile, info_type)
+
+    # Adjust layout to prevent overlapping
     plt.tight_layout()
-    plt.savefig(output_path)
+    plt.savefig(output_path, format="pdf", bbox_inches='tight')
     plt.close()
 
-# Call the function to plot
-for mapfile in maps:
-    result_data = load_csv_data(mapfile, which_folders)
-    output_folder = "benchmarking/visualization_out"
-    os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
-    output_file = os.path.join(output_folder,f"temp_{mapfile}.csv")
+output_folder = "benchmarking/visualization_out"
+os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
 
-    # Save the DataFrame to CSV
-    result_data.to_csv(output_file, index=False)
-    print(f"Data saved to {output_file}")
+for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
+    output_path = f'{output_folder}/{info_type}_all_maps_grid.pdf'
+    plot_all_maps(maps, which_folders, info_type, output_path)
 
-    # Check the loaded data
-    for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
-        # print(result_data.head())
-        output_path=f'benchmarking/visualization_out/{info_type}_plot_{mapfile}.png'
-        plot_success_rate(result_data, output_path, mapfile, info_type)
+# # Assuming `result_data` is the DataFrame you're working with
+# def plot_success_rate(data, output_path, mapname, info_type):
+#     # Filter the data for the specific programs
+#     filtered_data = data[data['Program'].isin(['LaCAM', 'PIBT', 'EECBS', 'GNNMAPF', 'EPH'])]
+    
+#     # Create the plot
+#     plt.figure(figsize=(10, 6))
+#     sns.set(style="whitegrid")
+    
+#     marker_style = {
+#         'style':{
+#             'LaCAM': "1",
+#             'PIBT': "H",
+#             'EECBS': "^",
+#             'GNNMAPF': "*",
+#             'EPH': 3
+#         },
+#         'color':{
+#             "EECBS": "blue",
+#             "GNNMAPF": "green",
+#             "LaCAM": "red",
+#             "PIBT": "orange",
+#             'EPH': "brown"
+#         }}
+    
+#     # Plot lines for LaCAM, PIBT, and EECBS
+#     for program in ['LaCAM', 'PIBT', 'EECBS','EPH']:
+#         if program =='EPH' and info_type != "Success_Rate":
+#             continue
+#         program_data = filtered_data[filtered_data['Program'] == program]
+#         plt.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program])
+    
+#     # Plot points for GNNMAPF and label with the folder it came from
+#     for folder in which_folders:
+#         folder_focus = folder.split('/')[-1]
+#         gnnmapf_data = filtered_data[filtered_data['source_folder'] == folder]
+#         gnnmapf_data = gnnmapf_data[gnnmapf_data['Program'] == 'GNNMAPF']
+#         plt.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}",marker=marker_style['style']['GNNMAPF'])
+#     # plt.scatter(gnnmapf_data['Agent_Size'], gnnmapf_data['Success_Rate'], color='green', label='GNNMAPF')
+    
+#     # for i, row in gnnmapf_data.iterrows():
+#     #     plt.text(row['Agent_Size'], row['Success_Rate'], row['source_folder'], fontsize=8, ha='right')
+
+#     # Set labels and title
+#     plt.xlabel('Agent Size')
+#     plt.ylabel(info_type)
+#     plt.title(f'{info_type} vs Agent Size for {mapfile}')
+#     plt.legend()
+
+#     plt.tight_layout()
+#     plt.savefig(output_path)#, format="pdf")
+#     plt.close()
+
+# # Call the function to plot
+# for mapfile in maps:
+#     result_data = load_csv_data(mapfile, which_folders)
+#     output_folder = "benchmarking/visualization_out"
+#     os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
+#     output_file = os.path.join(output_folder,f"temp_{mapfile}.csv")
+
+#     # Save the DataFrame to CSV
+#     #result_data.to_csv(output_file, index=False)
+#     #print(f"Data saved to {output_file}")
+
+    
+#     for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
+#         output_path = f'{output_folder}/{info_type}_all_maps_grid.pdf'
+#         plot_all_maps(result_data, maps, which_folders, info_type, output_path)
