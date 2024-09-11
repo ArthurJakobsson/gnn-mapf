@@ -169,7 +169,7 @@ if __name__ == "__main__":
             '--ntasks-per-node=64',
             '-t', '16:00:00',
             '--job-name', 'arthur_setup',
-            f'./{LE}/setup.sh'
+            f'./{LE}/setup{args.dataset_size}.sh'
         ]
         run_command(command)
     
@@ -182,7 +182,7 @@ if __name__ == "__main__":
             '--gres=gpu:v100-32:1',
             '-t', '24:00:00',
             '--job-name', 'arthur_train',
-            f'./{LE}/train.sh'
+            f'./{LE}/train{args.dataset_size}.sh'
         ]
         run_command(command)
     
@@ -196,7 +196,7 @@ if __name__ == "__main__":
             '--ntasks-per-node=64',
             '-t', '16:00:00',
             '--job-name', 'arthur_simulate',
-            f'./{LE}/simulate.sh'
+            f'./{LE}/simulate{args.dataset_size}.sh'
         ]
         run_command(command)
 
