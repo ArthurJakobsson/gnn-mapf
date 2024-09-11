@@ -19,6 +19,7 @@ def log_time(event_name):
 
 def run_command(command):
     # Run the command using subprocess
+    print(command)
     result = subprocess.run(command, capture_output=True, text=True)
 
     # Print the result of the command
@@ -143,9 +144,9 @@ if __name__ == "__main__":
                         shutil.copyfile(os.path.join(source_maps_scens, 'scens', scen_path), os.path.join(scen_dir, 'scens', scen_path))
             # reset the source_maps_scens folder
         source_maps_scens = scen_dir
-        print(scen_dir)
+        
 
-
+    print(source_maps_scens)
     LE = f"data_collection/data/logs/{args.expName}"
     os.makedirs(LE, exist_ok=True)
     
