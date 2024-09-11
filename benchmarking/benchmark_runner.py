@@ -92,7 +92,7 @@ def run_lacam(scen,  mapname, num_agents, args):
     return result["success"], result["soc_cost"], result["runtime"]
 
 def fetch_eecbs(mapname, num_agent, args):
-    eecbs_source = 'benchmarking/eecbs_all_new/eecbs_outputs/'
+    eecbs_source = 'benchmarking/eecbs_all/eecbs_outputs/'
     eecbs_map_folder = eecbs_source + mapname + '/csvs/combined.csv'
     df = pd.read_csv(eecbs_map_folder)
     filtered_df = df[df['agentNum'] == num_agent]

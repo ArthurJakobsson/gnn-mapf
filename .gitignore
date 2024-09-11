@@ -30,6 +30,7 @@ benchmarking/pymodel_results_old/*
 benchmarking/*_results/*
 benchmarking/benchmarking/*
 benchmarking/old_run/*
+benchmarking/eecbs_all_old/*
 # eph_mapf/__pycache__/
 # eph_mapf/assets
 # eph_mapf/configs

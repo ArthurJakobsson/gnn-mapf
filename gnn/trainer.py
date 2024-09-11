@@ -144,7 +144,7 @@ def save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test
     if double_test_acc > max_double_test_acc:
         torch.save(model, model_path + '/max_double_test_acc.pt')
 
-def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
+def train(combined_dataset, writer, run_lr, relu_type, my_batch_size, dataset_size):
 
     # data_size = len(dataset)
     # loader = DataLoader(dataset[:int(data_size * 0.8)], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
@@ -153,6 +153,7 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size):
     train_size = int(0.8 * len(combined_dataset))
     test_size = len(combined_dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(combined_dataset, [train_size, test_size])
+    train_dataset = train_dataset[:dataset_size]
     BATCH_SIZE = my_batch_size #64 #1024
     NW = 4 # 32
     loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NW, pin_memory=True, persistent_workers=True)
@@ -325,6 +326,7 @@ if __name__ == "__main__":
     parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--dataset_size', type=int, default=-1)
     # parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
 
     args = parser.parse_args()
@@ -364,7 +366,7 @@ if __name__ == "__main__":
     dataset = torch.utils.data.ConcatDataset(dataset_list)
     print(f"Combined {len(dataset_list)} datasets for a combined size of {len(dataset)}")
     
-    model = train(dataset, writer, lr, relu_type, args.batch_size)
+    model = train(dataset, writer, lr, relu_type, args.batch_size, args.dataset_size)
 
     with open(f"{model_path}/finished.txt", "w") as f:
         f.write("")
