@@ -55,8 +55,11 @@ mapsToMaxNumAgents = {
 
 # maps = ["Berlin_1_256", "den312d"]
 maps = mapsToMaxNumAgents.keys()
-
-which_folders = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results", "benchmarking/big_run_results/benchmarking/2_CSFreeze_results", "benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/8_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
+which_folders = ["benchmarking/big_run_results/benchmarking/1.2_eecbs_model_results", "benchmarking/big_run_results/benchmarking/1.5_eecbs_model_results", "benchmarking/big_run_results/benchmarking/2.0_eecbs_model_results"]
+#which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results"]
+#which_folders = ["benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/2_agents_results","benchmarking/big_run_results/benchmarking/4_agents_results","benchmarking/big_run_results/benchmarking/8_agents_results","benchmarking/big_run_results/benchmarking/16_agents_results","benchmarking/big_run_results/benchmarking/32_agents_results","benchmarking/big_run_results/benchmarking/64_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results"]
+#which_folders = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results", "benchmarking/big_run_results/benchmarking/2_CSFreeze_results","benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/8_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
+#which_folders = ["benchmarking/big_run_results/benchmarking/1_no_bd_results", "benchmarking/big_run_results/benchmarking/4_no_bd_results"]
 
 
 def load_csv_data(which_map, which_folders):
@@ -85,6 +88,13 @@ def load_csv_data(which_map, which_folders):
     pibt_file = os.path.join(pibt_folder, f"results_{which_map}_pibt.csv")
     pibt_df = pd.read_csv(pibt_file)
     data_frames.append(pibt_df)
+    
+    eph_folder = 'benchmarking/eph_results/'
+    eph_file = os.path.join(eph_folder, f"{which_map}.csv")
+    eph_df = pd.read_csv(eph_file)
+    eph_df['Solution_Cost'] = None
+    eph_df['Runtime'] = None
+    data_frames.append(eph_df)
 
     if data_frames:
         combined_df = pd.concat(data_frames, ignore_index=True)
@@ -95,7 +105,7 @@ def load_csv_data(which_map, which_folders):
 # Assuming `result_data` is the DataFrame you're working with
 def plot_success_rate(data, output_path, mapname, info_type):
     # Filter the data for the specific programs
-    filtered_data = data[data['Program'].isin(['LaCAM', 'PIBT', 'EECBS', 'GNNMAPF'])]
+    filtered_data = data[data['Program'].isin(['LaCAM', 'PIBT', 'EECBS', 'GNNMAPF', 'EPH'])]
     
     # Create the plot
     plt.figure(figsize=(10, 6))
@@ -106,17 +116,21 @@ def plot_success_rate(data, output_path, mapname, info_type):
             'LaCAM': "1",
             'PIBT': "H",
             'EECBS': "^",
-            'GNNMAPF': "*"
+            'GNNMAPF': "*",
+            'EPH': 3
         },
         'color':{
             "EECBS": "blue",
             "GNNMAPF": "green",
             "LaCAM": "red",
-            "PIBT": "orange"
+            "PIBT": "orange",
+            'EPH': "brown"
         }}
     
     # Plot lines for LaCAM, PIBT, and EECBS
-    for program in ['LaCAM', 'PIBT', 'EECBS']:
+    for program in ['LaCAM', 'PIBT', 'EECBS','EPH']:
+        if program =='EPH' and info_type != "Success_Rate":
+            continue
         program_data = filtered_data[filtered_data['Program'] == program]
         plt.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program])
     
