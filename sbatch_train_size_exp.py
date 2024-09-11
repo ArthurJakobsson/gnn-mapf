@@ -6,16 +6,16 @@ from itertools import repeat
 
 
 def run_sbatch(my_input):
-    num_scens, args = my_input
+    dataset_size, args = my_input
     command = "python -m sbatch_master_process_runner"
     for var in vars(args):
         key, value = var, getattr(args, var)
         if key=="expName":
-            value = args.expName+f"_{num_scens}agents"
-        if key=="num_scens_list":
+            value = args.expName+f"_{dataset_size}size"
+        if key=="dataset_size_list":
             continue
         command+= " --{}={}".format(key, value)
-    command += f" --num_scens={num_scens}"
+    command += f" --dataset_size={dataset_size}"
     subprocess.run(command.split(" "))
 
 if __name__ == "__main__":
@@ -42,12 +42,11 @@ if __name__ == "__main__":
     parser.add_argument('--which_section', help="[begin, setup, train, simulate]", required=True)
     parser.add_argument('--iternum', type=int)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
-    # parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=str, required=True)
-    parser.add_argument('--dataset_size_list', type=int, default=-1)
+    parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=str, required=True)
+    parser.add_argument('--dataset_size_list', type=str, required=True)
     
     args = parser.parse_args()
-    # scen_nums = [int(x) for x in args.num_scens_list.split(",")] #[1,2,4,8,16,32,64,128]
-    scen_nums=128
+    dataset_sizes = [int(x) for x in args.num_scens_list.split(",")] #[1,2,4,8,16,32,64,128]
 
     with Pool() as pool:
-        results = pool.map(run_sbatch, zip(scen_nums, repeat(args)))
+        results = pool.map(run_sbatch, zip(dataset_sizes, repeat(args)))
