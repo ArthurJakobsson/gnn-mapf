@@ -14,9 +14,49 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-maps = ["Berlin_1_256", "den312d"]
+mapsToMaxNumAgents = {
+    "Berlin_1_256": 1000,
+    "Boston_0_256": 1000,
+    "Paris_1_256": 1000,
+    # "brc202d": 1000,
+    "den312d": 1000, 
+    "den520d": 1000,
+    # "dense_map_15_15_0":50,
+    # "dense_map_15_15_1":50,
+    # "corridor_30_30_0":50,
+    #"empty_8_8": 32,
+    "empty_16_16": 128,
+    "empty_32_32": 512,
+    "empty_48_48": 1000,
+    "ht_chantry": 1000,
+    "ht_mansion_n": 1000,
+    "lak303d": 1000,
+    "lt_gallowstemplar_n": 1000,
+    # "maze_128_128_1": 1000,
+    # "maze_128_128_10": 1000,
+    "maze_128_128_2": 1000,
+    "maze_32_32_2": 333,
+    "maze_32_32_4": 395,
+    # "orz900d": 1000,
+    "ost003d": 1000,
+    "random_32_32_10": 461,
+    "random_32_32_20": 409,
+    "random_64_64_10": 1000,
+    "random_64_64_20": 1000,
+    "room_32_32_4": 341,
+    "room_64_64_16": 1000,
+    "room_64_64_8": 1000,
+    #"w_woundedcoast": 1000,
+    "warehouse_10_20_10_2_1": 1000,
+    "warehouse_10_20_10_2_2": 1000,
+    "warehouse_20_40_10_2_1": 1000,
+    "warehouse_20_40_10_2_2": 1000,
+}
 
-which_folders = ["benchmarking/big_run_results/benchmarking/4_agents_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results"]
+# maps = ["Berlin_1_256", "den312d"]
+maps = mapsToMaxNumAgents.keys()
+
+which_folders = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results", "benchmarking/big_run_results/benchmarking/2_CSFreeze_results", "benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/8_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
 
 
 def load_csv_data(which_map, which_folders):
@@ -109,6 +149,6 @@ for mapfile in maps:
 
     # Check the loaded data
     for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
-        print(result_data.head())
+        # print(result_data.head())
         output_path=f'benchmarking/visualization_out/{info_type}_plot_{mapfile}.png'
         plot_success_rate(result_data, output_path, mapfile, info_type)
