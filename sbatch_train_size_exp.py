@@ -42,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument('--which_section', help="[begin, setup, train, simulate]", required=True)
     parser.add_argument('--iternum', type=int)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
-    parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=str, required=True)
+    parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=int, required=True)
     parser.add_argument('--dataset_size_list', type=str, required=True)
     
     args = parser.parse_args()
