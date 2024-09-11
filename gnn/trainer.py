@@ -43,7 +43,7 @@ class GNNStack(nn.Module):
         self.relu_type = relu_type
         self.convs = nn.ModuleList([self.build_conv_model(linear_dim, in_channels, hidden_dim,True)])
         self.lns = nn.ModuleList([nn.LayerNorm(hidden_dim), nn.LayerNorm(hidden_dim)])
-        for _ in range(3):
+        for _ in range(12):
             self.convs.append(self.build_conv_model(linear_dim, hidden_dim, hidden_dim, False))
             self.lns.append(nn.LayerNorm(hidden_dim))
 
