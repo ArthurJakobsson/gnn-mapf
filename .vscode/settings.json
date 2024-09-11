@@ -30,5 +30,6 @@
   },
   "python.analysis.exclude": [
     "**/data"
-  ]
+  ],
+  "cmake.sourceDirectory": "/home/arthur/snap/snapd-desktop-integration/current/Documents/gnn-mapf/benchmarking/lacam"
 }

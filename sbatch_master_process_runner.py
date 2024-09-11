@@ -19,6 +19,7 @@ def log_time(event_name):
 
 def run_command(command):
     # Run the command using subprocess
+    print(command)
     result = subprocess.run(command, capture_output=True, text=True)
 
     # Print the result of the command
@@ -104,6 +105,8 @@ if __name__ == "__main__":
     parser.add_argument('--iternum', type=int)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
     parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=int, required=True)
+    parser.add_argument('--suboptimality', help="eecbs suboptimality level", type=float, default=2)
+    parser.add_argument('--dataset_size', type=int, default=-1)
 
     args = parser.parse_args()
     if args.which_setting == "Arthur":
@@ -118,28 +121,32 @@ if __name__ == "__main__":
     if ".json" in args.numAgents and "map_configs" not in args.numAgents:
         args.numAgents = "map_configs/"+args.numAgents 
 
+    if args.iternum>0:
+        quit()
     if args.mini_test:
         # source_maps_scens = "./data_collection/data/mini_benchmark_data"
         source_maps_scens = f"./data_collection/data/{args.data_folder}"
     else: 
         source_maps_scens = "./data_collection/data/benchmark_data"
     
-    # for each map, save only the first {args.num_scens} scen files
-    scen_dir = f"{source_maps_scens}_{args.num_scens}"
-    if not os.path.isdir(scen_dir):
-        os.makedirs(scen_dir)
-        # copy over the maps
-        shutil.copytree(f"{source_maps_scens}/maps", f"{scen_dir}/maps", dirs_exist_ok=True)
-        # copy over only necessary scens
-        os.makedirs(f"{scen_dir}/scens")
-        for i in range(26,args.num_scens+26):
-            for scen_path in os.listdir(f"{source_maps_scens}/scens"):
-                if scen_path.endswith(f"-{i}.scen"):
-                    shutil.copyfile(os.path.join(source_maps_scens, 'scens', scen_path), os.path.join(scen_dir, 'scens', scen_path))
-        # reset the source_maps_scens folder
-    source_maps_scens = scen_dir
-    print(scen_dir)
+    if args.num_scens!=0:
+        # for each map, save only the first {args.num_scens} scen files
+        scen_dir = f"{source_maps_scens}_{args.num_scens}"
+        if not os.path.isdir(scen_dir):
+            os.makedirs(scen_dir)
+            # copy over the maps
+            shutil.copytree(f"{source_maps_scens}/maps", f"{scen_dir}/maps", dirs_exist_ok=True)
+            # copy over only necessary scens
+            os.makedirs(f"{scen_dir}/scens")
+            for i in range(26,args.num_scens+26):
+                for scen_path in os.listdir(f"{source_maps_scens}/scens"):
+                    if scen_path.endswith(f"-{i}.scen"):
+                        shutil.copyfile(os.path.join(source_maps_scens, 'scens', scen_path), os.path.join(scen_dir, 'scens', scen_path))
+            # reset the source_maps_scens folder
+        source_maps_scens = scen_dir
+        
 
+    print(source_maps_scens)
     LE = f"data_collection/data/logs/{args.expName}"
     os.makedirs(LE, exist_ok=True)
     
@@ -154,7 +161,7 @@ if __name__ == "__main__":
     
     def call_setup():
         # call sbatch for run_setup
-        generate_sh_script(LE,"setup", "run_setup.py", args)
+        generate_sh_script(LE,f"setup{args.dataset_size}", "run_setup.py", args)
         command = [
             'sbatch',
             '-p', 'RM-shared',
@@ -162,26 +169,26 @@ if __name__ == "__main__":
             '--ntasks-per-node=64',
             '-t', '16:00:00',
             '--job-name', 'arthur_setup',
-            f'./{LE}/setup.sh'
+            f'./{LE}/setup{args.dataset_size}.sh'
         ]
         run_command(command)
     
     def call_train():
         # call sbatch for run_train
-        generate_sh_script(LE,"train", "run_train.py", args)
+        generate_sh_script(LE,f"train{args.dataset_size}", "run_train.py", args)
         command = [
             'sbatch',
             '-p', 'GPU-shared',
             '--gres=gpu:v100-32:1',
             '-t', '24:00:00',
             '--job-name', 'arthur_train',
-            f'./{LE}/train.sh'
+            f'./{LE}/train{args.dataset_size}.sh'
         ]
         run_command(command)
     
     def call_simulate():
         # call sbatch for simulation
-        generate_sh_script(LE,"simulate", "run_simulator.py", args)
+        generate_sh_script(LE,f"simulate{args.dataset_size}", "run_simulator.py", args)
         command = [
             'sbatch',
             '-p', 'RM-shared',
@@ -189,7 +196,7 @@ if __name__ == "__main__":
             '--ntasks-per-node=64',
             '-t', '16:00:00',
             '--job-name', 'arthur_simulate',
-            f'./{LE}/simulate.sh'
+            f'./{LE}/simulate{args.dataset_size}.sh'
         ]
         run_command(command)
 

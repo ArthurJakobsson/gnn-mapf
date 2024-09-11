@@ -47,7 +47,9 @@ if __name__ == "__main__":
     parser.add_argument('--which_setting', help="[Arthur, Rishi, PSC]", required=True) # E.g. use --which_setting to determine using conda env or different aspects
     parser.add_argument('--percent_for_succ', help="percent decreased scen creation for success instances in simulation", type=float, required=True)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
-
+    parser.add_argument('--suboptimality', help="eecbs suboptimality level", type=float, default=2)
+    parser.add_argument('--dataset_size', type=int, default=-1)
+    
     args = parser.parse_args()
     if args.which_setting == "Arthur":
         conda_env = None # Used in eecbs_batchrunner3 for simulator2.py
@@ -107,7 +109,7 @@ if __name__ == "__main__":
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                             "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
                             "--cutoffTime=120",
-                            "--suboptimality=2"])
+                            f"--suboptimality={args.suboptimality}"])
             print(command)
             subprocess.run(command, shell=True, check=True)
             # else:
@@ -127,7 +129,7 @@ if __name__ == "__main__":
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         f"--firstIter=false",
                         f"--cutoffTime=120",
-                        f"--suboptimality=2"])
+                        f"--suboptimality={args.suboptimality}"])
             print(command)
             subprocess.run(command, shell=True, check=True)
         log_time(f"Iter {iternum}: Finished eecbs")
@@ -166,7 +168,8 @@ if __name__ == "__main__":
         command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{args.expnum}", 
                             f"--iternum={iternum}", f"--num_cores={num_cores}", 
                             f"--processedFolders={','.join(processed_folders_list)}",
-                            f"--k={args.k}", f"--m={args.m}", f"--lr={args.lr}", f"--relu_type={args.relu_type}"])
+                            f"--k={args.k}", f"--m={args.m}", f"--lr={args.lr}", f"--relu_type={args.relu_type}", 
+                            f"--dataset_size={args.dataset_size}"])
         if args.extra_layers is not None:
             command += f" --extra_layers={args.extra_layers}"
         if args.bd_pred is not None:

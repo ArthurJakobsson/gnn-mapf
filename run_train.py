@@ -45,6 +45,8 @@ if __name__ == "__main__":
     parser.add_argument('--iternum', type=int)
     parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
     parser.add_argument('--num_scens', help="number scens to include, for each map, in the train set", type=int, required=True)
+    parser.add_argument('--suboptimality', help="eecbs suboptimality level", type=float, default=2)
+    parser.add_argument('--dataset_size', type=int, default=-1)
 
     args = parser.parse_args()
     if args.which_setting == "Arthur":
@@ -85,7 +87,7 @@ if __name__ == "__main__":
     eecbs_outputs_folder = f"{iterFolder}/eecbs_outputs"
     eecbs_path_npzs_folder = f"{iterFolder}/eecbs_npzs"
     processed_folder = f"{iterFolder}/processed"
-    model_folder = f"{iterFolder}/models"
+    model_folder = f"{iterFolder}/models_{args.dataset_size}"
     pymodel_outputs_folder = f"{iterFolder}/pymodel_outputs"
     encountered_scens = f"{iterFolder}/encountered_scens"
     processed_folders_list = np.load(LE+"/processed_folders_list.npy")
@@ -94,7 +96,8 @@ if __name__ == "__main__":
     command = " ".join(["python", "-m", "gnn.trainer", f"--exp_folder={LE}", f"--experiment=exp{args.expnum}", 
                             f"--iternum={args.iternum}", f"--num_cores={num_cores}", 
                             f"--processedFolders={','.join(processed_folders_list)}",
-                            f"--k={args.k}", f"--m={args.m}", f"--lr={args.lr}", f"--relu_type={args.relu_type}"])
+                            f"--k={args.k}", f"--m={args.m}", f"--lr={args.lr}", f"--relu_type={args.relu_type}",
+                            f"--dataset_size={args.dataset_size}"])
     if args.extra_layers is not None:
         command += f" --extra_layers={args.extra_layers}"
     if args.bd_pred is not None:
@@ -103,5 +106,6 @@ if __name__ == "__main__":
     subprocess.run(command, shell=True, check=True)
     log_time(f"Iter {args.iternum}: trainer")
     
+    quit()
     generate_sh_script(LE, "run_main", "sbatch_master_process_runner.py", args, chosen_section="simulate")
     startup_small(LE)

@@ -215,6 +215,13 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     # weights[matches.flatten()] = 1/(np.sum(matches)+1)
     # weights += (num_agents-np.sum(weights))/num_agents # TODO this is buggy
     weights *= num_agents/np.sum(weights)
+    
+    # stay_locations = labels[:,0] == 1
+
+    # random_values = np.random.rand(*stay_locations.shape)
+    # flip_mask = (stay_locations == 1) & (random_values > 0.2) # make it so that with 80% probability it gets flipped to 0
+    # weights[flip_mask] = 0
+    
     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
                 edge_attr=torch.from_numpy(edge_features), bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
                 weights = torch.from_numpy(weights), y = torch.from_numpy(labels))
@@ -364,15 +371,10 @@ class MyOwnDataset(Dataset):
                     batch_graphs = []
                     for t in tqdm(range(len(cur_dataset))):
                         time_instance = cur_dataset[t]
-                        if (t-(self.num_per_pt-1))%self.num_per_pt==0: #TODO it goes by self.num_per_pt-1 for some reason
-                            torch.save(batch_graphs,
-                                        osp.join(self.processed_dir, f"data_{map_name}_{idx_start+counter}.pt"))
-                            counter+=1
-                            batch_graphs = []
-                        else:
-                            batch_graphs.append(self.create_and_save_graph(t, time_instance))
+                        torch.save(self.create_and_save_graph(t, time_instance),
+                                    osp.join(self.processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
                     
-                    idx_start+=counter
+                    idx_start+=len(cur_dataset)
                     # Save tmp to pt
                     # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
                     # idx += len(cur_dataset)
@@ -385,19 +387,19 @@ class MyOwnDataset(Dataset):
                     # with Pool(self.num_cores) as p: #change number of workers later
                     #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
                     # self.ct.stop("Parallel Processing")
-
                     self.ct.printTimes()
-                    new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                                    "pt_path": [f"data_{map_name}"],
-                                                    "status": ["processed"], 
-                                                    "num_pts": [len(cur_dataset)],
-                                                    "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                                    "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
-                    if len(self.df) == 0:
-                        self.df = new_df
-                    else:
-                        self.df = pd.concat([self.df, new_df], ignore_index=True)
-                    self.df.to_csv(self.df_path, index=False)
+                    if(len(cur_dataset)>0):
+                        new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                                        "pt_path": [f"data_{map_name}"],
+                                                        "status": ["processed"], 
+                                                        "num_pts": [len(cur_dataset)],
+                                                        "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
+                                                        "pxrocessing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+                        if len(self.df) == 0:
+                            self.df = new_df
+                        else:
+                            self.df = pd.concat([self.df, new_df], ignore_index=True)
+                        self.df.to_csv(self.df_path, index=False)
                     
                     del cur_dataset
             # self.length = idx
@@ -428,24 +430,12 @@ class MyOwnDataset(Dataset):
 
     def get(self, idx):
         """Require to override Dataset get()"""
-        # assert(self.df is not None and len(self.df) > 0)
         which_file_index = np.searchsorted(self.order_of_indices, idx, side='right')-1 # (num_maps)
         # data_file = self.order_of_files[which_file_index]
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
-        data_idx = int(data_idx/self.num_per_pt)
         filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
-        curdata = torch.load(osp.join(self.processed_dir, filename))[data_idx%(self.num_per_pt-1)]
-        # curdata = torch.load(osp.join(self.processed_dir, data_file))[data_idx]
-        # curdata = self.order_to_loaded_pt[which_file_index][data_idx]
-        # curdata = torch.load(osp.join(self.processed_dir, f"data_{data_file}.pt"))[data_idx]
-        # curdata = torch.load(osp.join(self.processed_dir, f"data_{idx}.pt"))
-        # curdata = curdata.to(self.device) # Do not move it to device here, this slows stuff down and prevents pin_memory
-
-        # normalize bd, normalize edge attributes
-        # edge_weights, bd_and_grids = curdata.edge_attr, curdata.x
-        # curdata.edge_attr = apply_edge_normalization(edge_weights)
-        # curdata.x = apply_bd_normalization(bd_and_grids, self.k, self.device)
+        curdata = torch.load(osp.join(self.processed_dir, filename))
 
         return normalize_graph_data(curdata, self.k, edge_normalize="k", bd_normalize="center")
 

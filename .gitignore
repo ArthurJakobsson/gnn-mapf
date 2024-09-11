@@ -17,8 +17,10 @@ new_map_generation/eecbs_npzs/*
 new_map_generation/eecbs_output/*
 new_map_generation/maps/*
 new_map_generation/scens/*
+benchmarking/old_benchmarking/*
 temp/*
 *.prof
+debugging/
 benchmarking/lacam/*
 benchmarking/results/*
 benchmarking/eecbs_all/*
@@ -26,6 +28,9 @@ benchmarking/eecbs_all_new/*
 benchmarking/pymodel_results/*
 benchmarking/pymodel_results_old/*
 benchmarking/*_results/*
+benchmarking/benchmarking/*
+benchmarking/old_run/*
+benchmarking/eecbs_all_old/*
 # eph_mapf/__pycache__/
 # eph_mapf/assets
 # eph_mapf/configs
