@@ -11,7 +11,7 @@ def run_sbatch(my_input):
     for var in vars(args):
         key, value = var, getattr(args, var)
         if key=="expName":
-            value = args.expName+f"_{dataset_size}size"
+            value = args.expName
         if key=="dataset_size_list":
             continue
         command+= " --{}={}".format(key, value)
