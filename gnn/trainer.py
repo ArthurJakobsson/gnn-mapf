@@ -151,9 +151,9 @@ def train(combined_dataset, writer, run_lr, relu_type, my_batch_size, dataset_si
     # test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
 
     train_size = int(0.8 * len(combined_dataset))
-    test_size = len(combined_dataset) - train_size
     if dataset_size>0:
         train_size = dataset_size
+    test_size = len(combined_dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(combined_dataset, [train_size, test_size])
     BATCH_SIZE = my_batch_size #64 #1024
     NW = 4 # 32
