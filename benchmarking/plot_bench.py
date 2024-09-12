@@ -197,7 +197,8 @@ def plot_all_maps(maps, which_folders, info_type, output_path):
     for j in range(len(maps), len(axes)):
         fig.delaxes(axes[j])  # Remove extra axes
         
-    fig.legend(handles, labels, loc='upper center')
+    fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.05),
+          fancybox=True, shadow=True, ncol=5) 
 
     # Adjust layout to prevent overlapping
     plt.tight_layout()
