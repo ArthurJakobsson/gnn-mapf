@@ -53,14 +53,43 @@ mapsToMaxNumAgents = {
     "warehouse_20_40_10_2_2": 1000,
 }
 
+num_datapoints = {
+    "1_no_bd": 6223,
+    "4_no_bd": 22844,
+    "1_CSFreeze": 6223,
+    "2_CSFreeze": 12085,
+    "4_CSFreeze": 22844,
+    "8_CSFreeze": 44630,
+    "16_CSFreeze": 88802,
+    "32_CSFreeze": 177604,
+    "64_CSFreeze": 350747,
+    "128_CSFreeze": 712751,
+    "1_agents": 6223,
+    "2_agents": 12085,
+    "4_agents": 22844,
+    "8_agents": 44630,
+    "16_agents": 88802,
+    "32_agents": 177604,
+    "64_agents": 350747,
+    "128_agents": 712751,
+    "1_big_bad_model": 6223,
+    "4_big_bad_model": 22844,
+    "1.2_eecbs": 22844,
+    "1.5_eecbs": 22844,
+    "2.0_eecbs": 22844
+}
+
+for key,val in num_datapoints.values():
+    num_datapoints[key] = val*0.8 #train set is 80% of all data
+
 # maps = ["Berlin_1_256", "den312d"]
 maps = mapsToMaxNumAgents.keys()
-which_folders = ["benchmarking/big_run_results/benchmarking/1.2_eecbs_model_results", "benchmarking/big_run_results/benchmarking/1.5_eecbs_model_results", "benchmarking/big_run_results/benchmarking/2.0_eecbs_model_results"]
-#which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results"]
-#which_folders = ["benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/2_agents_results","benchmarking/big_run_results/benchmarking/4_agents_results","benchmarking/big_run_results/benchmarking/8_agents_results","benchmarking/big_run_results/benchmarking/16_agents_results","benchmarking/big_run_results/benchmarking/32_agents_results","benchmarking/big_run_results/benchmarking/64_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results"]
-#which_folders = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results", "benchmarking/big_run_results/benchmarking/2_CSFreeze_results","benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/8_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
-#which_folders = ["benchmarking/big_run_results/benchmarking/1_no_bd_results", "benchmarking/big_run_results/benchmarking/4_no_bd_results"]
-
+# which_folders = ["benchmarking/big_run_results/benchmarking/1.2_eecbs_model_results", "benchmarking/big_run_results/benchmarking/1.5_eecbs_model_results", "benchmarking/big_run_results/benchmarking/2.0_eecbs_model_results"]
+# which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results"]
+# which_folders = ["benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/2_agents_results","benchmarking/big_run_results/benchmarking/4_agents_results","benchmarking/big_run_results/benchmarking/8_agents_results","benchmarking/big_run_results/benchmarking/16_agents_results","benchmarking/big_run_results/benchmarking/32_agents_results","benchmarking/big_run_results/benchmarking/64_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results"]
+# which_folders = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results", "benchmarking/big_run_results/benchmarking/2_CSFreeze_results","benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/8_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
+# which_folders = ["benchmarking/big_run_results/benchmarking/1_no_bd_results", "benchmarking/big_run_results/benchmarking/4_no_bd_results"]
+which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results", "benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/4_agents_results"]
 
 def load_csv_data(which_map, which_folders):
     data_frames = []
@@ -162,6 +191,9 @@ def plot_all_maps(maps, which_folders, info_type, output_path):
 
         # Plot the success rate for this map on the respective axis
         plot_success_rate(result_data, axes[i], mapfile, info_type)
+        
+    for j in range(len(maps), len(axes)):
+        fig.delaxes(axes[j])  # Remove extra axes
 
     # Adjust layout to prevent overlapping
     plt.tight_layout()
