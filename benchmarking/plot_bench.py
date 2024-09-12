@@ -13,6 +13,8 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from collections import defaultdict
+import pdb
 
 mapsToMaxNumAgents = {
     "Berlin_1_256": 1000,
@@ -109,21 +111,21 @@ def load_csv_data(which_map, which_folders):
                     subset_df = df[df['Program']=='GNNMAPF']
                     data_frames.append(subset_df)
                 
-                print(f"Loaded {my_file} from {folder}")
+                # print(f"Loaded {my_file} from {folder}")
             except Exception as e:
                 print(f"Error loading {my_file}: {e}")
                 
-    pibt_folder = 'benchmarking/pibt_out/'
-    pibt_file = os.path.join(pibt_folder, f"results_{which_map}_pibt.csv")
-    pibt_df = pd.read_csv(pibt_file)
-    data_frames.append(pibt_df)
+    # pibt_folder = 'benchmarking/pibt_out/'
+    # pibt_file = os.path.join(pibt_folder, f"results_{which_map}_pibt.csv")
+    # pibt_df = pd.read_csv(pibt_file)
+    # data_frames.append(pibt_df)
     
-    eph_folder = 'benchmarking/eph_results/'
-    eph_file = os.path.join(eph_folder, f"{which_map}.csv")
-    eph_df = pd.read_csv(eph_file)
-    eph_df['Solution_Cost'] = None
-    eph_df['Runtime'] = None
-    data_frames.append(eph_df)
+    # eph_folder = 'benchmarking/eph_results/'
+    # eph_file = os.path.join(eph_folder, f"{which_map}.csv")
+    # eph_df = pd.read_csv(eph_file)
+    # eph_df['Solution_Cost'] = None
+    # eph_df['Runtime'] = None
+    # data_frames.append(eph_df)
 
     if data_frames:
         combined_df = pd.concat(data_frames, ignore_index=True)
@@ -204,12 +206,52 @@ def plot_all_maps(maps, which_folders, info_type, output_path):
     plt.savefig(output_path, format="pdf", bbox_inches='tight')
     plt.close()
 
+def print_stats(maps, which_folder):
+    total_solved_instances = defaultdict(int)
+
+    for i, mapfile in enumerate(maps):
+        data = load_csv_data(mapfile, which_folders)
+        filtered_data = data[data['Program'].isin(['GNNMAPF'])]
+
+        report_stats = (0, f"No success case for map {mapfile}")
+
+        agents = list(set(filtered_data['Agent_Size']))
+        agents.sort()
+
+        for agent_num in agents:
+            all_good_flag = True
+            performance = {}
+
+            # Plot points for GNNMAPF and label with the folder it came from
+            for folder in which_folders:
+                folder_focus = folder.split('/')[-1]
+                gnnmapf_data = filtered_data[filtered_data['source_folder'] == folder]
+                gnnmapf_data = gnnmapf_data[gnnmapf_data['Program'] == 'GNNMAPF']
+
+                agent_subset = gnnmapf_data[gnnmapf_data['Agent_Size'] == agent_num]
+                total_solved_instances[folder_focus] += round(np.sum(agent_subset['Success_Rate']) * 25)
+                assert(len(agent_subset) == 1)
+
+                if agent_subset['Success_Rate'].sum() != 1.0:
+                    all_good_flag = False
+                    # pdb.set_trace()
+                performance[folder_focus] = agent_subset['Solution_Cost'].sum() / agent_num
+            
+            if all_good_flag:
+                report_stats = (agent_num, performance)
+        
+        print(f"Map {mapfile}, Agents {report_stats[0]}")
+        print(report_stats)
+    print(total_solved_instances)
+                
+
 output_folder = "benchmarking/visualization_out"
 os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
 
-for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
-    output_path = f'{output_folder}/{info_type}_all_maps_grid.pdf'
-    plot_all_maps(maps, which_folders, info_type, output_path)
+print_stats(maps, which_folders)
+# for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
+#     output_path = f'{output_folder}/{info_type}_all_maps_grid.pdf'
+#     plot_all_maps(maps, which_folders, info_type, output_path)
 
 # # Assuming `result_data` is the DataFrame you're working with
 # def plot_success_rate(data, output_path, mapname, info_type):
