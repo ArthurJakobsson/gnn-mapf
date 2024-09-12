@@ -79,7 +79,7 @@ num_datapoints = {
     "2.0_eecbs": 22844
 }
 
-for key,val in num_datapoints.values():
+for key,val in num_datapoints.items():
     num_datapoints[key] = val*0.8 #train set is 80% of all data
 
 # maps = ["Berlin_1_256", "den312d"]
@@ -156,7 +156,7 @@ def plot_success_rate(data, ax, mapname, info_type):
     }
     
     # Plot lines for LaCAM, PIBT, EECBS, and EPH
-    for program in ['LaCAM', 'PIBT', 'EECBS', 'EPH']:
+    for program in ['PIBT', 'EECBS', 'EPH']: # 'LaCAM'
         if program == 'EPH' and info_type != "Success_Rate":
             continue
         program_data = filtered_data[filtered_data['Program'] == program]
@@ -173,7 +173,9 @@ def plot_success_rate(data, ax, mapname, info_type):
     ax.set_xlabel('Agent Size')
     ax.set_ylabel(info_type)
     ax.set_title(f'{info_type} for {mapname}')
-    ax.legend()
+    return ax.get_legend_handles_labels()
+    
+    # ax.legend()
 
 # Main function to plot all maps on a grid
 def plot_all_maps(maps, which_folders, info_type, output_path):
@@ -190,10 +192,12 @@ def plot_all_maps(maps, which_folders, info_type, output_path):
         result_data = load_csv_data(mapfile, which_folders)
 
         # Plot the success rate for this map on the respective axis
-        plot_success_rate(result_data, axes[i], mapfile, info_type)
+        handles, labels  = plot_success_rate(result_data, axes[i], mapfile, info_type)
         
     for j in range(len(maps), len(axes)):
         fig.delaxes(axes[j])  # Remove extra axes
+        
+    fig.legend(handles, labels, loc='upper center')
 
     # Adjust layout to prevent overlapping
     plt.tight_layout()
