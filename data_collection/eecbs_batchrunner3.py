@@ -653,7 +653,7 @@ if __name__ == "__main__":
                         type=int, required=True)
     parser.add_argument('--chosen_map', help="For benchmarking choose just one map from all the maps", 
                         type=str, default=None)
-    parser.add_argument("--iter", help="iteration number", type=int)
+    parser.add_argument("--iter", help="iteration number", type=int, default=0) #this is used only for the seed for simulation now
 
     # Subparses for C++ EECBS or Python ML model
     subparsers = parser.add_subparsers(dest="command", required=True)
