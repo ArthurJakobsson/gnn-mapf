@@ -101,7 +101,7 @@ if __name__ == "__main__":
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                         f"--outputFolder={eecbs_outputs_folder}", 
-                        f"--num_parallel_runs={args.num_parallel}",
+                        f"--num_parallel_runs={args.num_parallel}", f"--iter={args.iternum}",
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
@@ -121,7 +121,7 @@ if __name__ == "__main__":
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                     f"--outputFolder={eecbs_outputs_folder}", 
-                    f"--num_parallel_runs={args.num_parallel}",
+                    f"--num_parallel_runs={args.num_parallel}", f"--iter={args.iternum}",
                     "\"eecbs\"",
                     f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                     f"--firstIter=false",
@@ -137,7 +137,7 @@ if __name__ == "__main__":
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                     f"--outputFolder={eecbs_outputs_folder}", 
-                    f"--num_parallel_runs={args.num_parallel}",
+                    f"--num_parallel_runs={args.num_parallel}", f"--iter={args.iternum}",
                     "\"clean\" --keepNpys=false"])
     subprocess.run(command, shell=True, check=True)
 

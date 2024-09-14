@@ -99,7 +99,7 @@ if __name__ == "__main__":
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                     f"--outputFolder={pymodel_outputs_folder}", 
-                    f"--num_parallel_runs={min(20, args.num_parallel)}",
+                    f"--num_parallel_runs={min(20, args.num_parallel)}", f"--iter={args.iternum}",
                     "\"pymodel\"",
                     f"--modelPath={iterFolder}/models/max_test_acc.pt",
                     "--useGPU=False",
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                     f"--outputFolder={pymodel_outputs_folder}", 
-                    f"--num_parallel_runs={args.num_parallel}",
+                    f"--num_parallel_runs={args.num_parallel}", f"--iter={args.iternum}",
                     "\"clean\" --keepNpys=true"])
     subprocess.run(command, shell=True, check=True)
     
