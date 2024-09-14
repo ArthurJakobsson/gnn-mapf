@@ -395,7 +395,7 @@ if __name__ == '__main__':
     else:
         all_maps = args.mapname.split(",")
     
-    run_eph(args)
+    # run_eph(args)
 
     # get aggregate statistics for all maps
     results_df = []
