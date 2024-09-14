@@ -130,6 +130,7 @@ def load_csv_data(which_map, which_folders):
     eph_file = os.path.join(eph_folder, f"{which_map}.csv")
     eph_df = pd.read_csv(eph_file)
     eph_df['Solution_Cost'] = None
+    eph_df['Suboptimality'] = None
     eph_df['Runtime'] = None
     data_frames.append(eph_df)
 
@@ -265,7 +266,8 @@ output_folder = "benchmarking/visualization_out"
 os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
 
 # print_stats(maps, which_folders)
-for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
+for info_type in ["Success_Rate", "Runtime", "Suboptimality"]:
+# for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
     output_path = f'{output_folder}/{info_type}_all_maps_grid.pdf'
     plot_all_maps(maps, which_folders, info_type, output_path)
 
