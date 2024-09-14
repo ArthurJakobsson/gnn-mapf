@@ -10,6 +10,7 @@ import pdb
 from itertools import repeat
 import time
 import glob
+import re
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -91,7 +92,12 @@ maps = mapsToMaxNumAgents.keys()
 # which_folders = ["benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/2_agents_results","benchmarking/big_run_results/benchmarking/4_agents_results","benchmarking/big_run_results/benchmarking/8_agents_results","benchmarking/big_run_results/benchmarking/16_agents_results","benchmarking/big_run_results/benchmarking/32_agents_results","benchmarking/big_run_results/benchmarking/64_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results"]
 # which_folders = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results", "benchmarking/big_run_results/benchmarking/2_CSFreeze_results","benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/8_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
 # which_folders = ["benchmarking/big_run_results/benchmarking/1_no_bd_results", "benchmarking/big_run_results/benchmarking/4_no_bd_results"]
-which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results", "benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/4_agents_results"]
+# which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results", "benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/4_agents_results"]
+# which_folders = ["benchmarking/big_run_results/benchmarking/1_10_epoch_freeze","benchmarking/big_run_results/benchmarking/2_10_epoch_freeze","benchmarking/big_run_results/benchmarking/4_10_epoch_freeze","benchmarking/big_run_results/benchmarking/8_10_epoch_freeze","benchmarking/big_run_results/benchmarking/16_10_epoch_freeze","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
+# which_folders = ["benchmarking/big_run_results/benchmarking/1_10_epoch_pibt","benchmarking/big_run_results/benchmarking/2_10_epoch_pibt","benchmarking/big_run_results/benchmarking/4_10_epoch_pibt","benchmarking/big_run_results/benchmarking/8_10_epoch_pibt","benchmarking/big_run_results/benchmarking/16_10_epoch_pibt","benchmarking/big_run_results/benchmarking/32_agents_results","benchmarking/big_run_results/benchmarking/64_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results"]
+which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_10_ep", "benchmarking/big_run_results/benchmarking/4_big_bad_10_ep", "benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results", "benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/4_agents_results"]
+# which_folders = ["benchmarking/big_run_results/benchmarking/128_eph_trainset"]
+
 
 def load_csv_data(which_map, which_folders):
     data_frames = []
@@ -115,17 +121,17 @@ def load_csv_data(which_map, which_folders):
             except Exception as e:
                 print(f"Error loading {my_file}: {e}")
                 
-    # pibt_folder = 'benchmarking/pibt_out/'
-    # pibt_file = os.path.join(pibt_folder, f"results_{which_map}_pibt.csv")
-    # pibt_df = pd.read_csv(pibt_file)
-    # data_frames.append(pibt_df)
+    pibt_folder = 'benchmarking/pibt_out/'
+    pibt_file = os.path.join(pibt_folder, f"results_{which_map}_pibt.csv")
+    pibt_df = pd.read_csv(pibt_file)
+    data_frames.append(pibt_df)
     
-    # eph_folder = 'benchmarking/eph_results/'
-    # eph_file = os.path.join(eph_folder, f"{which_map}.csv")
-    # eph_df = pd.read_csv(eph_file)
-    # eph_df['Solution_Cost'] = None
-    # eph_df['Runtime'] = None
-    # data_frames.append(eph_df)
+    eph_folder = 'benchmarking/eph_results/'
+    eph_file = os.path.join(eph_folder, f"{which_map}.csv")
+    eph_df = pd.read_csv(eph_file)
+    eph_df['Solution_Cost'] = None
+    eph_df['Runtime'] = None
+    data_frames.append(eph_df)
 
     if data_frames:
         combined_df = pd.concat(data_frames, ignore_index=True)
@@ -135,45 +141,54 @@ def load_csv_data(which_map, which_folders):
     
     
     
-# Assuming `result_data` is the DataFrame you're working with
-def plot_success_rate(data, ax, mapname, info_type):
+def plot_success_rate(data, ax, mapname, info_type, last_row):
     # Filter the data for the specific programs
     filtered_data = data[data['Program'].isin(['LaCAM', 'PIBT', 'EECBS', 'GNNMAPF', 'EPH'])]
     
     marker_style = {
         'style':{
             'LaCAM': "1",
-            'PIBT': "H",
+            'PIBT': "*",
             'EECBS': "^",
-            'GNNMAPF': "*",
-            'EPH': 3
+            'CS_Freeze': "x",
+            'CS_PIBT': ".",
+            'EPH': "s"
         },
         'color':{
             "EECBS": "blue",
-            "GNNMAPF": "green",
-            "LaCAM": "red",
-            "PIBT": "orange",
-            'EPH': "brown"
+            # "LaCAM": "red",
+            "PIBT": "red",
+            'EPH': "brown",
+            "1": "darkcyan",
+            "2": "pink",
+            "4": "purple",
+            "8": "olive",
+            "16": "slateblue",
+            "32": "gold",
+            "64": "crimson",
+            "128": "darksalmon"
         }
     }
-    
-    # Plot lines for LaCAM, PIBT, EECBS, and EPH
-    for program in ['PIBT', 'EECBS', 'EPH']: # 'LaCAM'
-        if program == 'EPH' and info_type != "Success_Rate":
-            continue
-        program_data = filtered_data[filtered_data['Program'] == program]
-        ax.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program])
     
     # Plot points for GNNMAPF and label with the folder it came from
     for folder in which_folders:
         folder_focus = folder.split('/')[-1]
         gnnmapf_data = filtered_data[filtered_data['source_folder'] == folder]
         gnnmapf_data = gnnmapf_data[gnnmapf_data['Program'] == 'GNNMAPF']
-        ax.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}", marker=marker_style['style']['GNNMAPF'])
+        cs_type = "CS_Freeze" if "CSFreeze" in folder_focus else "CS_PIBT"
+        color = marker_style['color'][re.findall(r'\d+',folder_focus)[0]]
+        linestyle = 'solid' if cs_type=="CS_PIBT" else 'dashed'
+        ax.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}", marker=marker_style['style'][cs_type], linestyle=linestyle, alpha=0.8)
+    
+    for program in ['PIBT', 'EECBS', 'EPH']: # 'LaCAM'
+        if (program == 'EPH') and (info_type != "Success_Rate"):
+            continue
+        program_data = filtered_data[filtered_data['Program'] == program]
+        ax.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program],color=marker_style['color'][program],  alpha=0.8)
     
     # Set labels and title
-    ax.set_xlabel('Agent Size')
-    ax.set_ylabel(info_type)
+    ax.set_xlabel('# of Agents', fontsize=13)
+    # ax.set_ylabel(info_type)
     ax.set_title(f'{info_type} for {mapname}')
     return ax.get_legend_handles_labels()
     
@@ -194,7 +209,7 @@ def plot_all_maps(maps, which_folders, info_type, output_path):
         result_data = load_csv_data(mapfile, which_folders)
 
         # Plot the success rate for this map on the respective axis
-        handles, labels  = plot_success_rate(result_data, axes[i], mapfile, info_type)
+        handles, labels  = plot_success_rate(result_data, axes[i], mapfile, info_type, (i==len(maps)-1))
         
     for j in range(len(maps), len(axes)):
         fig.delaxes(axes[j])  # Remove extra axes
@@ -249,10 +264,10 @@ def print_stats(maps, which_folder):
 output_folder = "benchmarking/visualization_out"
 os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
 
-print_stats(maps, which_folders)
-# for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
-#     output_path = f'{output_folder}/{info_type}_all_maps_grid.pdf'
-#     plot_all_maps(maps, which_folders, info_type, output_path)
+# print_stats(maps, which_folders)
+for info_type in ["Success_Rate", "Runtime", "Solution_Cost"]:
+    output_path = f'{output_folder}/{info_type}_all_maps_grid.pdf'
+    plot_all_maps(maps, which_folders, info_type, output_path)
 
 # # Assuming `result_data` is the DataFrame you're working with
 # def plot_success_rate(data, output_path, mapname, info_type):

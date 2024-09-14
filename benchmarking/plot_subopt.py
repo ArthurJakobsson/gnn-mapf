@@ -86,15 +86,14 @@ num_datapoints = {
 for key,val in num_datapoints.items():
     num_datapoints[key] = val*0.8 #train set is 80% of all data
     
-unheld_maps = ["Berlin_1_256", "empty_32_32", "maze_32_32_4", "random_64_64_20", "warehouse_20_40_10_2_1", "room_64_64_16"]
+unheld_maps = ["empty_32_32", "random_64_64_20"]#, "maze_32_32_4", "random_64_64_20", "warehouse_20_40_10_2_1", "room_64_64_16"]
 held_maps = ["Paris_1_256", "empty_48_48", "maze_128_128_2", "random_64_64_10", "warehouse_10_20_10_2_1", "den312d"]
 
 # maps = ["Berlin_1_256", "den312d"]
 # maps = mapsToMaxNumAgents.keys()
-maps_1 = unheld_maps
-maps_2 = held_maps
+maps = unheld_maps
 
-# which_folders = ["benchmarking/big_run_results/benchmarking/1.2_eecbs_model_results", "benchmarking/big_run_results/benchmarking/1.5_eecbs_model_results", "benchmarking/big_run_results/benchmarking/2.0_eecbs_model_results"]
+which_folders = ["benchmarking/big_run_results/benchmarking/1.2_eecbs_model_results", "benchmarking/big_run_results/benchmarking/1.5_eecbs_model_results", "benchmarking/big_run_results/benchmarking/2.0_eecbs_model_results"]
 # which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results"]
 # which_folders_cspibt = ["benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/2_agents_results","benchmarking/big_run_results/benchmarking/4_agents_results","benchmarking/big_run_results/benchmarking/8_agents_results","benchmarking/big_run_results/benchmarking/16_agents_results","benchmarking/big_run_results/benchmarking/32_agents_results","benchmarking/big_run_results/benchmarking/64_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results"]
 # which_folders_csfreeze = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results", "benchmarking/big_run_results/benchmarking/2_CSFreeze_results","benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/8_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
@@ -102,11 +101,11 @@ maps_2 = held_maps
 # which_folders = ["benchmarking/big_run_results/benchmarking/1_big_bad_model_results", "benchmarking/big_run_results/benchmarking/4_big_bad_model_results", "benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/4_agents_results"]
 # which_folders = ["benchmarking/big_run_results/benchmarking/1_agents_results", "benchmarking/big_run_results/benchmarking/2_agents_results","benchmarking/big_run_results/benchmarking/4_agents_results","benchmarking/big_run_results/benchmarking/8_agents_results","benchmarking/big_run_results/benchmarking/16_agents_results","benchmarking/big_run_results/benchmarking/32_agents_results","benchmarking/big_run_results/benchmarking/64_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results","benchmarking/big_run_results/benchmarking/1_CSFreeze_results", "benchmarking/big_run_results/benchmarking/2_CSFreeze_results","benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/8_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/32_CSFreeze_results","benchmarking/big_run_results/benchmarking/64_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
 
-which_folders_cspibt_subset = ["benchmarking/big_run_results/benchmarking/1_agents_results","benchmarking/big_run_results/benchmarking/4_agents_results","benchmarking/big_run_results/benchmarking/16_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results"]
-which_folders_csfreeze_subset = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results","benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
+# which_folders_cspibt_subset = ["benchmarking/big_run_results/benchmarking/1_agents_results","benchmarking/big_run_results/benchmarking/4_agents_results","benchmarking/big_run_results/benchmarking/16_agents_results","benchmarking/big_run_results/benchmarking/128_agents_results"]
+# which_folders_csfreeze_subset = ["benchmarking/big_run_results/benchmarking/1_CSFreeze_results","benchmarking/big_run_results/benchmarking/4_CSFreeze_results","benchmarking/big_run_results/benchmarking/16_CSFreeze_results","benchmarking/big_run_results/benchmarking/128_CSFreeze_results"]
 
 
-which_folders = [i for j in zip(which_folders_cspibt_subset,which_folders_csfreeze_subset) for i in j]
+# which_folders = [i for j in zip(which_folders_cspibt_subset,which_folders_csfreeze_subset) for i in j]
 
 def load_csv_data(which_map, which_folders):
     data_frames = []
@@ -156,7 +155,7 @@ def add_image_to_title(ax, mapfile, image_folder):
         image = plt.imread(img_path)
         image = cv2.resize(image, dsize=(100, 100), interpolation=cv2.INTER_CUBIC)
         imagebox = OffsetImage(image, zoom=0.5)  # Adjust zoom for size
-        ab = AnnotationBbox(imagebox, (0.9, 1.15), xycoords='axes fraction', frameon=False, box_alignment=(0.5, 0.5))
+        ab = AnnotationBbox(imagebox, (0.8, 1.15), xycoords='axes fraction', frameon=False, box_alignment=(0.5, 0.5))
         ax.add_artist(ab)
     
 # Assuming `result_data` is the DataFrame you're working with
@@ -171,21 +170,21 @@ def plot_success_rate(data, ax, mapname, info_type, last_row):
             'EECBS': "^",
             'CS_Freeze': "x",
             'CS_PIBT': ".",
-            'EPH': "s"
+            'EPH': "+"
         },
         'color':{
             "EECBS": "blue",
             # "LaCAM": "red",
             "PIBT": "red",
             'EPH': "brown",
-            "1": "darkcyan",
-            "2": "pink",
-            "4": "purple",
-            "8": "olive",
-            "16": "slateblue",
-            "32": "gold",
-            "64": "crimson",
-            "128": "darksalmon"
+            # "1": "darkcyan",
+            # "2": "pink",
+            # "4": "purple",
+            # "8": "olive",
+            # "16": "slateblue",
+            # "32": "gold",
+            # "64": "crimson",
+            # "128": "darksalmon"
         }
     }
     
@@ -195,15 +194,15 @@ def plot_success_rate(data, ax, mapname, info_type, last_row):
         gnnmapf_data = filtered_data[filtered_data['source_folder'] == folder]
         gnnmapf_data = gnnmapf_data[gnnmapf_data['Program'] == 'GNNMAPF']
         cs_type = "CS_Freeze" if "CSFreeze" in folder_focus else "CS_PIBT"
-        color = marker_style['color'][re.findall(r'\d+',folder_focus)[0]]
+        # color = marker_style['color'][re.findall(r'\d+',folder_focus)[0]]
         linestyle = 'solid' if cs_type=="CS_PIBT" else 'dashed'
-        ax.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}", marker=marker_style['style'][cs_type], color=color, linestyle=linestyle, alpha=0.8)
+        ax.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}", marker=marker_style['style'][cs_type], linestyle=linestyle)
     
     for program in ['PIBT', 'EECBS', 'EPH']: # 'LaCAM'
         if (program == 'EPH') and (info_type != "Success_Rate"):
             continue
         program_data = filtered_data[filtered_data['Program'] == program]
-        ax.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program], alpha=0.8)
+        ax.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program])
     
     # Set labels and title
     if last_row:
@@ -212,15 +211,12 @@ def plot_success_rate(data, ax, mapname, info_type, last_row):
     # ax.set_title(f'{info_type} for {mapname}')
     return ax.get_legend_handles_labels()
 
-
-
 def plot_all_maps_single_row(maps, which_folders, output_path, image_folder):
     # Create a 3x6 grid for subplots (3 rows for info types, 6 columns for maps)
-    fig, axes = plt.subplots(3, len(maps), figsize=(25, 10))  # 3 rows (one per info type), 6 maps (columns)
+    fig, axes = plt.subplots(1, len(maps), figsize=(15, 5))  # 3 rows (one per info type), 6 maps (columns)
     
     # Plot each info type in a separate row
-    info_types = ["Success_Rate", "Runtime", "Solution_Cost"]
-    # info_types = ["Solution_Cost"]
+    info_types = ["Solution_Cost"]
     firsttime = True
     
     for row, info_type in enumerate(info_types):
@@ -229,25 +225,30 @@ def plot_all_maps_single_row(maps, which_folders, output_path, image_folder):
             result_data = load_csv_data(mapfile, which_folders)
             # Plot the respective info type for this map on the respective axis
             if firsttime:
-                handles, labels = plot_success_rate(result_data, axes[row, col], mapfile, info_type, row==2)
+                handles, labels = plot_success_rate(result_data, axes[col], mapfile, info_type, row==2)
                 firsttime=False
             else:
-                plot_success_rate(result_data, axes[row, col], mapfile, info_type, row==2)
+                plot_success_rate(result_data, axes[col], mapfile, info_type, row==2)
             
-            add_image_to_title(axes[0, col], mapfile, image_folder)
+            # Set the map name as the title
+            # axes[row, col].set_title(mapfile, fontsize=10, pad=40)
+            
+            
+            # Add the image next to the title
+            add_image_to_title(axes[col], mapfile, image_folder)
         
         # Add big text on the left to indicate the info_type for the row
         display_info_type = info_type.replace("Solution_Cost", "Solution Cost per Agent").replace("_", " ")
-        axes[row, 0].text(-0.2, 0.5, display_info_type, fontsize=13, va='center', rotation=90, transform=axes[row, 0].transAxes)
+        axes[0].text(-0.1, 0.5, display_info_type, fontsize=13, va='center', rotation=90, transform=axes[0].transAxes)
 
     for col, mapfile in enumerate(maps):
-        fig.text((col+0.1)/len(maps), 1.05, mapfile, fontsize=15, fontstyle='italic', ha='left')
+        fig.text((col+0.4)/len(maps), 0.97, mapfile, fontsize=15, fontstyle='italic', ha='center')
         
-    labels = [word.replace("GNNMAPF", "").replace("_", " ").replace("agents", "SSIL CS-PIBT").replace("CSFreeze", "SSIL CS-Naive").replace("results", "") for word in labels]
+    labels = [word.replace("GNNMAPF", "").replace("_", " ").replace("eecbs model", "Suboptimality SSIL").replace("results", "") for word in labels]
     
     # Add a legend for the last info type row
     fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.01),
-               fancybox=True, shadow=True, ncol=6, prop={'size': 15})
+               fancybox=True, shadow=True, ncol=3, prop={'size': 15})
     
     plt.tight_layout(rect=[0, 0, 1, 1.1])
     plt.savefig(output_path, format="pdf", bbox_inches='tight')
@@ -259,7 +260,7 @@ os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exi
 
 # Generate the plot for all info types in a single image
 output_path = f'{output_folder}/all_info_types_all_maps_grid.pdf'
-plot_all_maps_single_row(maps_2, which_folders, output_path, image_folder)
+plot_all_maps_single_row(maps, which_folders, output_path, image_folder)
     
     
 # Main function to plot all maps in a single row per info type
@@ -293,76 +294,3 @@ plot_all_maps_single_row(maps_2, which_folders, output_path, image_folder)
 # # Generate the plot for all info types in a single image
 # output_path = f'{output_folder}/all_info_types_all_maps_grid.pdf'
 # plot_all_maps_single_row(maps, which_folders, output_path)
-
-
-
-
-# def plot_two_rows_of_maps(maps_1, maps_2, which_folders, output_path, image_folder):
-#     # Create a 6x6 grid for subplots (6 rows for info types, 6 columns for maps)
-#     fig, axes = plt.subplots(6, len(maps_1), figsize=(30, 23))  # 6 rows (3 per set of maps), 6 maps (columns)
-    
-#     # Info types
-#     info_types = ["Success_Rate", "Runtime", "Solution_Cost"]
-    
-#     # Plot for the first row of maps (maps_1)
-#     firsttime = True
-#     for row, info_type in enumerate(info_types):
-#         for col, mapfile in enumerate(maps_1):
-#             # Load data for the map
-#             result_data = load_csv_data(mapfile, which_folders)
-            
-#             # Plot the respective info type for this map on the respective axis
-#             if firsttime:
-#                 handles, labels = plot_success_rate(result_data, axes[row, col], mapfile, info_type, row == 2)
-#                 firsttime = False
-#             else:
-#                 plot_success_rate(result_data, axes[row, col], mapfile, info_type, row == 2)
-            
-#             # Add image next to the title
-#             add_image_to_title(axes[0, col], mapfile, image_folder)
-
-#         # Add text on the left to indicate the info_type for the row
-#         display_info_type = info_type.replace("Solution_Cost", "Solution Cost per Agent").replace("_", " ")
-#         axes[row, 0].text(-0.2, 0.5, display_info_type, fontsize=13, va='center', rotation=90, transform=axes[row, 0].transAxes)
-    
-#     # Plot for the second row of maps (maps_2)
-#     for row, info_type in enumerate(info_types):
-#         for col, mapfile in enumerate(maps_2):
-#             # Load data for the map
-#             result_data = load_csv_data(mapfile, which_folders)
-            
-#             # Plot the respective info type for this map on the respective axis (second set of rows)
-#             plot_success_rate(result_data, axes[row + 3, col], mapfile, info_type, row == 2)
-            
-#             # Add image next to the title
-#             add_image_to_title(axes[3, col], mapfile, image_folder)
-
-#         # Add text on the left to indicate the info_type for the second row
-#         display_info_type = info_type.replace("Solution_Cost", "Solution Cost per Agent").replace("_", " ")
-#         axes[row + 3, 0].text(-0.2, 0.5, display_info_type, fontsize=13, va='center', rotation=90, transform=axes[row + 3, 0].transAxes)
-
-#     # Add titles for the columns (map names)
-#     for col, mapfile in enumerate(maps_1):
-#         fig.text((col+0.15) / len(maps_1), 1.02, mapfile, fontsize=18, fontstyle='italic', ha='left')
-    
-#     for col, mapfile in enumerate(maps_2):
-#         fig.text((col+0.15) / len(maps_2), 0.51, mapfile, fontsize=18, fontstyle='italic', ha='left')
-
-#     labels = [word.replace("GNNMAPF", "").replace("_", " ").replace("agents", "SSIL CS-PIBT").replace("CSFreeze", "SSIL CS-Naive").replace("results", "") for word in labels]
-    
-#     # Add a legend for the last info type row
-#     fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.01),
-#                fancybox=True, shadow=True, ncol=6, prop={'size': 15})
-    
-#     plt.tight_layout(rect=[0, 0, 1, 1.05], h_pad=[-1.4, -1.4, -1.4, -0.5, -1.4, -1.4, -1.4])
-#     plt.savefig(output_path, format="pdf", bbox_inches='tight')
-#     plt.close()
-
-# # Example of usage
-# output_folder = "benchmarking/visualization_out"
-# image_folder = "benchmarking/mapf-png"
-# os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
-
-# # Generate the plot for all info types with two sets of maps
-# output_path = f'{output_folder}/all_info_types_two_rows_of_maps_grid.pdf'
-# plot_two_rows_of_maps(maps_1, maps_2, which_folders, output_path, image_folder)

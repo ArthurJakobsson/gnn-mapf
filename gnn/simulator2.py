@@ -484,6 +484,12 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     def getActionPrefsFromLocs(locs):
         # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
         probs = runNNOnState(locs, bd, grid_map, k, m, model, device, goal_locations, args, timer)
+
+        ### Mask out invalid actions
+        action_mask = grid_map[cur_locs[:, 0, None] + LABEL_TO_MOVES[:, 0], cur_locs[:, 1, None] + LABEL_TO_MOVES[:, 1]] == 1  # (N,5)
+        assert(not np.any(action_mask[:,0])) # First action should always be invalid
+        probs[action_mask] = 1e-8  # Mask out probabilities for invalid actions, cannot set to 0 as it messes up sampling later
+        probs = probs / probs.sum(axis=1, keepdims=True)  # Normalize to sum to 1
         return convertProbsToPreferences(probs, "sampled")
     wrapper_bd_prefs = WrapperBDGetActionPrefs(bd, grid_map, k, m, len(start_locations)) # This returns PIBT action preferences
     cur_locs = start_locations # (N,2)
@@ -507,11 +513,11 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
             print("time limit hit")
             break
         if shield_type in ["CS-PIBT", "CS-Freeze"]:
-            # action_preferences = getActionPrefsFromLocs(cur_locs) # (N,5)
-            # if shield_type == "CS-Freeze":
-            #     action_preferences = action_preferences[:,:2] # (N,2)
-            #     action_preferences[:,1] = 0  # 0 action index corresponds to stop
-            action_preferences = wrapper_bd_prefs(cur_locs)
+            action_preferences = getActionPrefsFromLocs(cur_locs) # (N,5)
+            if shield_type == "CS-Freeze":
+                action_preferences = action_preferences[:,:2] # (N,2)
+                action_preferences[:,1] = 0  # 0 action index corresponds to stop
+            # action_preferences = wrapper_bd_prefs(cur_locs)
             timer.start("cs-time")
             new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [], start_time, args.timeLimit)
             timer.stop("cs-time")

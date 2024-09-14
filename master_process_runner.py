@@ -73,7 +73,8 @@ if __name__ == "__main__":
     LE = f"data_collection/data/logs/{args.expName}"
     os.makedirs(LE, exist_ok=True)
     
-    num_cores = multiprocessing.cpu_count()
+    # num_cores = multiprocessing.cpu_count()
+    num_cores=args.num_parallel
     first_iteration = "true"
     print("Current Path:", os.getcwd())
 
@@ -84,7 +85,7 @@ if __name__ == "__main__":
     
 
     processed_folders_list = []
-    for iternum in range(1):
+    for iternum in range(10):
         iterFolder = f"{LE}/iter{iternum}"
         if not os.path.exists(iterFolder):
             os.makedirs(iterFolder)
@@ -104,7 +105,7 @@ if __name__ == "__main__":
                             f"--numAgents={args.numAgents}",
                             f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                             f"--outputFolder={eecbs_outputs_folder}", 
-                            f"--num_parallel_runs={args.num_parallel}",
+                            f"--num_parallel_runs={args.num_parallel}", f"--iter={iternum}",
                             "\"eecbs\"",
                             f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                             "--firstIter=false", # Note we should not need to create bds anymore, which is what this is used for
@@ -124,7 +125,7 @@ if __name__ == "__main__":
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                         f"--outputFolder={eecbs_outputs_folder}", 
-                        f"--num_parallel_runs={args.num_parallel}",
+                        f"--num_parallel_runs={args.num_parallel}", f"--iter={iternum}",
                         "\"eecbs\"",
                         f"--outputPathNpzFolder={eecbs_path_npzs_folder}",
                         f"--firstIter=false",
@@ -141,7 +142,7 @@ if __name__ == "__main__":
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                         f"--outputFolder={eecbs_outputs_folder}", 
-                        f"--num_parallel_runs={args.num_parallel}",
+                        f"--num_parallel_runs={args.num_parallel}", f"--iter={iternum}",
                         "\"clean\" --keepNpys=false"])
         subprocess.run(command, shell=True, check=True)
         
@@ -185,7 +186,7 @@ if __name__ == "__main__":
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                         f"--outputFolder={pymodel_outputs_folder}", 
-                        f"--num_parallel_runs={min(20, args.num_parallel)}",
+                        f"--num_parallel_runs={min(20, args.num_parallel)}", f"--iter={iternum}",
                         "\"pymodel\"",
                         f"--modelPath={iterFolder}/models/max_test_acc.pt",
                         "--useGPU=False",
@@ -225,6 +226,6 @@ if __name__ == "__main__":
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
                         f"--outputFolder={pymodel_outputs_folder}", 
-                        f"--num_parallel_runs={args.num_parallel}",
+                        f"--num_parallel_runs={args.num_parallel}", f"--iter={iternum}",
                         "\"clean\" --keepNpys=true"])
         subprocess.run(command, shell=True, check=True)

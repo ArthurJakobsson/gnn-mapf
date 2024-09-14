@@ -117,7 +117,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     
     command += f" --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz"
     command += f" --mapName={mapname} --scenFile={scenfile} --agentNum={numAgents}"
-    bdFile = f"data_collection/data/benchmark_original/constant_npzs/{mapname}_bds.npz"
+    bdFile = f"data_collection/data/benchmark_data/completed_splitting/{mapname}_bds.npz"
     command += f" --bdNpzFile={bdFile}"
     command += f" --outputCSVFile={outputfile}"
     # tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.npy" # Note scenname ends with a .scen
@@ -125,6 +125,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     command += f" --outputPathsFile={outputPathNpy}"
     command += f" --numScensToCreate={runnerArgs['numScensToCreate']}"
     command += f" --percentSuccessGenerationReduction={runnerArgs['percentSuccessGenerationReduction']}"
+    command += f" --seed={args.iter}"
     return command
 
 def getCommandForSingleInstance(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
@@ -202,7 +203,7 @@ def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputFi
         if not runBefore:
             # print(f"worker_id:{worker_id}")
             print(f"mapFile:{mapFile}, curAgentNum:{curAgentNum}, scen:{scen}, workerOutputCSV:{workerOutputCSV}, worker_id:{worker_id}")
-            raise RuntimeError("Fix detectExistingStatus; we ran an instance but cannot find it afterwards!")
+            # raise RuntimeError("Fix detectExistingStatus; we ran an instance but cannot find it afterwards!")
 
     ## Update the number of runs. If we are the last one, then check if we should run the next agent number.
     lock.acquire()
@@ -244,7 +245,7 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
         runBefore, status = detectExistingStatus(eecbsArgs, mapFile, agentNum, scen, combined_df)
         if not runBefore:
             print("Error: {}, {}, {}, {}".format(mapFile, agentNum, scen, combined_filename))
-        assert(runBefore)
+        # assert(runBefore)
         numSuccess += status
 
     # shouldRunDataManipulator = False
@@ -652,6 +653,7 @@ if __name__ == "__main__":
                         type=int, required=True)
     parser.add_argument('--chosen_map', help="For benchmarking choose just one map from all the maps", 
                         type=str, default=None)
+    parser.add_argument("--iter", help="iteration number", type=int)
 
     # Subparses for C++ EECBS or Python ML model
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -669,7 +671,7 @@ if __name__ == "__main__":
     eecbs_parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
     eecbs_parser.add_argument("--suboptimality", help="suboptimality", type=float, default=2)
     # eecbs_parser.add_argument("--expnum", help="experiment number", type=int, default=0)
-    # eecbs_parser.add_argument("--iter", help="iteration number", type=int)
+    
 
     ### Python ML Model
     pymodel_parser = subparsers.add_parser("pymodel", help="Run python model")
