@@ -673,13 +673,13 @@ def main(args: argparse.ArgumentParser):
     if success:
         numToCreate *= chanceDecreasedForSuccess 
         numToCreate = int(numToCreate)
-        sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False)
+        sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False)
         # pdb.set_trace()
     # if failure also sample more towards the end
     else:
         weights = np.arange(solution_path.shape[0], dtype=np.float64) + 1
         weights /= np.sum(weights)
-        sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate-6, replace=False, p=weights)        # Always include the first timestep + last 5 timesteps, then sample the rest
+        sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False, p=weights)        # Always include the first timestep + last 5 timesteps, then sample the rest
     # pdb.set_trace()
 
     # Always include the first timestep + last 5 timesteps, then sample the rest
