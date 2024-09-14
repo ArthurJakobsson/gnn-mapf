@@ -101,7 +101,8 @@ def fetch_eecbs(mapname, num_agent, args):
     success_rate = len(successes.index)/len(filtered_df.index) if len(filtered_df.index)!=0 else 0
     runtime  = successes['runtime'].mean()
     solution_cost = successes['solution cost'].mean()
-    return success_rate, solution_cost, runtime
+    suboptimality = (successes['solution cost']/successes['root g value']).mean()
+    return success_rate, solution_cost, runtime, suboptimality
 
 
 
@@ -119,23 +120,35 @@ def parse_eph(mapname, num_agent, eph_results):
 
 def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
     print(pymodel_output_folder)
+    eecbs_source = 'benchmarking/eecbs_less_old/eecbs_outputs/'
+    eecbs_map_folder = eecbs_source + map_name + '/csvs/combined.csv'
+    eecbs_df = pd.read_csv(eecbs_map_folder)
+    
     df = pd.read_csv(f"{pymodel_output_folder}/{map_name}/csvs/combined.csv")
     filtered_df = df[df['agentNum'] == num_agents]
     successes = filtered_df[filtered_df['success']]
+    
+    eecbs_df['scenFile'] =eecbs_df['agents'].str.slice(start=2)
+    eecbs_subset = eecbs_df[['scenFile', 'root g value']]
+
+    
+    successes = successes.merge(eecbs_subset, how='left', on='scenFile')
     success_rate = len(successes.index)/len(filtered_df.index) if len(filtered_df.index)!=0 else 0
     runtime  = successes['runtime'].mean()
     solution_cost = successes['total_cost_true'].mean()
+    suboptimality = (successes['total_cost_true']/successes['root g value']).mean()
+    
     # 'create_nn_data', 'forward_pass', 'cs-time'
     create_nn_data = None
     forward_pass = None
     cs_time = None
 
-    if 'create_nn_data' in successes.columns and 'forward_pass' in successes.columns and 'cs-time' in successes.columns
+    if 'create_nn_data' in successes.columns and 'forward_pass' in successes.columns and 'cs-time' in successes.columns:
         create_nn_data = successes['create_nn_data'].mean()
         forward_pass = successes['forward_pass'].mean()
         cs_time = successes['cs-time'].mean()
 
-    return success_rate, solution_cost, runtime, create_nn_data, forward_pass, cs_time
+    return success_rate, solution_cost, runtime, create_nn_data, forward_pass, cs_time, suboptimality
 
 def run_gnn_mapf(mapname,num_agents, args):
     constantMapAndBDFolder = "data_collection/data/benchmark_original/constant_npzs"
@@ -257,34 +270,34 @@ def main(args, mapname):
         
     # Iterate through each agent size and run the three programs
     for num_agent in num_agents_list:
-        for program in ['LaCAM', 'EECBS', 'GNNMAPF']: # ["GNNMAPF"]:# #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
+        for program in ['EECBS', 'GNNMAPF']: # ["GNNMAPF"]:# #['EECBS', 'LaCAM', 'EPH', 'GNNMAPF']:
             create_nn_data, forward_pass, cs_time = None, None, None # in case we are not running GNNMAPF
             if program=='EECBS':
-                success_rate, solution_cost, runtime = fetch_eecbs(mapname, num_agent, args)
+                success_rate, solution_cost, runtime, suboptimality = fetch_eecbs(mapname, num_agent, args)
             elif program=='GNNMAPF':
-                success_rate, solution_cost, runtime, create_nn_data, forward_pass, cs_time = run_gnn_mapf(mapname, num_agent, args)
+                success_rate, solution_cost, runtime, create_nn_data, forward_pass, cs_time, suboptimality = run_gnn_mapf(mapname, num_agent, args)
             # elif program=="EPH":
             #     success_rate, solution_cost, runtime = parse_eph(mapname, num_agent, eph_results)
-            else:
-                assert(program=='LaCAM')
+            # else:
+            #     assert(program=='LaCAM')
                 
-                num_successes = 0
-                total_runtime = 0
-                total_solution_cost = 0
-                num_scens = len(scen_names)
-                for scen in tqdm(scen_names):
-                    success, solution_cost, runtime  = run_single_instance(scen, mapname, num_agent, program, args)
-                    num_successes += success
-                    if success:
-                        total_solution_cost += solution_cost
-                        total_runtime += runtime
-                success_rate = num_successes / num_scens
-                if num_successes > 0:
-                    runtime = total_runtime / num_successes
-                    solution_cost = total_solution_cost / num_successes
-                else:
-                    runtime = None
-                    solution_cost = None
+            #     num_successes = 0
+            #     total_runtime = 0
+            #     total_solution_cost = 0
+            #     num_scens = len(scen_names)
+            #     for scen in tqdm(scen_names):
+            #         success, solution_cost, runtime  = run_single_instance(scen, mapname, num_agent, program, args)
+            #         num_successes += success
+            #         if success:
+            #             total_solution_cost += solution_cost
+            #             total_runtime += runtime
+            #     success_rate = num_successes / num_scens
+            #     if num_successes > 0:
+            #         runtime = total_runtime / num_successes
+            #         solution_cost = total_solution_cost / num_successes
+            #     else:
+            #         runtime = None
+            #         solution_cost = None
             # create_nn_data', 'forward_pass', 'cs-time'
             new_row={
                 'Map_Name': mapname,
@@ -295,7 +308,8 @@ def main(args, mapname):
                 'Runtime': runtime,
                 'Create_NN_Data': create_nn_data,
                 'Forward_Pass': forward_pass,
-                'CS_Time': cs_time
+                'CS_Time': cs_time,
+                'Suboptimality': suboptimality
             }
             # Append the results to the DataFrame
             results_df =  pd.concat([results_df,pd.DataFrame([new_row])], ignore_index=True)
