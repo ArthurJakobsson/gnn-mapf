@@ -182,7 +182,7 @@ def run_gnn_mapf(mapname,num_agents, args):
                 f"--outputFolder={pymodel_output_folder}", 
                 f"--num_parallel_runs={args.num_parallel}",
                 "\"clean\" --keepNpys=false"])
-    subprocess.run(command, shell=True, check=True)
+    # subprocess.run(command, shell=True, check=True)
     
     return parse_pymodel_output(pymodel_output_folder, mapname, num_agents)
 
