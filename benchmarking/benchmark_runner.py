@@ -186,7 +186,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     if args.conda_env is not None:
         command += f" --condaEnv={args.conda_env}"
     print(command)
-    subprocess.run(command, shell=True, check=True)
+    # subprocess.run(command, shell=True, check=True)
     
     command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
                 f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
