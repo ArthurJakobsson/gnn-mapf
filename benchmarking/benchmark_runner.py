@@ -133,7 +133,7 @@ def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
 
     successes['scenFile'] = successes['scenFile'].str.split(pat="/").str[-1]
     
-    pdb.set_trace()
+
     successes = successes.merge(eecbs_subset, how='left', on='scenFile')
     success_rate = len(successes.index)/len(filtered_df.index) if len(filtered_df.index)!=0 else 0
     runtime  = successes['runtime'].mean()
