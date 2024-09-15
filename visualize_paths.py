@@ -120,7 +120,8 @@ def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, 
     colors = ['r', 'b', 'm', 'g']
 
     # Visualize
-    tmpFolder = "./animations/tmpImgs"
+    tmpFolder = f"./animations/tmpImgs_{mapname}"
+    os.makedir(tmpFolder, exist_ok=True)
     print("Animating 1 image")
     # for t in range(0, max_plan_length):
     
