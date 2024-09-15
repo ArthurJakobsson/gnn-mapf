@@ -128,10 +128,10 @@ def parse_pymodel_output(pymodel_output_folder, map_name, num_agents):
     filtered_df = df[df['agentNum'] == num_agents]
     successes = filtered_df[filtered_df['success']]
     
-    eecbs_df['scenFile'] =eecbs_df['agents'].str.split(pat="/")[-1]
+    eecbs_df['scenFile'] =eecbs_df['agents'].str.split(pat="/").str[-1]
     eecbs_subset = eecbs_df[['scenFile', 'root g value']]
 
-    successes['scenFile'] = successes['scenFile'].str.split(pat="/")[-1]
+    successes['scenFile'] = successes['scenFile'].str.split(pat="/").str[-1]
     
     pdb.set_trace()
     successes = successes.merge(eecbs_subset, how='left', on='scenFile')
