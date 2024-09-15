@@ -170,7 +170,7 @@ def plot_success_rate(data, ax, mapname, info_type, last_row):
             'PIBT': "*",
             'EECBS': "^",
             'CS_Freeze': "x",
-            'CS_PIBT': ".",
+            'CS_PIBT': "o",
             'EPH': "s"
         },
         'color':{
@@ -197,13 +197,13 @@ def plot_success_rate(data, ax, mapname, info_type, last_row):
         cs_type = "CS_Freeze" if "CSFreeze" in folder_focus else "CS_PIBT"
         color = marker_style['color'][re.findall(r'\d+',folder_focus)[0]]
         linestyle = 'solid' if cs_type=="CS_PIBT" else 'dashed'
-        ax.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}", marker=marker_style['style'][cs_type], color=color, linestyle=linestyle, alpha=0.8)
+        ax.plot(gnnmapf_data['Agent_Size'], gnnmapf_data[info_type], label=f"GNNMAPF_{folder_focus}", marker=marker_style['style'][cs_type], color=color, linestyle=linestyle, alpha=0.5)
     
     for program in ['PIBT', 'EECBS', 'EPH']: # 'LaCAM'
         if (program == 'EPH') and (info_type != "Success_Rate"):
             continue
         program_data = filtered_data[filtered_data['Program'] == program]
-        ax.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program], alpha=0.8)
+        ax.plot(program_data['Agent_Size'], program_data[info_type], label=program, marker=marker_style['style'][program], color=marker_style['color'][program], alpha=0.5)
     
     # Set labels and title
     if last_row:
