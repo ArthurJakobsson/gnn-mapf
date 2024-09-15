@@ -116,7 +116,7 @@ def readMap(mapfile: str):
     mapdata = mapdata.astype(int)
     return mapdata
 
-def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfile):
+def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outputfile):
     colors = ['r', 'b', 'm', 'g']
 
     # Visualize
@@ -142,9 +142,9 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
                 plt.scatter(plan[t][1], plan[t][0], s=1, c=colors[i%len(colors)]) # RVMod: Fixed by modding
 
         if finished:
-            plt.text(0.2, 1.05, 'success', color='green', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+            plt.text(0.2, 1.05, f'success {mapname}', color='green', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
         else:
-            plt.text(0.2, 1.05, 'failure', color='red', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+            plt.text(0.2, 1.05, f'failure {mapname}', color='red', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
         plt.subplots_adjust(top=0.85)
         name = "{}/{:03d}.png".format(tmpFolder, t)
         plt.title(f"t = {t}")
@@ -156,28 +156,25 @@ def animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, outputfil
     #     outputfile = "animation.gif"
     # assert(outputfile.endswith(".gif"))
     create_gif(tmpFolder, outputfile+succStr+".gif")
+    
+def process_map(params):
+    mapname, args = params
 
-
-def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Visualize agent paths from log file')
-    # parser.add_argument('log_file', type=str, help='Path to the log file')
-    parser.add_argument('--output', type=str, help='Path to the output gif file', default="animations/den312d")
-    args = parser.parse_args()
-
-    # Call the animate_agents function with the log file path
-    mapdata = readMap("data_collection/data/benchmark_data/maps/den312d.map")
-    # log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
-    # scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
-    log_dir = "benchmarking/16_CSFreeze_results_full/den312d/paths"
+    # Read the map data
+    mapdata = readMap(f"data_collection/data/benchmark_data/maps/{mapname}.map")
+    
+    # Get the directory of logs for the current map
+    log_dir = f"benchmarking/16_CSFreeze_results_full/{mapname}/paths"
     log_dir_list = os.listdir(log_dir)
-    def process_log(params):
-        i, log, log_dir, scen_folder, args = params
+    
+    scen_folder = "data_collection/data/benchmark_data/scens/"
+    
+    for i, log in enumerate(log_dir_list):
         if ".npy" not in log:
-            return
+            continue
         
         scen_abbr = log.split(".")[0]
-        id2plan = np.load(log_dir + log)
+        id2plan = np.load(log_dir + "/" + log)
         scen_file = scen_folder + scen_abbr + ".scen"
         start_locs, id2goal = parse_scene(scen_file)
         
@@ -185,39 +182,52 @@ def main():
         print(id2plan.shape)
         agents = id2plan.shape[1]
         
-        output = f"{args.output}_{i}"
-        animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, output)
+        output = f"{args.output}_{mapname}_{i}"
+        animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, output)
 
-    def run_in_parallel(log_dir_list, log_dir, args):
-        scen_folder = "data_collection/data/benchmark_data/scens/"
-        
-        # Create a list of parameters for each task
-        params = [(i, log, log_dir, scen_folder, args) for i, log in enumerate(log_dir_list)]
-
-        # Use multiprocessing Pool to parallelize the process_log function
-        with mp.Pool(processes=mp.cpu_count()) as pool:
-            pool.map(process_log, params)
-        
-    run_in_parallel(log_dir_list, log_dir, args)
+def run_parallel_over_maps(map_list, args):
+    # Create the list of parameters for each map
+    params = [(mapname, args) for mapname in map_list]
     
+    # Use multiprocessing Pool to parallelize processing across maps
+    with mp.Pool(processes=mp.cpu_count()) as pool:
+        pool.map(process_map, params)
 
+
+def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Visualize agent paths from log file')
+    # parser.add_argument('log_file', type=str, help='Path to the log file')
+    parser.add_argument('--output', type=str, help='Path to the output gif file', default="animations/")
+    args = parser.parse_args()
+    map_list = ["den312d","maze_32_32_4", "room_32_32_4", "random_32_32_10", "Berlin_1_256"]
     
-    # for i, log in enumerate(log_dir_list):
-    #     if ".npy" not in log:
-    #         continue
-    #     scen_abbr = log.split(".")[0]
-    #     # index = [idx for idx, s in enumerate(log_dir_list) if scen_abbr in s and ".npy" not in s and "400" in s][0]
-    #     scen_folder = "data_collection/data/benchmark_data/scens/"
-    #     id2plan = np.load(log_dir + log)
-    #     scen_file = scen_folder+scen_abbr+".scen"
-    #     start_locs, id2goal  = parse_scene(scen_file)
+    run_parallel_over_maps(map_list, args)
+    # for mapname in map_list:
         
-    #     max_plan_length = id2plan.shape[0]
-    #     print(id2plan.shape)
-    #     agents = id2plan.shape[1]
-    #     # mapdata, id2plan, id2goal, max_plan_length, agents = readJSSSolutionPaths(args.log_file)
-    #     output = f"{args.output}_{i}"
-    #     animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, output)
+    #     # Call the animate_agents function with the log file path
+    #     mapdata = readMap(f"data_collection/data/benchmark_data/maps/{mapname}.map")
+    #     # log_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1.npy"
+    #     # scen_file = "data_collection/data/logs/EXP_Medium_4/iter4/pymodel_outputs/random_32_32_10/paths/random_32_32_10-random-1.random_32_32_10-random-1_t13.100.scen"
+    #     log_dir = "benchmarking/16_CSFreeze_results_full/{mapname}/paths"
+    #     log_dir_list = os.listdir(log_dir)
+        
+    #     for i, log in enumerate(log_dir_list):
+    #         if ".npy" not in log:
+    #             continue
+    #         scen_abbr = log.split(".")[0]
+    #         # index = [idx for idx, s in enumerate(log_dir_list) if scen_abbr in s and ".npy" not in s and "400" in s][0]
+    #         scen_folder = "data_collection/data/benchmark_data/scens/"
+    #         id2plan = np.load(log_dir + log)
+    #         scen_file = scen_folder+scen_abbr+".scen"
+    #         start_locs, id2goal  = parse_scene(scen_file)
+            
+    #         max_plan_length = id2plan.shape[0]
+    #         print(id2plan.shape)
+    #         agents = id2plan.shape[1]
+    #         # mapdata, id2plan, id2goal, max_plan_length, agents = readJSSSolutionPaths(args.log_file)
+    #         output = f"{args.output}_{mapname}_{i}"
+    #         animate_agents(mapdata, id2plan, id2goal, max_plan_length, agents, output)
 
 
 
