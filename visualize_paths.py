@@ -131,8 +131,6 @@ def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, 
     finished=False
     if np.all(id2plan[-1]==id2goal[0:agents]):
         finished=True
-        print("successful run skipping")
-        return
     for t in range(max_plan_length+40-1, -1, -1):
         plt.imshow(mapdata, cmap="Greys")
         for i in range(0, agents):
@@ -159,17 +157,18 @@ def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, 
     create_gif(tmpFolder, outputfile+succStr+".gif")
     
 def process_map(params):
-    mapname, args = params
+    mapname, args, scen_count, shieldType = params
 
     # Read the map data
     mapdata = readMap(f"data_collection/data/benchmark_data/maps/{mapname}.map")
     
     # Get the directory of logs for the current map
-    log_dir = f"benchmarking/16_CSFreeze_results_full/{mapname}/paths"
+    log_dir = f"benchmarking/{scen_count}_{shieldType}_results_full/{mapname}/paths"
     log_dir_list = os.listdir(log_dir)
     
     scen_folder = "data_collection/data/benchmark_data/scens/"
-    
+    succ_count = 0 
+    fail_count = 0
     for i, log in enumerate(log_dir_list):
         if ".npy" not in log:
             continue
@@ -183,12 +182,24 @@ def process_map(params):
         print(id2plan.shape)
         agents = id2plan.shape[1]
         
-        output = f"{args.output}_{mapname}_{i}"
-        animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, output)
+        output = f"{args.output}{mapname}_s{scen_count}_{i}"
+        success = False
+        if np.all(id2plan[-1]==id2goal[0:agents]):
+            success=True
+            succ_count+=1
+        else:
+            fail_count+=1
+        
+        if (success and succ_count<3) or (not success and fail_count<3):
+            animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, output)
+        
+        if succ_count>=3 and fail_count>=3:
+            break
+        
 
-def run_parallel_over_maps(map_list, args):
+def run_parallel_over_maps(map_list, args, scen_count, shieldType):
     # Create the list of parameters for each map
-    params = [(mapname, args) for mapname in map_list]
+    params = [(mapname, args, scen_count, shieldType) for mapname in map_list]
     
     # Use multiprocessing Pool to parallelize processing across maps
     with mp.Pool(processes=mp.cpu_count()) as pool:
@@ -200,10 +211,12 @@ def main():
     parser = argparse.ArgumentParser(description='Visualize agent paths from log file')
     # parser.add_argument('log_file', type=str, help='Path to the log file')
     parser.add_argument('--output', type=str, help='Path to the output gif file', default="animations/")
+    parser.add_argument('--shieldType', type=str, help='Path to the output gif file', default="animations/")
     args = parser.parse_args()
     map_list = ["den312d","maze_32_32_4", "room_32_32_4", "random_32_32_10", "Berlin_1_256"]
     
-    run_parallel_over_maps(map_list, args)
+    for scen_count in [1,4,16,128]:
+        run_parallel_over_maps(map_list, args, scen_count, args.shieldType)
 
 if __name__ == '__main__':
     main()
