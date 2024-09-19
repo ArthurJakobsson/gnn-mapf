@@ -181,12 +181,7 @@ def process_map(params):
         print(id2plan.shape)
         agents = id2plan.shape[1]
         agent_count = log.split(".")[-2]
-        success = False
-        if np.all(id2plan[-1]==id2goal[0:agents]):
-            success=True
-            succ_count+=1
-        else:
-            fail_count+=1
+        success = np.all(id2plan[-1]==id2goal[0:agents])
         key = f"{mapname}_{scen_count}_{success}_{agent_count}"
         if key in seen:
             continue
