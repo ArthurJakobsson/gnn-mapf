@@ -188,7 +188,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     if args.conda_env is not None:
         command += f" --condaEnv={args.conda_env}"
     print(command)
-    # subprocess.run(command, shell=True, check=True)
+    subprocess.run(command, shell=True, check=True)
     
     command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
                 f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
@@ -360,7 +360,7 @@ def plot_all_maps_grid(mapnames, dfs, args, num_rows=5, num_cols=6):
         if not os.path.exists(f"benchmarking/{args.pymodel_out}/{column_name}"):
             os.makedirs(f"benchmarking/{args.pymodel_out}/{column_name}")
         
-        plt.savefig(f"benchmarking/{args.pymodel_out}/{column_name}/all_maps_grid.pdf", format="pdf")
+        plt.savefig(f"benchmarking/{args.pymodel_out}/{column_name}/all_maps_grid.png", format="png")
         plt.close(fig)  # Close the figure to free up memory
         gc.collect()
     

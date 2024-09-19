@@ -86,8 +86,13 @@ num_datapoints = {
 for key,val in num_datapoints.items():
     num_datapoints[key] = val*0.8 #train set is 80% of all data
     
-unheld_maps = ["Berlin_1_256", "empty_32_32", "maze_32_32_4", "random_64_64_20", "warehouse_20_40_10_2_1", "room_64_64_16"]
-held_maps = ["Paris_1_256", "empty_48_48", "maze_128_128_2", "random_64_64_10", "warehouse_10_20_10_2_1", "den312d"]
+# unheld_maps = ["Berlin_1_256", "empty_32_32", "maze_32_32_4", "random_64_64_20", "warehouse_20_40_10_2_1", "room_64_64_16"]
+# held_maps = ["Paris_1_256", "empty_48_48", "maze_128_128_2", "random_64_64_10", "warehouse_10_20_10_2_1", "den312d"]
+
+
+unheld_maps = ["Berlin_1_256","Boston_0_256","empty_16_16","empty_32_32","ht_chantry","ht_mansion_n","lak303d","lt_gallowstemplar_n","maze_32_32_2","maze_32_32_4","ost003d","random_32_32_20","random_64_64_20","room_32_32_4","room_64_64_16","room_64_64_8","warehouse_10_20_10_2_2","warehouse_20_40_10_2_1","warehouse_20_40_10_2_2"]
+
+held_maps = ["Paris_1_256", "den312d", "den520d","empty_48_48", "maze_128_128_2", "random_32_32_10", "random_64_64_10", "warehouse_10_20_10_2_1"]
 
 # maps = ["Berlin_1_256", "den312d"]
 # maps = mapsToMaxNumAgents.keys()
@@ -216,7 +221,7 @@ def plot_success_rate(data, ax, mapname, info_type, last_row):
 
 def plot_all_maps_single_row(maps, which_folders, output_path, image_folder):
     # Create a 3x6 grid for subplots (3 rows for info types, 6 columns for maps)
-    fig, axes = plt.subplots(3, len(maps), figsize=(25, 10))  # 3 rows (one per info type), 6 maps (columns)
+    fig, axes = plt.subplots(3, len(maps), figsize=(100, 10))  # 3 rows (one per info type), 6 maps (columns)
     
     # Plot each info type in a separate row
     info_types = ["Success_Rate", "Runtime", "Solution_Cost"]
@@ -250,7 +255,7 @@ def plot_all_maps_single_row(maps, which_folders, output_path, image_folder):
                fancybox=True, shadow=True, ncol=6, prop={'size': 15})
     
     plt.tight_layout(rect=[0, 0, 1, 1.1])
-    plt.savefig(output_path, format="pdf", bbox_inches='tight')
+    plt.savefig(output_path, format="png", bbox_inches='tight')
     plt.close()
 
 output_folder = "benchmarking/visualization_out"
@@ -258,8 +263,8 @@ image_folder = "benchmarking/mapf-png"
 os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
 
 # Generate the plot for all info types in a single image
-output_path = f'{output_folder}/all_info_types_all_maps_grid.pdf'
-plot_all_maps_single_row(maps_2, which_folders, output_path, image_folder)
+output_path = f'{output_folder}/all_info_types_all_maps_grid.png'
+plot_all_maps_single_row(maps_1, which_folders, output_path, image_folder)
     
     
 # Main function to plot all maps in a single row per info type

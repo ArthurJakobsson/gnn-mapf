@@ -239,19 +239,28 @@ def plot_all_maps_single_row(maps, which_folders, output_path, image_folder):
         
         # Add big text on the left to indicate the info_type for the row
         display_info_type = info_type.replace("Solution_Cost", "Solution Cost per Agent").replace("_", " ")
-        axes[0].text(-0.1, 0.5, display_info_type, fontsize=13, va='center', rotation=90, transform=axes[0].transAxes)
+        axes[0].text(-0.1, 0.5, display_info_type, fontsize=20, va='center', rotation=90, transform=axes[0].transAxes)
 
     for col, mapfile in enumerate(maps):
-        fig.text((col+0.4)/len(maps), 0.97, mapfile, fontsize=15, fontstyle='italic', ha='center')
+        fig.text((col+0.4)/len(maps), 0.97, mapfile, fontsize=20, fontstyle='italic', ha='center')
         
     labels = [word.replace("GNNMAPF", "").replace("_", " ").replace("eecbs model", "Suboptimality SSIL").replace("results", "") for word in labels]
+    
+    for i, label in enumerate(labels):
+        if "1.2" in label:
+            labels[i] = r'SSIL trained on $w_{so}=1.2$'
+        elif "1.5" in label:
+            labels[i] = r'SSIL trained on $w_{so}=1.5$'
+        elif "2.0" in label:
+            labels[i] = r'SSIL trained on $w_{so}=2.0$'
+        
     
     # Add a legend for the last info type row
     fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.01),
                fancybox=True, shadow=True, ncol=3, prop={'size': 15})
     
     plt.tight_layout(rect=[0, 0, 1, 1.1])
-    plt.savefig(output_path, format="pdf", bbox_inches='tight')
+    plt.savefig(output_path, format="png", bbox_inches='tight')
     plt.close()
 
 output_folder = "benchmarking/visualization_out"
@@ -259,7 +268,7 @@ image_folder = "benchmarking/mapf-png"
 os.makedirs(output_folder, exist_ok=True)  # Create the folder if it doesn't exist
 
 # Generate the plot for all info types in a single image
-output_path = f'{output_folder}/all_info_types_all_maps_grid.pdf'
+output_path = f'{output_folder}/all_info_types_all_maps_grid.png'
 plot_all_maps_single_row(maps, which_folders, output_path, image_folder)
     
     

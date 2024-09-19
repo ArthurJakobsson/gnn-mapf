@@ -121,7 +121,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     command += f" --bdNpzFile={bdFile}"
     command += f" --outputCSVFile={outputfile}"
     # tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.npy" # Note scenname ends with a .scen
-    outputPathNpy = f"{outputFolder}/paths/{bdname}.{scenname}.npy"
+    outputPathNpy = f"{outputFolder}/paths/{bdname}.{scenname}.{numAgents}.npy"
     command += f" --outputPathsFile={outputPathNpy}"
     command += f" --numScensToCreate={runnerArgs['numScensToCreate']}"
     command += f" --percentSuccessGenerationReduction={runnerArgs['percentSuccessGenerationReduction']}"
