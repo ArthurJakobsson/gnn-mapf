@@ -63,7 +63,7 @@ def parse_scene(scen_file):
 #         image_path = os.path.join(image_folder, image_name)
 #         os.remove(image_path)
 
-def create_gif(image_folder, output_path, duration=60):
+def create_gif(image_folder, output_path, duration=120):
     images = []
     for file_name in sorted(os.listdir(image_folder)):
         if file_name.endswith(('png', 'jpg', 'jpeg', 'bmp', 'gif')):
@@ -167,8 +167,7 @@ def process_map(params):
     log_dir_list = os.listdir(log_dir)
     
     scen_folder = "data_collection/data/benchmark_data/scens/"
-    succ_count = 0 
-    fail_count = 0
+    seen = [] 
     for i, log in enumerate(log_dir_list):
         if ".npy" not in log:
             continue
@@ -181,20 +180,19 @@ def process_map(params):
         max_plan_length = id2plan.shape[0]
         print(id2plan.shape)
         agents = id2plan.shape[1]
-        
-        output = f"{args.output}{mapname}_s{scen_count}_{i}"
+        agent_count = log.split(".")[-2]
         success = False
         if np.all(id2plan[-1]==id2goal[0:agents]):
             success=True
             succ_count+=1
         else:
             fail_count+=1
-        
-        if (success and succ_count<3) or (not success and fail_count<3):
-            animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, output)
-        
-        if succ_count>=3 and fail_count>=3:
-            break
+        key = f"{mapname}_{scen_count}_{success}_{agent_count}"
+        if key in seen:
+            continue
+        seen.append(key)
+        output = f"{args.output}{mapname}_s{scen_count}_a{agent_count}_{i}"
+        animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, output)
         
 
 def run_parallel_over_maps(map_list, args, scen_count, shieldType):
@@ -211,7 +209,7 @@ def main():
     parser = argparse.ArgumentParser(description='Visualize agent paths from log file')
     # parser.add_argument('log_file', type=str, help='Path to the log file')
     parser.add_argument('--output', type=str, help='Path to the output gif file', default="animations/")
-    parser.add_argument('--shieldType', type=str, help='Path to the output gif file', default="animations/")
+    parser.add_argument('--shieldType', type=str, help='Path to the output gif file', required=True)
     args = parser.parse_args()
     map_list = ["den312d","maze_32_32_4", "room_32_32_4", "random_32_32_10", "Berlin_1_256"]
     
