@@ -26,7 +26,7 @@ def run_command(command):
         print(f"Failed to submit job: {result.stderr}")
         
         
-agent_counts = [8,16,32,64,128]
+agent_counts = [1,4,16,128]
 LE = "benchmarking"
 command_list = []
 for agent_num in agent_counts:
