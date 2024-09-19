@@ -116,11 +116,11 @@ def readMap(mapfile: str):
     mapdata = mapdata.astype(int)
     return mapdata
 
-def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outputfile):
+def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile):
     colors = ['r', 'b', 'm', 'g']
 
     # Visualize
-    tmpFolder = f"./animations/tmpImgs_{mapname}"
+    tmpFolder = f"./{outpath}/tmpImgs_{mapname}"
     os.makedirs(tmpFolder, exist_ok=True)
     print("Animating 1 image")
     # for t in range(0, max_plan_length):
@@ -154,7 +154,7 @@ def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, 
     # if outputfile is None:
     #     outputfile = "animation.gif"
     # assert(outputfile.endswith(".gif"))
-    create_gif(tmpFolder, outputfile+succStr+".gif")
+    create_gif(tmpFolder, outpath+outfile+succStr+".gif")
     
 def process_map(params):
     mapname, args, scen_count, shieldType = params
@@ -191,8 +191,9 @@ def process_map(params):
         if key in seen:
             continue
         seen.append(key)
-        output = f"{args.output}{mapname}_s{scen_count}_a{agent_count}_{i}"
-        animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, output)
+        outpath = args.output
+        outfile = f"{mapname}_s{scen_count}_a{agent_count}_{i}"
+        animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
         
 
 def run_parallel_over_maps(map_list, args, scen_count, shieldType):
