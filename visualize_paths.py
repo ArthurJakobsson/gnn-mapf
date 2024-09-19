@@ -63,7 +63,7 @@ def parse_scene(scen_file):
 #         image_path = os.path.join(image_folder, image_name)
 #         os.remove(image_path)
 
-def create_gif(image_folder, output_path, duration=120):
+def create_gif(image_folder, output_path, duration=100):
     images = []
     for file_name in sorted(os.listdir(image_folder)):
         if file_name.endswith(('png', 'jpg', 'jpeg', 'bmp', 'gif')):
@@ -141,9 +141,9 @@ def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, 
                 plt.scatter(plan[t][1], plan[t][0], s=1, c=colors[i%len(colors)]) # RVMod: Fixed by modding
 
         if finished:
-            plt.text(0.2, 1.05, f'success {mapname}', color='green', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+            plt.text(0.1, 1.15, f'success {mapname}', color='green', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
         else:
-            plt.text(0.2, 1.05, f'failure {mapname}', color='red', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+            plt.text(0.1, 1.15, f'failure {mapname}', color='red', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
         plt.subplots_adjust(top=0.85)
         name = "{}/{:03d}.png".format(tmpFolder, t)
         plt.title(f"t = {t}")
