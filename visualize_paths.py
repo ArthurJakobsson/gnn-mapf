@@ -136,17 +136,18 @@ def animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, 
         for i in range(0, agents):
             plan = id2plan[:,i]
             if np.all(plan[t] == id2goal[i]):
-                plt.scatter(plan[t][1], plan[t][0],s=1, c="grey")
+                plt.scatter(plan[t][1], plan[t][0],s=3, c="grey")
             else:
-                plt.scatter(plan[t][1], plan[t][0], s=1, c=colors[i%len(colors)]) # RVMod: Fixed by modding
+                plt.scatter(plan[t][1], plan[t][0], s=3, c=colors[i%len(colors)]) # RVMod: Fixed by modding
 
-        if finished:
-            plt.text(0.1, 1.15, f'success {mapname}', color='green', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
-        else:
-            plt.text(0.1, 1.15, f'failure {mapname}', color='red', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+        # if finished:
+        #     plt.text(0.1, 1.15, f'success {mapname}', color='green', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+        # else:
+        #     plt.text(0.1, 1.15, f'failure {mapname}', color='red', fontsize=20, ha='center', va='center', transform=plt.gca().transAxes)
+        color = 'green' if finished else 'red'
         plt.subplots_adjust(top=0.85)
         name = "{}/{:03d}.png".format(tmpFolder, t)
-        plt.title(f"t = {t}")
+        plt.title(f"t = {t}", color=color)
         plt.savefig(name)
         plt.cla()
     
@@ -166,6 +167,10 @@ def process_map(params):
     log_dir = f"benchmarking/{scen_count}_{shieldType}_results_full/{mapname}/paths"
     log_dir_list = os.listdir(log_dir)
     
+    berlin1, berlin4, berlin16, berlin128 = False, False, False, False
+    den1, den4, den16, den128 = False, False, False, False
+    ware1, ware4, ware16, ware128 = False, False, False, False
+    
     scen_folder = "data_collection/data/benchmark_data/scens/"
     seen = [] 
     for i, log in enumerate(log_dir_list):
@@ -182,12 +187,54 @@ def process_map(params):
         agents = id2plan.shape[1]
         agent_count = log.split(".")[-2]
         success = np.all(id2plan[-1]==id2goal[0:agents])
-        key = f"{mapname}_{scen_count}_{success}_{agent_count}"
-        if key in seen:
-            continue
-        seen.append(key)
+        # key = f"{mapname}_{scen_count}_{success}_{agent_count}"
+        # if key in seen:
+        #     continue
+        # seen.append(key)
         outpath = args.output
         outfile = f"{mapname}_s{scen_count}_a{agent_count}_{i}"
+        
+        if "Berlin" in mapname:
+            if scen_count==1 and not berlin1 and not success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                berlin1 = True
+            elif scen_count==4 and not berlin4 and success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                berlin4 = True
+            elif scen_count==16 and not berlin16 and success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                berlin16 = True
+            elif scen_count==128 and not berlin128 and success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                berlin128 = True
+        elif "den" in mapname:
+            if scen_count==1 and not den1 and not success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                den1 = True
+            elif scen_count==4 and not den4 and not success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                den4 = True
+            elif scen_count==16 and not den16 and success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                den16 = True
+            elif scen_count==128 and not den128 and success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                den128 = True
+        elif "warehouse" in mapname:
+            if scen_count==1 and not ware1 and not success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                ware1 = True
+            elif scen_count==4 and not ware4 and not success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                ware4 = True
+            elif scen_count==16 and not ware16 and not success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                ware16 = True
+            elif scen_count==128 and not ware128 and success:
+                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+                ware128 = True
+        
+        
         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
         
 
@@ -206,11 +253,12 @@ def main():
     # parser.add_argument('log_file', type=str, help='Path to the log file')
     parser.add_argument('--output', type=str, help='Path to the output gif file', default="animations/")
     parser.add_argument('--shieldType', type=str, help='Path to the output gif file', required=True)
+    parser.add_argument('--scen_count', type=int, help='Path to the output gif file', required=True)
     args = parser.parse_args()
-    map_list = ["den312d","maze_32_32_4", "room_32_32_4", "random_32_32_10", "Berlin_1_256"]
+    # map_list = ["den312d", "maze_32_32_4", "room_32_32_4", "random_32_32_10", "Berlin_1_256"]
+    map_list = ["Berlin_1_256", "den312d", "warehouse_10_20_10_2_2"]
     
-    for scen_count in [1,4,16,128]:
-        run_parallel_over_maps(map_list, args, scen_count, args.shieldType)
+    run_parallel_over_maps(map_list, args, args.scen_count, args.shieldType)
 
 if __name__ == '__main__':
     main()
