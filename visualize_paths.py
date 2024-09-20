@@ -177,15 +177,15 @@ def process_map(params):
         outfile = f"{mapname}_s{scen_count}_a{agent_count}_{i}"
         
         if "Berlin" in mapname:
-            if not berlin1 and success and agent_count>800:
+            if not berlin1 and success and int(agent_count)>800:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
                 berlin1=True
         if "random" in mapname:
-            if not den1 and success and agent_count>350:
+            if not den1 and success and int(agent_count)>350:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
                 den1=True
         if "room" in mapname:
-            if not ware1 and success and agent_count>150:
+            if not ware1 and success and int(agent_count)>150:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
                 ware1=True
         
