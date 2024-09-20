@@ -180,12 +180,12 @@ def process_map(params):
             if not berlin1 and success and int(agent_count)>800:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
                 berlin1=True
-        if "random" in mapname:
+        if "den" in mapname:
             if not den1 and success and int(agent_count)>350:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
                 den1=True
-        if "room" in mapname:
-            if not ware1 and success and int(agent_count)>150:
+        if "ware" in mapname:
+            if not ware1 and success and int(agent_count)>900:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
                 ware1=True
         
@@ -251,8 +251,8 @@ def main():
     parser.add_argument('--scen_count', type=int, help='Path to the output gif file', required=True)
     args = parser.parse_args()
     # map_list = ["den312d", "maze_32_32_4", "room_32_32_4", "random_32_32_10", "Berlin_1_256"]
-    map_list = ["room_32_32_4", "random_32_32_10", "Berlin_1_256"]
-    # map_list = ["Berlin_1_256", "den312d", "warehouse_10_20_10_2_2"]
+    # map_list = ["room_32_32_4", "random_32_32_10", "Berlin_1_256"]
+    map_list = ["Berlin_1_256", "den312d", "warehouse_10_20_10_2_2"]
     
     run_parallel_over_maps(map_list, args, args.scen_count, args.shieldType)
 
