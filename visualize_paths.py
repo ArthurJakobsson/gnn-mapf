@@ -44,24 +44,6 @@ def parse_scene(scen_file):
             goal_locations.append((row,col)) # This is consistant with usage
     return np.array(start_locations, dtype=int), np.array(goal_locations, dtype=int)
 
-# def convertToGIF(image_folder, gif_path):
-#     # Animate
-#     images = [img for img in os.listdir(image_folder) if img.endswith(".png")]
-#     images = sorted(images)
-
-#     # Create the GIF using imageio
-#     # Source: https://stackoverflow.com/questions/753190/programmatically-generate-video-or-animated-gif-in-python
-#     with imageio.get_writer(gif_path, mode='I', duration=500, loop=0) as writer:
-#         for image_name in images:
-#             image_path = os.path.join(image_folder, image_name)
-#             image = imageio.imread(image_path)
-#             writer.append_data(image)
-        
-
-#     # Remove the individual image files
-#     for image_name in images:
-#         image_path = os.path.join(image_folder, image_name)
-#         os.remove(image_path)
 
 def create_gif(image_folder, output_path, duration=100):
     images = []
@@ -235,7 +217,7 @@ def process_map(params):
                 ware128 = True
         
         
-        animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        # animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
         
 
 def run_parallel_over_maps(map_list, args, scen_count, shieldType):
