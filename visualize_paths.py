@@ -177,44 +177,57 @@ def process_map(params):
         outfile = f"{mapname}_s{scen_count}_a{agent_count}_{i}"
         
         if "Berlin" in mapname:
-            if scen_count==1 and not berlin1 and not success:
+            if not berlin1 and success and agent_count>800:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                berlin1 = True
-            elif scen_count==4 and not berlin4 and success:
+                berlin1=True
+        if "random" in mapname:
+            if not den1 and success and agent_count>350:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                berlin4 = True
-            elif scen_count==16 and not berlin16 and success:
+                den1=True
+        if "room" in mapname:
+            if not ware1 and success and agent_count>150:
                 animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                berlin16 = True
-            elif scen_count==128 and not berlin128 and success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                berlin128 = True
-        elif "den" in mapname:
-            if scen_count==1 and not den1 and not success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                den1 = True
-            elif scen_count==4 and not den4 and not success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                den4 = True
-            elif scen_count==16 and not den16 and success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                den16 = True
-            elif scen_count==128 and not den128 and success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                den128 = True
-        elif "warehouse" in mapname:
-            if scen_count==1 and not ware1 and not success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                ware1 = True
-            elif scen_count==4 and not ware4 and not success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                ware4 = True
-            elif scen_count==16 and not ware16 and not success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                ware16 = True
-            elif scen_count==128 and not ware128 and success:
-                animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
-                ware128 = True
+                ware1=True
+        
+        # if "Berlin" in mapname:
+        #     if scen_count==1 and not berlin1 and not success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         berlin1 = True
+        #     elif scen_count==4 and not berlin4 and success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         berlin4 = True
+        #     elif scen_count==16 and not berlin16 and success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         berlin16 = True
+        #     elif scen_count==128 and not berlin128 and success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         berlin128 = True
+        # elif "den" in mapname:
+        #     if scen_count==1 and not den1 and not success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         den1 = True
+        #     elif scen_count==4 and not den4 and not success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         den4 = True
+        #     elif scen_count==16 and not den16 and success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         den16 = True
+        #     elif scen_count==128 and not den128 and success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         den128 = True
+        # elif "warehouse" in mapname:
+        #     if scen_count==1 and not ware1 and not success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         ware1 = True
+        #     elif scen_count==4 and not ware4 and not success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         ware4 = True
+        #     elif scen_count==16 and not ware16 and not success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         ware16 = True
+        #     elif scen_count==128 and not ware128 and success:
+        #         animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
+        #         ware128 = True
         
         
         # animate_agents(mapname, mapdata, id2plan, id2goal, max_plan_length, agents, outpath, outfile)
@@ -238,7 +251,8 @@ def main():
     parser.add_argument('--scen_count', type=int, help='Path to the output gif file', required=True)
     args = parser.parse_args()
     # map_list = ["den312d", "maze_32_32_4", "room_32_32_4", "random_32_32_10", "Berlin_1_256"]
-    map_list = ["Berlin_1_256", "den312d", "warehouse_10_20_10_2_2"]
+    map_list = ["room_32_32_4", "random_32_32_10", "Berlin_1_256"]
+    # map_list = ["Berlin_1_256", "den312d", "warehouse_10_20_10_2_2"]
     
     run_parallel_over_maps(map_list, args, args.scen_count, args.shieldType)
 
