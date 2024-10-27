@@ -8,33 +8,48 @@ import numpy as np  # For utils
 from collections import defaultdict
 import shutil
 import json
+import glob
 
 
 import multiprocessing
+import ray
 # from custom_utils.custom_timer import CustomTimer
 from custom_utils.custom_timer import CustomTimer
 from custom_utils.common_helper import str2bool, getMapBDScenAgents
 # from custom_utils.multirunner import createTmuxSession, runCommandWithTmux, killTmuxSession
 
-###############################################################
-def createTmuxSession(i):
-    tmux_session_name = f"worker_{i}"
-    tmux_command = f"tmux new-session -d -s {tmux_session_name}"
-    subprocess.run(tmux_command, shell=True, check=True)
+# ###############################################################
+# def createTmuxSession(i):
+#     tmux_session_name = f"worker_{i}"
+#     tmux_command = f"tmux new-session -d -s {tmux_session_name}"
+#     subprocess.run(tmux_command, shell=True, check=True)
 
-def runCommandWithTmux(i, command):
-    tmux_session_name = f"worker_{i}"
-    new_command = f"{command}; tmux wait-for -S {tmux_session_name}_done"
-    subprocess.run(["tmux", "send-keys", "-t", tmux_session_name, new_command, "C-m"], 
-                   check=True)
-    subprocess.run(["tmux", "wait-for", tmux_session_name + "_done"], check=True)
-    # subprocess.run(["tmux", "kill-session", "-t", tmux_session_name], check=True)
+# def runCommandWithTmux(i, command):
+#     tmux_session_name = f"worker_{i}"
+#     new_command = f"{command}; tmux wait-for -S {tmux_session_name}_done"
+#     subprocess.run(["tmux", "send-keys", "-t", tmux_session_name, new_command, "C-m"], 
+#                    check=True)
+#     subprocess.run(["tmux", "wait-for", tmux_session_name + "_done"], check=True)
+#     # subprocess.run(["tmux", "kill-session", "-t", tmux_session_name], check=True)
 
-def killTmuxSession(i):
-    tmux_session_name = f"worker_{i}"
-    subprocess.run(["tmux", "kill-session", "-t", tmux_session_name], check=True)
-###############################################################
+# def killTmuxSession(i):
+#     tmux_session_name = f"worker_{i}"
+#     subprocess.run(["tmux", "kill-session", "-t", tmux_session_name], check=True)
+# ###############################################################
 
+@ray.remote
+class SharedDict:
+    def __init__(self):
+        self.dict = {}
+
+    def set(self, key, val):
+        self.dict[key] = val
+
+    def decrement_get(self, key):
+        self.dict[key] -= 1
+        return self.dict[key]
+
+    
 mapsToMaxNumAgents = {
     "Berlin_1_256": 1000,
     "Boston_0_256": 1000,
@@ -188,8 +203,11 @@ def detectExistingStatus(runnerArgs, mapfile, aNum, scenfile, df): # TODO update
 
 
 ####### Multi test
-def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputFilepath, static_dict, 
+@ray.remote
+def runSingleInstanceMT(nameToNumRun, num_workers, idToWorkerOutputFilepath, static_dict,
                         runnerArgs, mapName, curAgentNum, scen):
+    worker_id = ray.get_runtime_context().get_worker_id()
+
     workerOutputCSV = idToWorkerOutputFilepath(worker_id, mapName)
     combined_filename = idToWorkerOutputFilepath(-1, mapName) # -1 denotes combined
     mapFile = static_dict[mapName]["map"]
@@ -198,32 +216,39 @@ def runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputFi
     runBefore, status = detectExistingStatus(runnerArgs, mapFile, curAgentNum, scen, combined_filename) # check in combinedDf
     if not runBefore:
         command = getCommandForSingleInstance(runnerArgs, outputFolder, workerOutputCSV, mapFile, curAgentNum, scen)
-        runCommandWithTmux(worker_id, command)
+        # runCommandWithTmux(worker_id, command)
+        helperRun(command)
         runBefore, status = detectExistingStatus(runnerArgs, mapFile, curAgentNum, scen, workerOutputCSV)  # check in worker's df
         if not runBefore:
             # print(f"worker_id:{worker_id}")
             print(f"mapFile:{mapFile}, curAgentNum:{curAgentNum}, scen:{scen}, workerOutputCSV:{workerOutputCSV}, worker_id:{worker_id}")
-            # raise RuntimeError("Fix detectExistingStatus; we ran an instance but cannot find it afterwards!")
+            # raise RuntimeError("Fix detectExistingStatus; we ridToWorkerOutputFilepathan an instance but cannot find it afterwards!")
 
     ## Update the number of runs. If we are the last one, then check if we should run the next agent number.
-    lock.acquire()
-    nameToNumRun[mapName] -= 1
-    assert(nameToNumRun[mapName] >= 0)
-    if nameToNumRun[mapName] == 0:
-        queue.put(("checkIfRunNextAgents", (runnerArgs, mapName, curAgentNum)))
-    lock.release()
+    runsLeft = ray.get(nameToNumRun.decrement_get.remote(mapName))
+    assert(runsLeft >= 0)
+    if runsLeft == 0:
+        return [checkIfRunNextAgents.remote(nameToNumRun, num_workers, idToWorkerOutputFilepath, static_dict,
+                                            runnerArgs, mapName, curAgentNum)]
+    return []
 
 
-def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutputFilepath, static_dict, eecbsArgs, mapName, curAgentNum):
+@ray.remote
+def checkIfRunNextAgents(nameToNumRun, num_workers, idToWorkerOutputFilepath, static_dict, 
+                         runnerArgs, mapName, curAgentNum):
     """Inputs:
         curAgentNum: This is only used if static_dict["agentRange"] is not empty
+    Output:
+        futures: List of futures, empty if we are done
     """
+    futures = []
     ## Load separate CSVs and combine them
     combined_dfs = []
-    for i in range(num_workers):
-        filename = idToWorkerOutputFilepath(i, mapName)
-        if os.path.exists(filename):
-            combined_dfs.append(pd.read_csv(filename, index_col=False))
+
+    filenames = glob.glob(idToWorkerOutputFilepath(-3, mapName))
+
+    for filename in filenames:
+        combined_dfs.append(pd.read_csv(filename, index_col=False))
     
     combined_filename = idToWorkerOutputFilepath(-1, mapName) # -1 denotes combined
     if os.path.exists(combined_filename):
@@ -242,20 +267,18 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
     numSuccess = 0
     numToRunTotal = len(static_dict[mapName]["scens"])
     for scen, agentNum in zip(static_dict[mapName]["scens"], static_dict[mapName]["agentsPerScen"]):
-        runBefore, status = detectExistingStatus(eecbsArgs, mapFile, agentNum, scen, combined_df)
+        runBefore, status = detectExistingStatus(runnerArgs, mapFile, agentNum, scen, combined_df)
         if not runBefore:
             print("Error: {}, {}, {}, {}".format(mapFile, agentNum, scen, combined_filename))
         # assert(runBefore)
         numSuccess += status
 
-    # shouldRunDataManipulator = False
     finished = False
     if len(static_dict[mapName]["agentRange"]) > 0: # If we are running a range of agents, check the next one
         print(numSuccess, numToRunTotal, curAgentNum, mapName)
         if numSuccess < numToRunTotal/2:
             print("Early terminating as only succeeded {}/{} for {} agents on map {}".format(
                                             numSuccess, numToRunTotal, curAgentNum, mapName))
-            # shouldRunDataManipulator = True
             finished = True
         else:
             scens = static_dict[mapName]["scens"]
@@ -263,70 +286,32 @@ def checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutpu
             assert(curAgentNum in agentNumsToRun)
             if agentNumsToRun.index(curAgentNum) + 1 == len(agentNumsToRun):
                 print("Finished all agent numbers for map: {}".format(mapName))
-                # shouldRunDataManipulator = True
                 finished = True
             else:
                 nextAgentNum = agentNumsToRun[agentNumsToRun.index(curAgentNum) + 1]
-                lock.acquire()
-                nameToNumRun[mapName] = len(scens)
-                lock.release()
+                nameToNumRun.set.remote(mapName, len(scens))
                 static_dict[mapName]["agentsPerScen"] = [nextAgentNum] * len(scens)
                 for scen, agentNum in zip(scens, static_dict[mapName]["agentsPerScen"]):
-                    queue.put(("runSingleInstanceMT", (eecbsArgs, mapName, agentNum, scen)))
+                    args = (runnerArgs, mapName, agentNum, scen)
+                    futures.append(runSingleInstanceMT.remote(nameToNumRun, num_workers, idToWorkerOutputFilepath, 
+                                                              static_dict, *args))
     else: # If not, we are done
         print("Finished all agent numbers for map: {}, succeeded {}/{}".format(mapName, numSuccess, numToRunTotal))
         finished = True
-        # shouldRunDataManipulator = True
 
     if finished:
         finished_txt = idToWorkerOutputFilepath(-2, mapName)
         with open(finished_txt, "w") as f:
             f.write("")
     
-    # if shouldRunDataManipulator:
-    #     queue.put(("runDataManipulator", 
-    #                 (mapName, )))
-                        # static_dict[mapName]["scens"], f".{file_home}/eecbs/raw_data/{mapName}/bd/", mapFile, 
-                        # f".{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapName}_{args.iter}", 
-                        # f".{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapName}_{args.iter}")))
+    return futures
 
-
-# def runDataManipulator(worker_id, mapName):
-#     # print("AT DATA MANIPULATOR")
-#     trainOut = f".{file_home}/data/logs/EXP{args.expnum}/labels/raw/train_{mapName}_{args.iter}"
-#     valOut = f".{file_home}/data/logs/EXP{args.expnum}/labels/raw/val_{mapName}_{args.iter}"
-#     if os.path.exists(trainOut) and os.path.exists(valOut):
-#         print("Data already exists")
-#         return
-
-#     # command = ["python", "./data_collection/data_manipulator.py", 
-#     command = ["python", "-m", "data_collection.data_manipulator", 
-#                 f"--pathsIn=.{file_home}/eecbs/raw_data/{mapName}/paths/", 
-#                 f"--bdIn=.{file_home}/eecbs/raw_data/{mapName}/bd/", 
-#                 f"--mapIn={mapsInputFolder}", f"--trainOut={trainOut}", 
-#                 f"--valOut={valOut}", "--num_parallel=3"]
-#     # os.get
-#     runCommandWithTmux(worker_id, " ".join(command))
-    
-def worker(queue: multiprocessing.JoinableQueue, nameToNumRun, lock,
-            worker_id: int, num_workers: int, static_dict, idToWorkerOutputFilepath):
-    while True:
-        task = queue.get()
-        if task is None:
-            break
-        func, args = task
-        if func == "checkIfRunNextAgents":
-            checkIfRunNextAgents(queue, nameToNumRun, lock, num_workers, idToWorkerOutputFilepath, static_dict, *args)
-        elif func == "runSingleInstanceMT":
-            runSingleInstanceMT(queue, nameToNumRun, lock, worker_id, idToWorkerOutputFilepath, static_dict, *args)
-        # elif func == "runDataManipulator":
-        #     runDataManipulator(worker_id, *args)
-        else:
-            raise ValueError("Unknown function")
-        queue.task_done()
 
 def helperRun(command):
-    subprocess.run(command, check=True, shell=True)
+    # subprocess.run(command, check=True, shell=True)
+    subprocess.run(command, check=True, shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
 
 ### 
 def specificRunnerDictSetup(args):
@@ -433,7 +418,9 @@ def generic_batch_runner(args):
         eecbs_runner_setup(args)
 
     def idToWorkerOutputFilepath(worker_id, mapName):
-        assert(worker_id >= -2)
+        # assert(worker_id >= -3)
+        if worker_id == -3: # worker_id = -3 denotes glob search string for worker csvs
+            return f"{outputFolder}/{mapName}/csvs/worker_*.csv"
         if worker_id == -2: # worker_id = -2 denotes the finished txt
             return f"{outputFolder}/{mapName}/finished.txt"
         if worker_id == -1: # worker_id = -1 denotes combined csv
@@ -443,11 +430,11 @@ def generic_batch_runner(args):
     ### Start multiprocessing logic
     ct = CustomTimer()
     ct.start("MAPF Calls")
-    manager = multiprocessing.Manager()
-    lock = manager.Lock()
-    queue = multiprocessing.JoinableQueue()
+    
+    # queue = multiprocessing.JoinableQueue()
+    tasks = []
     num_workers = args.num_parallel_runs
-    workers = []
+    ray.init(num_cpus=num_workers)
 
     ### Collect scens for each map
     mapsToScens = defaultdict(list)
@@ -465,7 +452,7 @@ def generic_batch_runner(args):
     ### For each map, get the static information
     # This includes the map file, the scens, and the number of agents to run
     static_dict = dict()
-    nameToNumRun = manager.dict()
+    nameToNumRun = SharedDict.remote()
     maps_to_run = []
     for mapFile in mapsToScens: # mapFile is just the map name without the path or .map extension
         ### Create the static_dict for the map
@@ -540,19 +527,19 @@ def generic_batch_runner(args):
                     static_dict[mapFile]["agentsPerScen"].append(int(num))
         
         assert(len(static_dict[mapFile]["agentsPerScen"]) > 0)
-        nameToNumRun[mapFile] = len(mapsToScens[mapFile])
-        print(f"Map: {mapFile} requires {nameToNumRun[mapFile]} runs")
+        nameToNumRun.set.remote(mapFile, len(mapsToScens[mapFile]))
+        print(f"Map: {mapFile} requires {len(mapsToScens[mapFile])} runs")
 
     if args.command == "clean":
         return
 
     # Start worker processes with corresponding tmux session
-    for worker_id in range(num_workers):
-        createTmuxSession(worker_id)
-        p = multiprocessing.Process(target=worker, 
-                    args=(queue, nameToNumRun, lock, worker_id, num_workers, static_dict, idToWorkerOutputFilepath))
-        p.start()
-        workers.append(p)
+    # for worker_id in range(num_workers):
+    #     createTmuxSession(worker_id)
+    #     p = multiprocessing.Process(target=worker, 
+    #                 args=(queue, nameToNumRun, lock, worker_id, num_workers, static_dict, idToWorkerOutputFilepath))
+    #     p.start()
+    #     workers.append(p)
 
     # Get the specific individual eecbs or pymodel arguments
     specific_runner_args = specificRunnerDictSetup(args)
@@ -566,24 +553,32 @@ def generic_batch_runner(args):
         os.makedirs(f"{mapOutputFolder}/csvs/", exist_ok=True)
         # pdb.set_trace()
         for scen, agentNum in zip(static_dict[mapFile]["scens"], static_dict[mapFile]["agentsPerScen"]):
-            queue.put(("runSingleInstanceMT", (specific_runner_args, mapFile, agentNum, scen)))
+            tasks.append((specific_runner_args, mapFile, agentNum, scen))
+
+    futures = [runSingleInstanceMT.remote(nameToNumRun, num_workers, idToWorkerOutputFilepath, 
+                                          static_dict, *args) for args in tasks]
 
     # Wait for all tasks to be processed
-    queue.join()
+    # print(len(futures))
+    while len(futures):
+        ready, futures = ray.wait(futures)
+        for finished_task in ready:
+            children = ray.get(finished_task)
+            futures += children # append child futures
+        # print(len(futures))
 
-    # Stop worker processes
-    for i in range(num_workers):
-        killTmuxSession(i)
-        queue.put(None)
-    for p in workers:
-        p.join()
+    # # Stop worker processes
+    # for i in range(num_workers):
+    #     killTmuxSession(i)
+    #     queue.put(None)
+    # for p in workers:
+    #     p.join()
 
     # Delete CSV files with {mapName}_worker naming convention
     for mapName in maps_to_run:
-        for worker_id in range(num_workers):
-            filename = idToWorkerOutputFilepath(worker_id, mapName)
-            if os.path.exists(filename):
-                os.remove(filename)
+        filenames = glob.glob(idToWorkerOutputFilepath(-3, mapName))
+        for filename in filenames:
+            os.remove(filename)
     
     ct.stop("MAPF Calls")
     print("------------ Finished {} Calls in :{:.3f} seconds".format(args.command, ct.getTimes("MAPF Calls")))
@@ -598,9 +593,9 @@ def generic_batch_runner(args):
         # Keep the csvs folder, it should just contain the combined.csv file
     
     # Run data manipulator if running eecbs
-    if args.command == "eecbs":
-        runDataManipulator(args, ct, mapsToScens, static_dict, 
-                           args.outputPathNpzFolder, mapsInputFolder, num_workers)
+    # if args.command == "eecbs":
+    #     runDataManipulator(args, ct, mapsToScens, static_dict, 
+    #                        args.outputPathNpzFolder, mapsInputFolder, num_workers)
 
 
 ## Example calls of BatchRunner3
