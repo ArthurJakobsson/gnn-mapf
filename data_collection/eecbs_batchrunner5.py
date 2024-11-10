@@ -17,26 +17,7 @@ import ray.util.multiprocessing
 # from custom_utils.custom_timer import CustomTimer
 from custom_utils.custom_timer import CustomTimer
 from custom_utils.common_helper import str2bool, getMapBDScenAgents
-# from custom_utils.multirunner import createTmuxSession, runCommandWithTmux, killTmuxSession
 
-# ###############################################################
-# def createTmuxSession(i):
-#     tmux_session_name = f"worker_{i}"
-#     tmux_command = f"tmux new-session -d -s {tmux_session_name}"
-#     subprocess.run(tmux_command, shell=True, check=True)
-
-# def runCommandWithTmux(i, command):
-#     tmux_session_name = f"worker_{i}"
-#     new_command = f"{command}; tmux wait-for -S {tmux_session_name}_done"
-#     subprocess.run(["tmux", "send-keys", "-t", tmux_session_name, new_command, "C-m"], 
-#                    check=True)
-#     subprocess.run(["tmux", "wait-for", tmux_session_name + "_done"], check=True)
-#     # subprocess.run(["tmux", "kill-session", "-t", tmux_session_name], check=True)
-
-# def killTmuxSession(i):
-#     tmux_session_name = f"worker_{i}"
-#     subprocess.run(["tmux", "kill-session", "-t", tmux_session_name], check=True)
-# ###############################################################
 
 @ray.remote
 class SharedDict:
@@ -98,23 +79,18 @@ mapsToMaxNumAgents = {
 def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     """Command for running EECBS"""
     mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
-    bd_path = f"{outputFolder}/bd/{bdname}.{numAgents}.txt"
-    # scenname = (scenfile.split("/")[-1])
-    # mapname = mapfile.split("/")[-1].split(".")[0]
-    # bd_path = f"{outputFolder}/bd/{scenname}{numAgents}.txt"
-    # command = f".{file_home}/eecbs/build_release2/eecbs"
+    bd_path = f"{outputFolder}jerwq/bd/{bdname}.{numAgents}.txt"
+
     command = f"{eecbsPath}"
 
     for aKey in eecbsArgs["args"]:
         command += " --{}={}".format(aKey, eecbsArgs["args"][aKey])
-    # tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.txt"
     outputPathFile = f"{outputFolder}/paths/{bdname}.{scenname}.{numAgents}.txt"
     command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --bd_file={}".format(
                 numAgents, scenfile, outputPathFile, firstIter, bd_path)
-    # command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
     command += " --output={} --map={}".format(outputfile, mapfile)
     command += " --sipp=1"
-    # print(command.split("suboptimality=1")[1])
+
     return command
     
 def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
@@ -143,6 +119,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     command += f" --percentSuccessGenerationReduction={runnerArgs['percentSuccessGenerationReduction']}"
     command += f" --seed={args.iter}"
     return command
+
 
 def getCommandForSingleInstance(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     if runnerArgs["command"] == "eecbs":
@@ -217,11 +194,9 @@ def runSingleInstanceMT(nameToNumRun, num_workers, idToWorkerOutputFilepath, sta
     runBefore, status = detectExistingStatus(runnerArgs, mapFile, curAgentNum, scen, combined_filename) # check in combinedDf
     if not runBefore:
         command = getCommandForSingleInstance(runnerArgs, outputFolder, workerOutputCSV, mapFile, curAgentNum, scen)
-        # runCommandWithTmux(worker_id, command)
         helperRun(command)
         runBefore, status = detectExistingStatus(runnerArgs, mapFile, curAgentNum, scen, workerOutputCSV)  # check in worker's df
         if not runBefore:
-            # print(f"worker_id:{worker_id}")
             print(f"mapFile:{mapFile}, curAgentNum:{curAgentNum}, scen:{scen}, workerOutputCSV:{workerOutputCSV}, worker_id:{worker_id}")
             # raise RuntimeError("Fix detectExistingStatus; we ridToWorkerOutputFilepathan an instance but cannot find it afterwards!")
 
@@ -365,23 +340,14 @@ def eecbs_runner_setup(args):
     os.makedirs(outputPathNpzFolder, exist_ok=True)
 
 def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict, 
-                       outputPathNpzFolder, mapsInputFolder, num_workers):
+                       outputPathNpzFolder, num_workers):
     ### Run data manipulator with multiprocessing
     ct.start("Data Manipulator")
     input_list = []
     numWorkersParallelForDataManipulator = 1
     for mapFile in mapsToScens.keys(): # mapFile is just the map name without the path or .map extension
         mapOutputFolder = static_dict[mapFile]["outputFolder"]
-        # print(mapOutputFolder)
         pathsIn = f"{mapOutputFolder}/paths/"
-
-        # mapOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_map.npz"
-        # bdOutputNpz = f".{file_home}/data/benchmark_data/constant_npzs/{mapFile}_bds.npz"
-        # mapOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_map.npz"
-        mapOutputNpz = f"{args.constantMapAndBDFolder}/all_maps.npz" #TODO change this to previous line for testing new maps
-        bdOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_bds.npz"
-        # mapOutputNpz = f"data_collection/data/benchmark_data/constant_npz2/{mapFile}_map.npz"
-        # bdOutputNpz = f"data_collection/data/benchmark_data/constant_npzs2/{mapFile}_bds.npz"
         pathOutputNpz = f"{outputPathNpzFolder}/{mapFile}_paths.npz"
         if os.path.exists(pathOutputNpz):
             print("Skipping: {} as paths npz already exists".format(mapFile))
@@ -389,12 +355,9 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
 
         command = " ".join(["python", "-m", "data_collection.data_manipulator", 
                         f"--pathsIn={pathsIn}", f"--pathOutFile={pathOutputNpz}",
-                        f"--bdIn={mapOutputFolder}/bd", f"--bdOutFile={bdOutputNpz}", 
-                        f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
-        # print(command)
+        
         input_list.append((command,))
-        # pdb.set_trace()
     
     if len(input_list) > 0:
         with ray.util.multiprocessing.Pool(processes=min(len(input_list), num_workers//numWorkersParallelForDataManipulator)) as pool:
@@ -419,7 +382,6 @@ def generic_batch_runner(args):
         eecbs_runner_setup(args)
 
     def idToWorkerOutputFilepath(worker_id, mapName):
-        # assert(worker_id >= -3)
         if worker_id == -3: # worker_id = -3 denotes glob search string for worker csvs
             return f"{outputFolder}/{mapName}/csvs/worker_*.csv"
         if worker_id == -2: # worker_id = -2 denotes the finished txt
@@ -432,7 +394,6 @@ def generic_batch_runner(args):
     ct = CustomTimer()
     ct.start("MAPF Calls")
     
-    # queue = multiprocessing.JoinableQueue()
     tasks = []
     num_workers = args.num_parallel_runs
     ray.init(num_cpus=num_workers)
@@ -508,14 +469,10 @@ def generic_batch_runner(args):
                 agentNumbers = [maximumAgents]
             else:
                 agentNumbers = [int(x) for x in args.numAgents.split(",")]
-            # maximumAgents = increment + 1 # Just run one setting as of now
-            # agentNumbers = [100, 200, 300][:1]
-            # agentNumbers = [10, 50, 100]
-            # agentNumbers = [mapsToMaxNumAgents[mapFile]] # Only do this to collect bds
+
             static_dict[mapFile]["agentRange"] = agentNumbers
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
         else: # we are somewhere in the training loop
-            # scenlist = os.listdir(scenInputFolder)
             for scen in all_scen_files:
                 if mapFile not in scen or not scen.endswith(".scen"):
                     continue
@@ -524,7 +481,6 @@ def generic_batch_runner(args):
                     firstLine = fh.readline()
                     assert(firstLine.startswith("version "))
                     num = firstLine.split(" ")[1]
-                    # agentNumbers.append(int(num))
                     static_dict[mapFile]["agentsPerScen"].append(int(num))
         
         assert(len(static_dict[mapFile]["agentsPerScen"]) > 0)
@@ -534,14 +490,6 @@ def generic_batch_runner(args):
     if args.command == "clean":
         return
 
-    # Start worker processes with corresponding tmux session
-    # for worker_id in range(num_workers):
-    #     createTmuxSession(worker_id)
-    #     p = multiprocessing.Process(target=worker, 
-    #                 args=(queue, nameToNumRun, lock, worker_id, num_workers, static_dict, idToWorkerOutputFilepath))
-    #     p.start()
-    #     workers.append(p)
-
     # Get the specific individual eecbs or pymodel arguments
     specific_runner_args = specificRunnerDictSetup(args)
 
@@ -549,7 +497,7 @@ def generic_batch_runner(args):
     for mapFile in maps_to_run:
         mapOutputFolder = static_dict[mapFile]["outputFolder"]
         os.makedirs(mapOutputFolder, exist_ok=True)
-        os.makedirs(f"{mapOutputFolder}/bd/", exist_ok=True)
+        # os.makedirs(f"{mapOutputFolder}/bd/", exist_ok=True)
         os.makedirs(f"{mapOutputFolder}/paths/", exist_ok=True)
         os.makedirs(f"{mapOutputFolder}/csvs/", exist_ok=True)
         # pdb.set_trace()
@@ -560,19 +508,11 @@ def generic_batch_runner(args):
                                           static_dict, *args) for args in tasks]
 
     # Wait for all tasks to be processed
-    # print(len(futures))
     while len(futures):
         ready, futures = ray.wait(futures)
         for finished_task in ready:
             children = ray.get(finished_task)
             futures += children # append child futures
-
-    # # Stop worker processes
-    # for i in range(num_workers):
-    #     killTmuxSession(i)
-    #     queue.put(None)
-    # for p in workers:
-    #     p.join()
 
     # Delete CSV files with {mapName}_worker naming convention
     for mapName in maps_to_run:
@@ -595,16 +535,15 @@ def generic_batch_runner(args):
     # Run data manipulator if running eecbs
     if args.command == "eecbs":
         runDataManipulator(args, ct, mapsToScens, static_dict, 
-                           args.outputPathNpzFolder, mapsInputFolder, num_workers)
+                           args.outputPathNpzFolder, num_workers)
 
 
-## Example calls of BatchRunner4
+## Example calls of BatchRunner5
 """
 Note: These are likely outdated, but the general structure should be the same
-python -m data_collection.eecbs_batchrunner4 --mapFolder=data_collection/data/mini_benchmark_data/maps \
+python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
                  --scenFolder=data_collection/data/mini_benchmark_data/scens \
                  --numAgents=50,100 \
-                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
                  --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_outputs \
                  --num_parallel_runs=10 \
                  "eecbs" \
@@ -615,7 +554,7 @@ Python model specific:
                  --modelPath=data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt \
                  --k=4 --m=5 --maxSteps=100 --shieldType=CS-PIBT \
 Cleaning the output folders (to save memory):
-python -m data_collection.eecbs_batchrunner4 --mapFolder=data_collection/data/benchmark_data/maps \
+python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/benchmark_data/maps \
                  --scenFolder=data_collection/data/benchmark_data/scens \
                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
                  --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/[eecbs_outputs or pymodel_outputs] \
@@ -623,16 +562,6 @@ python -m data_collection.eecbs_batchrunner4 --mapFolder=data_collection/data/be
                  --num_parallel_runs=1 \
                  "clean" --keepNpys=True
 
-Collecting initial bd and map data:
-python -m data_collection.eecbs_batchrunner4 --mapFolder=data_collection/data/benchmark_data/maps \
-                 --scenFolder=data_collection/data/benchmark_data/scens \
-                 --numAgents=50,100 \
-                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
-                 --outputFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs \
-                 --num_parallel_runs=50 \
-                 "eecbs" \
-                 --outputPathNpzFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_npzs \
-                 --firstIter=true --cutoffTime=1
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -642,7 +571,6 @@ if __name__ == "__main__":
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str, required=True)
     numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max"
     parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
-    parser.add_argument("--constantMapAndBDFolder", help="contains the precomputed map and bd folders", type=str, required=True)
     parser.add_argument("--outputFolder", help="parent output folder where each map folder will contain paths/ and csvs/ results", 
                         type=str, required=True)
     parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 

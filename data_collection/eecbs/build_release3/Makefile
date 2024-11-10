@@ -60,7 +60,7 @@ EQUALS = =
 CMAKE_SOURCE_DIR = /home/michelle/mapf/gnn-mapf/data_collection/eecbs
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/michelle/mapf/gnn-mapf/data_collection/eecbs
+CMAKE_BINARY_DIR = /home/michelle/mapf/gnn-mapf/data_collection/eecbs/build_release3
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/michelle/mapf/gnn-mapf/data_collection/eecbs/CMakeFiles /home/michelle/mapf/gnn-mapf/data_collection/eecbs//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/michelle/mapf/gnn-mapf/data_collection/eecbs/build_release3/CMakeFiles /home/michelle/mapf/gnn-mapf/data_collection/eecbs/build_release3//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/michelle/mapf/gnn-mapf/data_collection/eecbs/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/michelle/mapf/gnn-mapf/data_collection/eecbs/build_release3/CMakeFiles 0
 .PHONY : all
 
 # The main clean target

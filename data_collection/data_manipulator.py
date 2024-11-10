@@ -214,6 +214,8 @@ def parse_path(pathfile):
     '''
     # save dimensions for later array saving
     w = h = 0
+    # priorities
+    priorities = None
     # maps timesteps to a list of agent coordinates
     timestepsToMaps = defaultdict(list)
     # get max number of timesteps by counting number of commas
@@ -233,13 +235,15 @@ def parse_path(pathfile):
     # get path for each agent and update dictionary of maps accordingly
     with open(pathfile, 'r') as fd:
         linenum = 0
-        for line in fd.readlines():
+        for linenum, line in enumerate(fd.readlines()):
             if linenum == 0: # parse dimensions of map and keep going
-                line = line[:-1]
-                line = line.split(",")
+                line = line.strip().split(",")
                 w = int(line[0])
                 h = int(line[1])
-                linenum += 1
+                continue
+            elif linenum == 1: # parse priorities and keep going
+                priorities_str = line.strip().split()[1] # comma-separated string
+                priorities = priorities_str.split(",")
                 continue
             i = 0
             # omit up to the first left paren
@@ -259,7 +263,6 @@ def parse_path(pathfile):
                         timestepsToMaps[i].append([row, col])
                         i += 1
                 else: timestepsToMaps[i].append([row, col])
-            linenum += 1
 
     # make each map a np array
     for key in timestepsToMaps:
@@ -282,7 +285,7 @@ def parse_path(pathfile):
     #         res2[time][width][height] = agent
 
     res = np.asarray(res) # (t,n,2)
-    return res
+    return res, np.asarray(priorities)
 
 def parse_bd(bdfile):
     '''
@@ -344,43 +347,87 @@ def batch_map(dir, num_parallel):
         
     return res
 
-def batch_bd(dir, num_parallel):
+# def batch_bd(dir, num_parallel):
+#     '''
+#     goes through a directory of bd outputs, parsing each one and saving to a dictionary
+#     input: directory of backward djikstras (string)
+#     output: dictionary mapping filenames to backward djikstras
+#     '''
+#     # assert(1 + 1 == 3)
+#     res = {} # string->np
+#     inputs_list = []
+#     filenames_list = []
+#     # iterate over files in directory, parsing each map
+#     for filename in os.listdir(dir):
+#         f = os.path.join(dir, filename)
+#         # checking if it is a file
+#         if os.path.isfile(f):
+#             scenname, agents = filename.split(".")[:2] # e.g. Paris_1_256-random-1.10.txt, where 1 is scen, 10 is agents
+#             if num_parallel == 1:
+#                 res[scenname] = parse_bd(f)
+#             else:
+#                 inputs_list.append((f,))  # Note, need to pass in as tuple for use with starmap
+#                 filenames_list.append(scenname)
+#         else:
+#             raise RuntimeError("bad bd dir")
+    
+#     if num_parallel == 1:
+#         return res
+
+#     with multiprocessing.Pool(processes=num_parallel) as pool:
+#         results = pool.starmap(parse_bd, inputs_list)
+
+#     for i in range(len(inputs_list)):
+#         filename = filenames_list[i]
+#         res[filename] = results[i]
+#     return res
+
+
+def batch_bd(bdInDir, scenInDir, num_parallel):
     '''
     goes through a directory of bd outputs, parsing each one and saving to a dictionary
     input: directory of backward djikstras (string)
-    output: dictionary mapping filenames to backward djikstras
+    output: dictionary mapping goals to backward djikstras
     '''
     # assert(1 + 1 == 3)
-    res = {} # string->np
-    inputs_list = []
-    filenames_list = []
-    # iterate over files in directory, parsing each map
-    for filename in os.listdir(dir):
-        f = os.path.join(dir, filename)
+    goal_to_bd = {} # tuple->np
+    inputs_list = [] # scen_bds filenames
+    scennames_list = []
+
+    def add_unique_goals_to_dict(agent_to_bd, scenname):
+        with open(os.path.join(scenInDir, scenname) + ".scen", "r") as scen_file:
+            goals = [line.strip().split()[-3:-1] for line in scen_file.readlines()]
+        for agent, bd in enumerate(agent_to_bd):
+            goal = ' '.join(str(goals[agent]))
+            goal_to_bd[goal] = bd # add to dictionary of unique goals
+
+    for filename in os.listdir(bdInDir):
+        f = os.path.join(bdInDir, filename)
         # checking if it is a file
         if os.path.isfile(f):
-            # parse the bd file and add to a global dictionary (or some class variable dictionary)
-            # val = parse_bd(f)
-            # scenname, agents = (filename.split(".txt")[0]).split(".scen") # e.g. Paris_1_256-random-1.scen10.txt, where 1 is scen, 10 is agents
-            scenname, agents = filename.split(".")[:2] # e.g. Paris_1_256-random-1.10.txt, where 1 is scen, 10 is agents
+            scenname, _ = filename.split(".")[:2] # e.g. Paris_1_256-random-1.10.txt, where 1 is scen, 10 is agents
             if num_parallel == 1:
-                res[scenname] = parse_bd(f)
+                agent_to_bd = parse_bd(f) # list
+                add_unique_goals_to_dict(agent_to_bd, scenname)
             else:
                 inputs_list.append((f,))  # Note, need to pass in as tuple for use with starmap
-                filenames_list.append(scenname)
+                scennames_list.append(scenname)
         else:
             raise RuntimeError("bad bd dir")
-    
+
     if num_parallel == 1:
-        return res
+        return goal_to_bd
 
     with multiprocessing.Pool(processes=num_parallel) as pool:
         results = pool.starmap(parse_bd, inputs_list)
 
     for i in range(len(inputs_list)):
-        filename = filenames_list[i]
-        res[filename] = results[i]
-    return res
+        scenname = scennames_list[i]
+        agent_to_bd = results[i] # list
+        add_unique_goals_to_dict(agent_to_bd, scenname)
+    
+    return goal_to_bd
+
 
 def batch_path(dir):
     '''
@@ -411,13 +458,14 @@ def batch_path(dir):
             # scen, numAgents = filename.split(".txt")[0].split(".scen") # remove .txt, e.g. empty_8_8-random-9, 32
             # mapname = scen.split("-")[0] + ".map" # e.g. empty_8_8.map
             mapname, bdname, scen, numAgents = getMapBDScenAgents(filename)
-            val = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
+            val, priorities = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             # print("___________________________\n")
             # if idx in valFiles:
             #     res2[mapname + "," + bdname] = val
             # else:
             res1[f"{mapname}.map,{bdname},{scen}"] = val
+            res1[f"{mapname}.map,{bdname},{scen}_priorities"] = priorities
             idx += 1
         else:
             raise RuntimeError("bad path dir")
@@ -429,22 +477,20 @@ def batch_path(dir):
 def main():
     # cmdline argument parsing: take in dirs for paths, maps, and bds, and where you want the outputted npz
     parser = argparse.ArgumentParser()
+
     parser.add_argument("--pathsIn", help="directory containing txt files of agents and paths taken", type=str)
     parser.add_argument("--pathOutFile", help="output filepath npz to save path", type=str)
+
     parser.add_argument("--bdIn", help="directory containing txt files with backward djikstra output", type=str)
     parser.add_argument("--bdOutFile", help="output filepath npz to save backward djikstras", type=str)
     parser.add_argument("--mapIn", help="directory containing txt files with obstacles", type=str)
+    parser.add_argument("--scenIn", help="directory containing scen files", type=str)
     parser.add_argument("--mapOutFile", help="output filepath npz to save map", type=str)
     # npzMsg = "output file with maps, bds as name->array dicts, along with (mapname, bdname, path) triplets for each EECBS run"
     parser.add_argument("--num_parallel", help="num_parallel", type=int, default=1)
     
 
     args = parser.parse_args()
-
-    # pathsIn = args.pathsIn
-    # bdIn = args.bdIn
-    # mapIn = args.mapIn
-    # trainOut = args.trainOut
 
     # instantiate global variables that will keep track of each map and bd that you've encountered
     # maps = {} # maps mapname->np array containing the obstacles in map
@@ -453,46 +499,47 @@ def main():
     # parse each map, add to global dict
     ct = CustomTimer()
     
-    assert(args.mapOutFile.endswith(".npz"))
-    # print("hello world")
-    # args.mapOutFile="temp/all_maps.npz"
-    if os.path.exists(args.mapOutFile):
-        print("Map file already exists, skipping map parsing")
-        pass
-    else:
-        with ct("Parsing maps"):
-            maps = batch_map(args.mapIn, args.num_parallel) # maps mapname->np array containing the obstacles in map
-            print("Created all maps")
-        # args.mapOutFile="temp/all_maps.npz"
-        np.savez_compressed(f"{args.mapOutFile}", **maps)
-        ct.printTimes("Parsing maps")
-    # parse each bd, add to global dict
-    assert(args.bdOutFile.endswith(".npz"))
-    temp = f"data_collection/data/benchmark_data/completed_splitting/{args.bdOutFile.split('/')[-1]}" #TODO make it so that this can be dynamic
-    if os.path.exists(temp):#args.bdOutFile):
-        print("BD file already exists, skipping bd parsing")
-        pass
-    else:
-        with ct("Parsing bds"):
-            bds = batch_bd(args.bdIn, args.num_parallel)
-        np.savez_compressed(args.bdOutFile, **bds)
-        ct.printTimes("Parsing bds")
+    if args.bdIn and args.bdOutFile and args.mapIn and args.mapOutFile:
+        assert(args.mapOutFile.endswith(".npz"))
+        # print("hello world")
+        if os.path.exists(args.mapOutFile):
+            print("Map file already exists, skipping map parsing")
+            pass
+        else:
+            with ct("Parsing maps"):
+                maps = batch_map(args.mapIn, args.num_parallel) # maps mapname->np array containing the obstacles in map
+                print("Created all maps")
+            os.makedirs(os.path.dirname(args.mapOutFile), exist_ok=True)
+            np.savez_compressed(f"{args.mapOutFile}", **maps)
+            ct.printTimes("Parsing maps")
+        # parse each bd, add to global dict
+        assert(args.bdOutFile.endswith(".npz"))
+        os.makedirs(os.path.dirname(args.bdOutFile), exist_ok=True)
+        if os.path.exists(args.bdOutFile):
+            print("BD file already exists, skipping bd parsing")
+            pass
+        else:
+            with ct("Parsing bds"):
+                bds = batch_bd(args.bdIn, args.scenIn, args.num_parallel)
+            np.savez_compressed(args.bdOutFile, **bds)
+            ct.printTimes("Parsing bds")
 
-    # parse each path, add to global list
-    assert(args.pathOutFile.endswith(".npz"))
-    print(args.pathOutFile)
-    if os.path.exists(args.pathOutFile):
-        print(f"Path file {args.pathOutFile} already exists, skipping path parsing")
-    else:
-        if not os.listdir(args.pathsIn):
-            print("WARNING: pathsIn folder is empty. This might be okay if restarting previous run or all failed.")
-            return
-        with ct("Parsing paths"):
-            paths_data = batch_path(args.pathsIn)
-        ct.printTimes("Parsing paths")
-        with ct("Saving npz"):
-            np.savez_compressed(args.pathOutFile, **paths_data)
-        ct.printTimes("Saving npz")
+    if args.pathsIn and args.pathOutFile:
+        # parse each path, add to global list
+        assert(args.pathOutFile.endswith(".npz"))
+        print(args.pathOutFile)
+        if os.path.exists(args.pathOutFile):
+            print(f"Path file {args.pathOutFile} already exists, skipping path parsing")
+        else:
+            if not os.listdir(args.pathsIn):
+                print("WARNING: pathsIn folder is empty. This might be okay if restarting previous run or all failed.")
+                return
+            with ct("Parsing paths"):
+                paths_data = batch_path(args.pathsIn)
+            ct.printTimes("Parsing paths")
+            with ct("Saving npz"):
+                np.savez_compressed(args.pathOutFile, **paths_data)
+            ct.printTimes("Saving npz")
 
     # Verify that the dataloader works by sampling 10 random items
     # with ct("Testing dataloader"):

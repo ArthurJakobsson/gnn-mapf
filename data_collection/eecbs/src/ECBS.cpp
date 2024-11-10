@@ -286,7 +286,8 @@ bool ECBS::generateRoot()
 	assert(paths_found_initially.empty());
 	paths_found_initially.resize(num_of_agents);
 	//generate random permutation of agent indices
-	auto agents = shuffleAgents();
+	vector<int> agents = shuffleAgents();
+	agentOrder = agents;
 
 	for (auto i : agents)
 	{
@@ -605,6 +606,11 @@ ECBSNode* ECBS::selectNode()
 
 void ECBS::printPaths() const
 {
+	cout << "Priorities: ";
+	for (auto i : agentOrder)
+		cout << i << ",";
+	cout << endl;
+
 	for (int i = 0; i < num_of_agents; i++)
 	{
 		cout << "Agent " << i << " (" << paths_found_initially[i].first.size() - 1 << " -->" <<
@@ -613,6 +619,30 @@ void ECBS::printPaths() const
 			cout << t.location << "->";
 		cout << endl;
 	}
+}
+
+
+void ECBS::savePaths(const string &fileName, int rows, int cols) const
+{
+    std::ofstream output;
+    output.open(fileName, std::ios::out);
+	// NEW write dimensions first
+	output << rows << "," << cols << endl;
+
+	output << "Priorities: ";
+	for (auto i : agentOrder)
+		output << i << ",";
+	output << endl;
+
+    for (int i = 0; i < num_of_agents; i++)
+    {
+        output << "Agent " << i << ": ";
+        for (const auto & t : *paths[i])
+            output << "(" << search_engines[0]->instance.getRowCoordinate(t.location)
+                   << "," << search_engines[0]->instance.getColCoordinate(t.location) << ")->";
+        output << endl;
+    }
+    output.close();
 }
 
 

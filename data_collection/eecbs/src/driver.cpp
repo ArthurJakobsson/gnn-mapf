@@ -48,8 +48,8 @@ int main(int argc, char** argv)
 		("stats", po::value<bool>()->default_value(false), "write to files some detailed statistics")
 		// ("batchFolder", po::value<string>()->default_value(""), "Folder to save outputs") // NEW: batch output folder
 		("seed", po::value<int>()->default_value(5), "seed for tiebreaker low-level node selection") // NEW: seed
-		("bd_filename", po::value<string>(), "filepath for saving bds")
-		("firstIter", po::value<bool>()->default_value(false), "choose whether to output bds")
+		("bd_filename", po::value<string>()->default_value(""), "filepath for saving bds")
+		// ("firstIter", po::value<bool>()->default_value(false), "choose whether to output bds")
 
 		// params for CBS node selection strategies
 		("highLevelSolver", po::value<string>()->default_value("EES"), "the high-level solver (A*, A*eps, EES, NEW)")
@@ -193,7 +193,7 @@ int main(int argc, char** argv)
 		// cout << ecbs.bds.size() << "\n";
 
 		// Only make bd files if it is the first iteration
-		if(vm["firstIter"].as<bool>())
+		if(vm["bd_filename"].as<string>() != "")
 		{
 			ofstream file;
 			// string scen = vm["scenname"].as<string>();//.substr(17);

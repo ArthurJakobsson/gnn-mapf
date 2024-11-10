@@ -15,10 +15,13 @@ public:
 	// Runs the algorithm until the problem is solved or time is exhausted 
 	bool solve(double time_limit, int cost_lowerbound = 0);
     void clear(); // used for rapid random  restart
+	
+	void savePaths(const string &fileName, int rows, int cols) const;
 
 private:
 	vector<int> min_f_vals; // lower bounds of the cost of the shortest path
 	vector< pair<Path, int> > paths_found_initially;  // contain initial paths found
+	vector<int> agentOrder; // priorities used for root node
 
 	pairing_heap< ECBSNode*, compare<ECBSNode::compare_node_by_f> > cleanup_list; // it is called open list in ECBS
 	pairing_heap< ECBSNode*, compare<ECBSNode::compare_node_by_inadmissible_f> > open_list; // this is used for EES
