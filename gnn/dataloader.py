@@ -354,12 +354,13 @@ class MyOwnDataset(Dataset):
                         continue
 
                 # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
-                maps_bds = list(filter(lambda k: map_name in k, bd_folder))
+                maps_bds = list(filter(lambda k: map_name in k and "bds.npz" == k[-7:], bd_folder))
                 idx_start = 0 
                 for bd_file_name in maps_bds:
                     bdNpzFile = f"{self.bdNpzFolder}/{bd_file_name}"
+                    goalsNpzFile = bdNpzFile[:-7] + "goals.npz"
                     self.ct.start("Loading")
-                    cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
+                    cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, goalsNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
                     print(f"Loading: {npz_path} of size {len(cur_dataset)}")
 
                     self.ct.stop("Loading")
@@ -444,8 +445,10 @@ class MyOwnDataset(Dataset):
 """
 python -m gnn.dataloader --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
       --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs \
-      --pathNpzFolder=data_collection/data/logs/EXP_Test3/iter0/eecbs_npzs \
-      --processedFolder=data_collection/data/logs/EXP_Test3/iter0/processed \
+      --pathNpzFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_npzs \
+      --processedFolder=data_collection/data/logs/EXP_Test_batch/iter0/processed \
+      --k=5 \
+      --m=3
 """
 if __name__ == "__main__":
     """
@@ -454,7 +457,7 @@ if __name__ == "__main__":
     We assume the following file structure:
     Inputs:
     - mapNpzFile: e.g. all_maps.npz with all_maps[MAPNAME] = grid_map (H,W)
-    - bdNpzFolder: Folder containing [MAPNAME]_bds.npz    
+    - bdNpzFolder: Folder containing [MAPNAME]_bds.npz and [MAPNAME]_goals.npz  
     - pathNpzFolder: Folder containing [MAPNAME]_paths.npz
     Outputs:
     - processedFolder: Folder to save processed data, will contain [MAPNAME]_[idx].pt

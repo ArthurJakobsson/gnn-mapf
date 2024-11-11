@@ -32,7 +32,7 @@ class PipelineDataset(Dataset):
     '''
 
     # instantiate class variables
-    def __init__(self, mapFileNpz, bdFileNpz, pathFileNpz, k, size, max_agents, helper_bd_preprocess="middle"):
+    def __init__(self, mapFileNpz, goalsFileNpz, bdFileNpz, pathFileNpz, k, size, max_agents, helper_bd_preprocess="middle"):
         '''
         INPUT:
             numpy_data_path: the path to the npz file storing all map, backward dijkstra, and path information across all EECBS runs. (string)
@@ -46,6 +46,7 @@ class PipelineDataset(Dataset):
         tn2: a dictionary mapping eecbs instance names to the np (t,n,2) of all paths (x,y) for all agents.
             e.g. {"Paris_1_256.map,Paris_1_256-random-110,2": (t,n,2)}
             naming convention: mapname + "," + bdname + "," + seed
+        priorities: a dictionary mapping eecbs instance names to the priorities for agents.
         helper_bd_preprocess: method by which we center helper backward dijkstras. can be 'middle', 'current', or 'subtraction'.
         '''
         # raw_folder = numpy_data_path.split("train_")[0]
@@ -54,10 +55,19 @@ class PipelineDataset(Dataset):
         # read in the dataset, saving map, bd, and path info to class variables
         # loaded = np.load(numpy_data_path)
         # self.numpy_data_path = numpy_data_path
-        assert(mapFileNpz.endswith(".npz") and bdFileNpz.endswith(".npz") and pathFileNpz.endswith(".npz"))
+        assert(mapFileNpz.endswith(".npz") and goalsFileNpz.endswith(".npz")
+               and bdFileNpz.endswith(".npz") and pathFileNpz.endswith(".npz"))
         self.maps = dict(np.load(mapFileNpz))
-        self.bds = dict(np.load(bdFileNpz))
-        self.tn2 = dict(np.load(pathFileNpz)) # Note: Very important to make this a dict() otherwise lazy loading kills performance later on
+        goal_indices = dict(np.load(goalsFileNpz)) # scen to goals: dict[scenname] = (n,) goal_indices
+        goal_to_bd = dict(np.load(bdFileNpz))['arr_0'] # goal_to_bd[goal_index] = bd (w, h)
+        # print(np.shape(goal_to_bd))
+        # print([max(goal_indices[scenname]) for scenname in goal_indices])
+        self.bds = {scenname: goal_to_bd[goal_indices[scenname]] for scenname in goal_indices} 
+        # self.bds = dict(np.load(bdFileNpz))
+        paths = dict(np.load(pathFileNpz)) # Note: Very important to make this a dict() otherwise lazy loading kills performance later on
+        self.tn2 = {k: v for k, v in paths.items() if k[-6:] == "_paths"}
+        self.priorities = {k: v for k, v in paths.items() if k[-11:] == "_priorities"}
+
         self.k = k
         self.size = size
         # self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
@@ -390,16 +400,23 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
     output: dictionary mapping goals to backward djikstras
     '''
     # assert(1 + 1 == 3)
-    goal_to_bd = {} # tuple->np
+    goal_to_index = {} # map goal tuple to index in goal_to_bd: tuple->int
+    scen_to_goals = {} # scen to array of goal indexes per agent: str->np (n,)
+    goal_bds = [] # [np (w, h)]
     inputs_list = [] # scen_bds filenames
     scennames_list = []
 
     def add_unique_goals_to_dict(agent_to_bd, scenname):
         with open(os.path.join(scenInDir, scenname) + ".scen", "r") as scen_file:
-            goals = [line.strip().split()[-3:-1] for line in scen_file.readlines()]
+            goals = [' '.join(line.strip().split()[-3:-1]) for line in scen_file.readlines()[1:]]
+
         for agent, bd in enumerate(agent_to_bd):
-            goal = ' '.join(str(goals[agent]))
-            goal_to_bd[goal] = bd # add to dictionary of unique goals
+            goal = goals[agent]
+            if goal not in goal_to_index:
+                index = len(goal_to_index)
+                goal_to_index[goal] = index
+                goal_bds.append(bd) # add to list of unique goals
+        scen_to_goals[scenname] = np.asarray([goal_to_index[goal] for goal in goals])
 
     for filename in os.listdir(bdInDir):
         f = os.path.join(bdInDir, filename)
@@ -416,7 +433,7 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
             raise RuntimeError("bad bd dir")
 
     if num_parallel == 1:
-        return goal_to_bd
+        return scen_to_goals, np.asarray(goal_bds)
 
     with multiprocessing.Pool(processes=num_parallel) as pool:
         results = pool.starmap(parse_bd, inputs_list)
@@ -426,7 +443,7 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
         agent_to_bd = results[i] # list
         add_unique_goals_to_dict(agent_to_bd, scenname)
     
-    return goal_to_bd
+    return scen_to_goals, np.asarray(goal_bds)
 
 
 def batch_path(dir):
@@ -464,7 +481,7 @@ def batch_path(dir):
             # if idx in valFiles:
             #     res2[mapname + "," + bdname] = val
             # else:
-            res1[f"{mapname}.map,{bdname},{scen}"] = val
+            res1[f"{mapname}.map,{bdname},{scen}_paths"] = val
             res1[f"{mapname}.map,{bdname},{scen}_priorities"] = priorities
             idx += 1
         else:
@@ -482,7 +499,8 @@ def main():
     parser.add_argument("--pathOutFile", help="output filepath npz to save path", type=str)
 
     parser.add_argument("--bdIn", help="directory containing txt files with backward djikstra output", type=str)
-    parser.add_argument("--bdOutFile", help="output filepath npz to save backward djikstras", type=str)
+    parser.add_argument("--goalsOutFile", help="output filepath npz to save indexes of bds for each scen", type=str)
+    parser.add_argument("--bdOutFile", help="output filepath npz to save backward djikstras for unique goals", type=str)
     parser.add_argument("--mapIn", help="directory containing txt files with obstacles", type=str)
     parser.add_argument("--scenIn", help="directory containing scen files", type=str)
     parser.add_argument("--mapOutFile", help="output filepath npz to save map", type=str)
@@ -499,7 +517,7 @@ def main():
     # parse each map, add to global dict
     ct = CustomTimer()
     
-    if args.bdIn and args.bdOutFile and args.mapIn and args.mapOutFile:
+    if args.bdIn and args.goalsOutFile and args.bdOutFile and args.mapIn and args.mapOutFile:
         assert(args.mapOutFile.endswith(".npz"))
         # print("hello world")
         if os.path.exists(args.mapOutFile):
@@ -513,15 +531,18 @@ def main():
             np.savez_compressed(f"{args.mapOutFile}", **maps)
             ct.printTimes("Parsing maps")
         # parse each bd, add to global dict
+        assert(args.goalsOutFile.endswith(".npz"))
+        os.makedirs(os.path.dirname(args.goalsOutFile), exist_ok=True)
         assert(args.bdOutFile.endswith(".npz"))
         os.makedirs(os.path.dirname(args.bdOutFile), exist_ok=True)
-        if os.path.exists(args.bdOutFile):
+        if os.path.exists(args.bdOutFile) and os.path.exists(args.goalsOutFile):
             print("BD file already exists, skipping bd parsing")
             pass
         else:
             with ct("Parsing bds"):
-                bds = batch_bd(args.bdIn, args.scenIn, args.num_parallel)
-            np.savez_compressed(args.bdOutFile, **bds)
+                scen_to_goals, bds = batch_bd(args.bdIn, args.scenIn, args.num_parallel)
+            np.savez_compressed(args.goalsOutFile, **scen_to_goals)
+            np.savez_compressed(args.bdOutFile, bds)
             ct.printTimes("Parsing bds")
 
     if args.pathsIn and args.pathOutFile:

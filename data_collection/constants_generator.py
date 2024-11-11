@@ -247,10 +247,11 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
         mapOutputFolder = static_dict[mapFile]["outputFolder"]
 
         mapOutputNpz = f"{args.constantMapAndBDFolder}/all_maps.npz"
+        goalsOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_goals.npz"
         bdOutputNpz = f"{args.constantMapAndBDFolder}/{mapFile}_bds.npz"
 
         command = " ".join(["python", "-m", "data_collection.data_manipulator",
-                        f"--bdIn={mapOutputFolder}/bd", f"--bdOutFile={bdOutputNpz}", 
+                        f"--bdIn={mapOutputFolder}/bd", f"--goalsOutFile={goalsOutputNpz}", f"--bdOutFile={bdOutputNpz}", 
                         f"--mapIn={mapsInputFolder}", f"--scenIn={scensInputFolder}", f"--mapOutFile={mapOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
         
@@ -352,7 +353,11 @@ def generic_batch_runner(args):
         agent_json_dict = None
         ### Get the number of agents to run for each scen
         if "benchmark" in scenInputFolder: # pre-loop run
-            agentNumbers = [mapsToMaxNumAgents[mapFile]] # collecting bds
+             # collecting bds
+            if mapFile in mapsToMaxNumAgents:
+                agentNumbers = [mapsToMaxNumAgents[mapFile]]
+            else:
+                agentNumbers = [mapsToMaxNumAgents[mapFile.replace("-", "_")]]
             static_dict[mapFile]["agentRange"] = agentNumbers
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
         else: # we are somewhere in the training loop
