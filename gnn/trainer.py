@@ -71,7 +71,7 @@ class GNNStack(nn.Module):
         Output:
             F.log_softmax(x, dim=1) -- node score logits, we can do exp() to get probabilities
             """
-        x, edge_index, batch, bd_pred = data.x, data.edge_index, data.batch, data.bd_pred
+        x, edge_index, batch, bd_pred = data.x, data.edge_index, data.batch, data.bd_pred  # priorities and edge features
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
         x = self.convs[0](x, bd_pred, edge_index)
@@ -304,11 +304,15 @@ def visualize():
   plt.scatter(xs, ys, color=colors)
 
 ### Example run
-# python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4
-#   --processedFolders=data_collection/data/logs/EXP_Test3/iter0/processed 
-#   --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz
-#   --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs
-#   --pathNpzFolders=data_collection/data/logs/EXP_Test/iter0/eecbs_npzs
+'''
+python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4 \
+  --processedFolders=data_collection/data/logs/EXP_Test3/iter0/processed \
+  --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
+  --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs \
+  --pathNpzFolders=data_collection/data/logs/EXP_Test/iter0/eecbs_npzs
+
+'''
+
 if __name__ == "__main__":
     # current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     parser = argparse.ArgumentParser()

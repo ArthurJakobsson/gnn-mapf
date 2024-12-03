@@ -39,6 +39,52 @@
                 }
             ],
             "preLaunchTask": "Cmake Debug",
+        },
+        {
+            "name": "eecbs_batchrunner",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_collection/eecbs_batchrunner5.py",
+            "args": [
+                "--mapFolder=data_collection/data/mini_benchmark_data/maps",
+                "--scenFolder=data_collection/data/mini_benchmark_data/scens",
+                "--numAgents=50,100",
+                "--outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_outputs",
+                "--num_parallel_runs=10",
+                "\"eecbs\"",
+                "--outputPathNpzFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_npzs",
+                "--firstIter=true --cutoffTime=5",
+            ],
+        },
+        {
+            "name": "constants_generator",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_collection/constants_generator.py",
+            "args": [
+                "--mapFolder=data_collection/data/mini_benchmark_data/maps",
+                "--scenFolder=data_collection/data/mini_benchmark_data/scens",
+                "--constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs",
+                "--outputFolder=data_collection/data/logs/EXP_Collect_BD/",
+                "--num_parallel_runs=50",
+                "--deleteTextFiles=true",
+                "\"eecbs\"",
+                "--firstIter=true --cutoffTime=1",
+            ],
+        },
+        {
+            "name": "dataloader",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/gnn/dataloader.py",
+            "args": [
+                "--mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz",
+                "--bdNpzFolder=data_collection/data/benchmark_data/constant_npzs",
+                "--pathNpzFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_npzs",
+                "--processedFolder=data_collection/data/logs/EXP_Test_batch/iter0/processed",
+                "--k=5",
+                "--m=3",
+            ],
         }
 
     ]

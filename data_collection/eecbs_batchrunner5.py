@@ -78,7 +78,7 @@ mapsToMaxNumAgents = {
 
 def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     """Command for running EECBS"""
-    mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
+    _, bdname, scenname, _ = getMapBDScenAgents(scenfile)
     bd_path = f"{outputFolder}jerwq/bd/{bdname}.{numAgents}.txt"
 
     command = f"{eecbsPath}"

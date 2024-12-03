@@ -11,7 +11,6 @@ import json
 import glob
 
 
-import multiprocessing
 import ray
 import ray.util.multiprocessing
 # from custom_utils.custom_timer import CustomTimer
@@ -78,24 +77,17 @@ mapsToMaxNumAgents = {
 
 def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     """Command for running EECBS"""
-    mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
+    _, bdname, scenname, _ = getMapBDScenAgents(scenfile)
     bd_path = f"{outputFolder}/bd/{bdname}.{numAgents}.txt"
-    # scenname = (scenfile.split("/")[-1])
-    # mapname = mapfile.split("/")[-1].split(".")[0]
-    # bd_path = f"{outputFolder}/bd/{scenname}{numAgents}.txt"
-    # command = f".{file_home}/eecbs/build_release2/eecbs"
     command = f"{eecbsPath}"
 
     for aKey in eecbsArgs["args"]:
         command += " --{}={}".format(aKey, eecbsArgs["args"][aKey])
-    # tempOutPath = f"{outputFolder}/paths/{scenname}{numAgents}.txt"
-    outputPathFile = f"{outputFolder}/paths/{bdname}.{scenname}.{numAgents}.txt"
-    command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --bd_file={}".format(
-                numAgents, scenfile, outputPathFile, firstIter, bd_path)
-    # command += " --agentNum={} --seed={} --agentsFile={}".format(numAgents, seed, scenfile)
+        
+    command += " --agentNum={} --agents={} --firstIter={} --bd_file={}".format(
+                numAgents, scenfile, firstIter, bd_path)
     command += " --output={} --map={}".format(outputfile, mapfile)
     command += " --sipp=1"
-    # print(command.split("suboptimality=1")[1])
     return command
     
 
@@ -252,7 +244,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
 
         command = " ".join(["python", "-m", "data_collection.data_manipulator",
                         f"--bdIn={mapOutputFolder}/bd", f"--goalsOutFile={goalsOutputNpz}", f"--bdOutFile={bdOutputNpz}", 
-                        f"--mapIn={mapsInputFolder}", f"--scenIn={scensInputFolder}", f"--mapOutFile={mapOutputNpz}",
+                        f"--scenIn={scensInputFolder}", f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
         
         input_list.append((command,))
@@ -417,15 +409,26 @@ def generic_batch_runner(args):
     if args.command == "eecbs":
         runDataManipulator(args, ct, mapsToScens, static_dict, 
                            mapsInputFolder, scenInputFolder, num_workers)
+    
+    if args.deleteTextFiles:
+        shutil.rmtree(args.outputFolder)
 
 ## Example calls of constants_generator
 """
 Collecting initial bd and map data:
 python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
                  --scenFolder=data_collection/data/mini_benchmark_data/scens \
-                 --numAgents=max \
                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs \
-                 --outputFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs \
+                 --outputFolder=data_collection/data/logs/EXP_Collect_BD/ \
+                 --num_parallel_runs=50 \
+                 --deleteTextFiles=true \
+                 "eecbs" \
+                 --firstIter=true --cutoffTime=1
+
+python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
+                 --scenFolder=data_collection/data/mini_benchmark_data/scens \
+                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs \
+                 --outputFolder=data_collection/data/logs/EXP_Collect_BD/ \
                  --num_parallel_runs=50 \
                  "eecbs" \
                  --firstIter=true --cutoffTime=1
@@ -437,8 +440,8 @@ if __name__ == "__main__":
     # Common arguments
     parser.add_argument("--mapFolder", help="contains all scens to run", type=str, required=True)
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str, required=True)
-    numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max"
-    parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
+    # numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max"
+    # parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
     parser.add_argument("--constantMapAndBDFolder", help="output folder for precomputed map and bds", type=str, required=True)
     parser.add_argument("--outputFolder", help="parent output folder where each map folder will contain paths/ and csvs/ results", 
                         type=str, required=True)
@@ -446,7 +449,9 @@ if __name__ == "__main__":
                         type=int, required=True)
     parser.add_argument('--chosen_map', help="For benchmarking choose just one map from all the maps", 
                         type=str, default=None)
-    parser.add_argument("--iter", help="iteration number", type=int, default=0) #this is used only for the seed for simulation now
+    parser.add_argument('--deleteTextFiles', help="delete outputFolder when done", 
+                        type=bool, default=False)
+    # parser.add_argument("--iter", help="iteration number", type=int, default=0) #this is used only for the seed for simulation now
 
     # Subparses for C++ EECBS or Python ML model
     subparsers = parser.add_subparsers(dest="command", required=True)

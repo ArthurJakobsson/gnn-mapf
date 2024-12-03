@@ -57,15 +57,17 @@ class PipelineDataset(Dataset):
         # self.numpy_data_path = numpy_data_path
         assert(mapFileNpz.endswith(".npz") and goalsFileNpz.endswith(".npz")
                and bdFileNpz.endswith(".npz") and pathFileNpz.endswith(".npz"))
+        
         self.maps = dict(np.load(mapFileNpz))
-        goal_indices = dict(np.load(goalsFileNpz)) # scen to goals: dict[scenname] = (n,) goal_indices
-        goal_to_bd = dict(np.load(bdFileNpz))['arr_0'] # goal_to_bd[goal_index] = bd (w, h)
-        # print(np.shape(goal_to_bd))
-        # print([max(goal_indices[scenname]) for scenname in goal_indices])
-        self.bds = {scenname: goal_to_bd[goal_indices[scenname]] for scenname in goal_indices} 
+
         # self.bds = dict(np.load(bdFileNpz))
+        scen_to_goal_indices = dict(np.load(goalsFileNpz)) # scen to goals: dict[scenname] = (n,) goal_indices
+        self.goal_to_bd = dict(np.load(bdFileNpz))['arr_0'] # goal_to_bd[goal_index] = bd (w, h)
+        self.scen_to_goal_indices = scen_to_goal_indices
+        # self.bds = {scenname: goal_to_bd[scen_to_goal_indices[scenname]] for scenname in scen_to_goal_indices} 
+        
         paths = dict(np.load(pathFileNpz)) # Note: Very important to make this a dict() otherwise lazy loading kills performance later on
-        self.tn2 = {k: v for k, v in paths.items() if k[-6:] == "_paths"}
+        self.tn2 = {k[:-6]: v for k, v in paths.items() if k[-6:] == "_paths"}
         self.priorities = {k: v for k, v in paths.items() if k[-11:] == "_priorities"}
 
         self.k = k
@@ -95,7 +97,7 @@ class PipelineDataset(Dataset):
         if idx >= self.__len__():
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
-        bd, grid, paths, timestep, max_timesteps = self.find_instance(idx)
+        bd, grid, paths, timestep, max_timesteps, priorities = self.find_instance(idx)
         cur_locs = paths[timestep] # (N,2)
         next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
         end_locs = paths[-1]
@@ -108,10 +110,10 @@ class PipelineDataset(Dataset):
         # Create a one-hot encoded array using np.eye
         labels = np.eye(direction_labels.shape[0])[indices]
         # assert(np.all(labels == slow_labels))
-        return cur_locs, labels, bd, grid, end_locs
+        return cur_locs, labels, bd, grid, end_locs, priorities
 
 
-    def find_instance(self, idx):
+    def find_instance(self, idx): 
         '''
         returns the backward dijkstra, map, and path arrays, and indices to get into the path array
         '''
@@ -135,43 +137,46 @@ class PipelineDataset(Dataset):
                             make sure that keys are in mapName,scenName,numAgents format")
         # mapname, scenname, num_agents = key_to_use.split(",")
         # num_agents = int(num_agents)
-        mapname, bdname, custom_scenname = key_to_use.split(",")
+        mapname, scenname, custom_scenname = key_to_use.split(",")
         # num_agents = int(num_agents)
         grid = self.maps[mapname]  # (H,W)
         paths = self.tn2[key_to_use] + self.k # (T,N,2)
         max_timesteps = paths.shape[0]
         num_agents = paths.shape[1]
-        assert(self.bds[bdname].shape[0] >= num_agents)
-        bd = self.bds[bdname][:num_agents] # (N,H,W)
+        
+        # bd = self.bds[scenname][:num_agents] # (N,H,W)
+        bd = self.goal_to_bd[self.scen_to_goal_indices[scenname]] 
+        assert(bd.shape[0] >= num_agents)
+        priorities = self.priorities # (N,)
 
-        return bd, grid, paths, timestep_to_use, max_timesteps
+        return bd, grid, paths, timestep_to_use, max_timesteps, priorities
 
-    def parse_npz(self, loaded_paths, loaded_maps, loaded_bds):
-        self.tn2 = {k:v for k, v in loaded_paths.items()}
-        self.maps = {k:v for k, v in loaded_maps.items()}
-        self.bds = {k:v for k, v in loaded_bds.items()}
+    # def parse_npz(self, loaded_paths, loaded_maps, loaded_bds):
+    #     self.tn2 = {k:v for k, v in loaded_paths.items()}
+    #     self.maps = {k:v for k, v in loaded_maps.items()}
+    #     self.bds = {k:v for k, v in loaded_bds.items()}
 
-        totalT = 0 
-        for ky, v in self.tn2.items():
-            t, n, _ = np.shape(v)
-            self.tn2[ky] = (t*n, v)
-            totalT += t
-        self.length = totalT # number of paths = number of timesteps
-        # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form
-        npads = ((0,0),(self.k, self.k), (self.k, self.k))
-        for key in self.bds:
-            self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
-            # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
-        for key in self.maps:
-            self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
+    #     totalT = 0 
+    #     for ky, v in self.tn2.items():
+    #         t, n, _ = np.shape(v)
+    #         self.tn2[ky] = (t*n, v)
+    #         totalT += t
+    #     self.length = totalT # number of paths = number of timesteps
+    #     # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form
+    #     npads = ((0,0),(self.k, self.k), (self.k, self.k))
+    #     for key in self.bds:
+    #         self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
+    #         # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
+    #     for key in self.maps:
+    #         self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
 
     def parse_npz2(self):
         totalT = 0 
         to_remove = []
 
         for ky, v in self.tn2.items():
-            kyname = ky.split(",")[1]
-            if any(bdname == kyname for bdname in self.bds.keys()):
+            kyname = ky.split(",")[1] # scenname
+            if any(scenname == kyname for scenname in self.scen_to_goal_indices.keys()):
                 t, n, _ = np.shape(v)
                 totalT += t
             else:
@@ -182,13 +187,16 @@ class PipelineDataset(Dataset):
 
         self.length = totalT
 
-        npads = ((0,0),(self.k, self.k), (self.k, self.k))
-        for key in self.bds:
-            self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
+        # npads = ((0,0),(self.k, self.k), (self.k, self.k))
+        npads = ((self.k, self.k), (self.k, self.k))
+
+        goal_to_bd_padded = []
+        for goal in range(len(self.goal_to_bd)):
+            goal_to_bd_padded.append(np.pad(self.goal_to_bd[goal], npads, mode="constant", constant_values=1073741823))
+        self.goal_to_bd = np.asarray(goal_to_bd_padded)
+
         for key in self.maps:
             self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
-
-
 
 def parse_map(mapfile):
     '''
@@ -233,9 +241,9 @@ def parse_path(pathfile):
     with open(pathfile, 'r') as fd:
         linenum = 0
         for line in fd.readlines():
-            if linenum == 0:
+            if linenum == 0 or linenum == 1:
                 linenum += 1
-                continue # ignore dimension line
+                continue # ignore dimension line and priorities line
             timesteps = 0
             for c in line:
                 if c == ',': timesteps += 1
@@ -442,7 +450,7 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
         scenname = scennames_list[i]
         agent_to_bd = results[i] # list
         add_unique_goals_to_dict(agent_to_bd, scenname)
-    
+
     return scen_to_goals, np.asarray(goal_bds)
 
 
@@ -481,8 +489,8 @@ def batch_path(dir):
             # if idx in valFiles:
             #     res2[mapname + "," + bdname] = val
             # else:
-            res1[f"{mapname}.map,{bdname},{scen}_paths"] = val
-            res1[f"{mapname}.map,{bdname},{scen}_priorities"] = priorities
+            res1[f"{mapname}.map,{scen},{numAgents}_paths"] = val
+            res1[f"{mapname}.map,{scen},{numAgents}_priorities"] = priorities
             idx += 1
         else:
             raise RuntimeError("bad path dir")
@@ -517,9 +525,10 @@ def main():
     # parse each map, add to global dict
     ct = CustomTimer()
     
-    if args.bdIn and args.goalsOutFile and args.bdOutFile and args.mapIn and args.mapOutFile:
+    # constants_generator
+    if args.bdIn and args.goalsOutFile and args.bdOutFile \
+                 and args.mapIn and args.scenIn and args.mapOutFile:
         assert(args.mapOutFile.endswith(".npz"))
-        # print("hello world")
         if os.path.exists(args.mapOutFile):
             print("Map file already exists, skipping map parsing")
             pass
@@ -535,6 +544,7 @@ def main():
         os.makedirs(os.path.dirname(args.goalsOutFile), exist_ok=True)
         assert(args.bdOutFile.endswith(".npz"))
         os.makedirs(os.path.dirname(args.bdOutFile), exist_ok=True)
+
         if os.path.exists(args.bdOutFile) and os.path.exists(args.goalsOutFile):
             print("BD file already exists, skipping bd parsing")
             pass
@@ -545,6 +555,7 @@ def main():
             np.savez_compressed(args.bdOutFile, bds)
             ct.printTimes("Parsing bds")
 
+    # eecbs_batchrunner
     if args.pathsIn and args.pathOutFile:
         # parse each path, add to global list
         assert(args.pathOutFile.endswith(".npz"))

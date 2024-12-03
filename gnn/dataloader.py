@@ -74,7 +74,7 @@ def get_bd_prefs(pos_list, bds, range_num_agents):
     return prefs
 
 
-def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
+def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
     """
     pos_list: (N,2) positions
     bd_list: (N,W,H) bd's
@@ -321,9 +321,9 @@ class MyOwnDataset(Dataset):
         # if not time_instance: 
         #     return #idk why but the last one is None
         assert(time_instance is not None)
-        pos_list, labels, bd_list, grid, goal_locs = time_instance
+        pos_list, labels, bd_list, grid, goal_locs, priorities = time_instance
 
-        curdata = create_data_object(pos_list, bd_list, grid, self.k, self.m, goal_locs, self.extra_layers, self.bd_pred, labels)
+        curdata = create_data_object(pos_list, bd_list, grid, priorities, self.k, self.m, goal_locs, self.extra_layers, self.bd_pred, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata
@@ -450,6 +450,7 @@ python -m gnn.dataloader --mapNpzFile=data_collection/data/benchmark_data/consta
       --k=5 \
       --m=3
 """
+
 if __name__ == "__main__":
     """
     This file takes in npzs and processes them into pt files.
@@ -464,7 +465,7 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
-    parser.add_argument("--bdNpzFolder", help="bd npz folder", type=str, required=True)
+    parser.add_argument("--bdNpzFolder", help="bd and goals npz folder", type=str, required=True)
     parser.add_argument("--pathNpzFolder", help="path npz folder", type=str, required=True)
     parser.add_argument("--processedFolder", help="processed folder to save pt", type=str, required=True)
     parser.add_argument("--k", help="window size", type=int)
