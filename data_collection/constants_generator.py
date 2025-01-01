@@ -15,7 +15,7 @@ import ray
 import ray.util.multiprocessing
 # from custom_utils.custom_timer import CustomTimer
 from custom_utils.custom_timer import CustomTimer
-from custom_utils.common_helper import str2bool, getMapBDScenAgents
+from custom_utils.common_helper import str2bool, getMapScenAgents
 
 
 @ray.remote
@@ -77,8 +77,8 @@ mapsToMaxNumAgents = {
 
 def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     """Command for running EECBS"""
-    _, bdname, scenname, _ = getMapBDScenAgents(scenfile)
-    bd_path = f"{outputFolder}/bd/{bdname}.{numAgents}.txt"
+    _, scenname, _ = getMapScenAgents(scenfile)
+    bd_path = f"{outputFolder}/bd/{scenname}.{numAgents}.txt"
     command = f"{eecbsPath}"
 
     for aKey in eecbsArgs["args"]:

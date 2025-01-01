@@ -37,14 +37,15 @@ import multiprocessing
 # multiprocessing.set_start_method('spawn', force=True)
 
 class GNNStack(nn.Module):
+    # TODO: hyperparameter: priority replication/count (10-20 times)
     def __init__(self, linear_dim, in_channels, hidden_dim, output_dim, relu_type, task='node'):
         super(GNNStack, self).__init__()
         self.task = task
         self.relu_type = relu_type
-        self.convs = nn.ModuleList([self.build_conv_model(linear_dim, in_channels, hidden_dim,True)])
+        self.convs = nn.ModuleList([self.build_image_conv_model(linear_dim, in_channels, hidden_dim)]) # image conv layer
         self.lns = nn.ModuleList([nn.LayerNorm(hidden_dim), nn.LayerNorm(hidden_dim)])
         for _ in range(3):
-            self.convs.append(self.build_conv_model(linear_dim, hidden_dim, hidden_dim, False))
+            self.convs.append(self.build_graph_conv_model(hidden_dim, hidden_dim)) # graph conv layer
             self.lns.append(nn.LayerNorm(hidden_dim))
 
         self.post_mp = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.Dropout(0.25),
@@ -56,9 +57,10 @@ class GNNStack(nn.Module):
         self.num_layers = 4
        
 
-    def build_conv_model(self, linear_dim, in_channels, hidden_dim, image_flag):
-        if image_flag:
-            return CustomConv(linear_dim, in_channels, hidden_dim, self.relu_type)
+    def build_image_conv_model(self, linear_dim, in_channels, hidden_dim):
+        return CustomConv(linear_dim, in_channels, hidden_dim, self.relu_type)
+    
+    def build_graph_conv_model(self, in_channels, hidden_dim):
         return pyg_nn.SAGEConv(in_channels, hidden_dim)
 
     def forward(self, data):
@@ -71,6 +73,8 @@ class GNNStack(nn.Module):
         Output:
             F.log_softmax(x, dim=1) -- node score logits, we can do exp() to get probabilities
             """
+        pdb.set_trace()
+        # TODO: edit lines to have shapes
         x, edge_index, batch, bd_pred = data.x, data.edge_index, data.batch, data.bd_pred  # priorities and edge features
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
@@ -107,24 +111,21 @@ class CustomConv(pyg_nn.MessagePassing):
         self.conv = nn.Conv2d(in_channels, in_channels, kernel_size=(3, 3), stride=1, padding=0)
         self.conv_self = nn.Conv2d(in_channels, in_channels, kernel_size=(3, 3), stride=1, padding=0)
         self.relu_type=relu_type
+        if relu_type == "relu":
+            self.relu_func = F.relu 
+        else:
+            self.relu_func = F.leaky_relu
 
     def forward(self, x, bd_pred, edge_index):
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)
         flattened_conv = torch.flatten(self.conv_self(x), start_dim=1) # (1, ~)
         if bd_pred.shape[0]>2:
-            flattened_conv = torch.hstack([flattened_conv, bd_pred])
+            flattened_conv = torch.hstack([flattened_conv, bd_pred]) # priorities
             
-        if self.relu_type!="relu":
-            self_x = F.leaky_relu(flattened_conv)
-        else:
-            self_x = F.relu(flattened_conv)
-        
+        self_x = self.relu_func(flattened_conv)        
         self_x = self.lin_self(self_x)
 
-        if self.relu_type!="relu":
-            x_neighbors = F.leaky_relu(flattened_conv)
-        else:
-            x_neighbors = F.relu(flattened_conv)
+        x_neighbors = self.relu_func(flattened_conv)
         x_neighbors = self.lin(x_neighbors)
 
         self_and_propogated = self_x + self.propagate(edge_index, x=x_neighbors)

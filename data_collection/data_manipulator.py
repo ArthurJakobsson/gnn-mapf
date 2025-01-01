@@ -14,7 +14,7 @@ import multiprocessing
 # sys.path.insert(0, './data_collection/')
 # sys.path.append(os.path.abspath(os.getcwd())+"/custom_utils/")
 from custom_utils.custom_timer import CustomTimer
-from custom_utils.common_helper import getMapBDScenAgents
+from custom_utils.common_helper import getMapScenAgents
 
 '''
 0. parse bd (fix eecbs by having it make another txt output, parse it here)
@@ -64,8 +64,7 @@ class PipelineDataset(Dataset):
         scen_to_goal_indices = dict(np.load(goalsFileNpz)) # scen to goals: dict[scenname] = (n,) goal_indices
         self.goal_to_bd = dict(np.load(bdFileNpz))['arr_0'] # goal_to_bd[goal_index] = bd (w, h)
         self.scen_to_goal_indices = scen_to_goal_indices
-        # self.bds = {scenname: goal_to_bd[scen_to_goal_indices[scenname]] for scenname in scen_to_goal_indices} 
-        
+
         paths = dict(np.load(pathFileNpz)) # Note: Very important to make this a dict() otherwise lazy loading kills performance later on
         self.tn2 = {k[:-6]: v for k, v in paths.items() if k[-6:] == "_paths"}
         self.priorities = {k: v for k, v in paths.items() if k[-11:] == "_priorities"}
@@ -115,15 +114,16 @@ class PipelineDataset(Dataset):
 
     def find_instance(self, idx): 
         '''
-        returns the backward dijkstra, map, and path arrays, and indices to get into the path array
+        returns the backward dijkstra, map, path arrays, and indices to get into the path array
         '''
 
+        # pdb.set_trace()
         assert(idx < self.length)
         # items = list(self.tn2.items())
         total_sum = 0
         key_to_use = None
         timestep_to_use = 0
-        for aKey, pathVec in self.tn2.items(): #pathVec is (T,N,2)
+        for aKey, pathVec in self.tn2.items(): # pathVec is (T,N,2)
             timesteps = pathVec.shape[0]
             if total_sum + timesteps > idx:
                 key_to_use = aKey
@@ -147,7 +147,8 @@ class PipelineDataset(Dataset):
         # bd = self.bds[scenname][:num_agents] # (N,H,W)
         bd = self.goal_to_bd[self.scen_to_goal_indices[scenname]] 
         assert(bd.shape[0] >= num_agents)
-        priorities = self.priorities # (N,)
+        # pdb.set_trace()
+        priorities = self.priorities[key_to_use+"_priorities"] # (N,)
 
         return bd, grid, paths, timestep_to_use, max_timesteps, priorities
 
@@ -261,7 +262,7 @@ def parse_path(pathfile):
                 continue
             elif linenum == 1: # parse priorities and keep going
                 priorities_str = line.strip().split()[1] # comma-separated string
-                priorities = priorities_str.split(",")
+                priorities = list(map(int, priorities_str.split(",")[:-1]))
                 continue
             i = 0
             # omit up to the first left paren
@@ -482,7 +483,7 @@ def batch_path(dir):
             # Prior: [SCENNAME].scen[AGENTNUM].[extra].txt   [extra] is used for encountered scens and is optional
             # scen, numAgents = filename.split(".txt")[0].split(".scen") # remove .txt, e.g. empty_8_8-random-9, 32
             # mapname = scen.split("-")[0] + ".map" # e.g. empty_8_8.map
-            mapname, bdname, scen, numAgents = getMapBDScenAgents(filename)
+            mapname, scen, numAgents = getMapScenAgents(filename)
             val, priorities = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             # print("___________________________\n")

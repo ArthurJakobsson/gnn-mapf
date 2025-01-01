@@ -17,7 +17,7 @@ from omegaconf import OmegaConf
 
 from gnn.dataloader import create_data_object, get_bd_prefs, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
-from custom_utils.common_helper import str2bool, getMapBDScenAgents
+from custom_utils.common_helper import str2bool, getMapScenAgents
 
 from eph_mapf.test2 import test_model
 from eph_mapf.src.config import config

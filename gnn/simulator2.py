@@ -17,7 +17,7 @@ import torch_geometric.inspector
 import torch_geometric.nn as pyg_nn
 from gnn.dataloader import create_data_object, get_bd_prefs, normalize_graph_data
 from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
-from custom_utils.common_helper import str2bool, getMapBDScenAgents
+from custom_utils.common_helper import str2bool, getMapScenAgents
 from custom_utils.custom_timer import CustomTimer
 
 ####################################################
@@ -689,7 +689,7 @@ def main(args: argparse.ArgumentParser):
     
     for t in sampled_timesteps:
         # scenFilepath = args.outputScenPrefix + f".{t}.scen"
-        mapname, bdname, scenname, _ = getMapBDScenAgents(args.scenFile)
+        mapname, bdname, scenname, _ = getMapScenAgents(args.scenFile)
         custom_scenname = f"{scenname}_t{t}"
         prefix = os.path.dirname(args.outputPathsFile)
         scenFilepath = f"{prefix}/{bdname}.{custom_scenname}.{num_agents}.scen"

@@ -74,50 +74,17 @@ def get_bd_prefs(pos_list, bds, range_num_agents):
     return prefs
 
 
-def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
-    """
-    pos_list: (N,2) positions
-    bd_list: (N,W,H) bd's
-    grid: (W,H) grid
-    k: (int) local region size
-    m: (int) number of closest neighbors to consider
-    """
-    num_layers = 2 # grid and bd_slices intially
-    if extra_layers is not None:
-        if "agent_locations" in extra_layers:
-            num_layers+=1
-        if "agent_goal" in extra_layers:
-            num_layers+=1
-        if "near_goal_info" in extra_layers:
-            num_layers+=2
-        if "at_goal_grid" in extra_layers:
-            num_layers+=1
-    
-        
-    num_agents = len(pos_list)
-    range_num_agents = np.arange(num_agents)
-
-    ### Numpy advanced indexing to get all agent slices at once
-    rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
-    colLocs = pos_list[:,1][:, None] # (N)->(N,1)
-    if debug_checks:
-        assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
-
-    x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
-    # Adjust indices to gather slices
-    x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
-    y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
-    grid_slices = grid[x_mesh, y_mesh] # (N,D,D)
-    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
+def calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLocs, goalColLocs, matches, x_mesh, y_mesh, 
+                      grid, goal_locs, extra_layers, num_layers, num_agents):
     N,D = bd_slices.shape[0], bd_slices.shape[1]
-    node_features = np.empty((N,num_layers,D,D),dtype=np.float32)
+
+    node_features = np.empty((N,num_layers,D,D),dtype=np.float32) # default num_layers = 2 (grid slices and bd slices)
     node_feature_idx = 0
     node_features[:,node_feature_idx] = grid_slices
     node_feature_idx +=1
     node_features[:,node_feature_idx] = bd_slices
     node_feature_idx +=1
-    goalRowLocs, goalColLocs= goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
-    matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs)
+
     if extra_layers is not None:
         if "agent_locations" in extra_layers:
             agent_pos = np.zeros((grid.shape[0], grid.shape[1])) # (W,H)
@@ -159,7 +126,12 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, ext
             node_features[:,node_feature_idx] = goal_pos_slices
             node_feature_idx +=1
 
-    agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,N), each row is 0->num_agents
+    return node_features
+
+
+# (2,num_edges), (num_edges,num_layers)
+def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities):
+    agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,m), each row is 0->num_agents
     deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
 
     ## Calculate the distance between each agent, einsum is faster than other options
@@ -176,14 +148,28 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, ext
     # closest_neighbors = arg_dists[:,1:m+1]
     distance_of_neighbors = dists[range_num_agents[:,None],closest_neighbors] # (N,m)
     
+    # neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
+    # selection = distance_of_neighbors != np.inf # (N,m)
+    # edge_indices = neighbors_and_source_idx[:, selection] # (2,num_edges), [:,i] corresponds to (source, neighbor)
+    # edge_features = deltas[edge_indices[0], edge_indices[1]] # (num_edges,2), the difference between each agent
+    # edge_features = edge_features.astype(np.float32)
+
+    pdb.set_trace()
+    # Priorities
+    priorities_repeat = np.repeat(priorities[None,:], axis=0, repeats=num_agents)
+    relative_priorities = -(priorities_repeat.T - priorities_repeat) # (N, N), i relative to j (positive is higher priority, 0 is highest priority)
+
     neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
     selection = distance_of_neighbors != np.inf # (N,m)
-    edge_indices = neighbors_and_source_idx[:, selection] # (2, num_edges), [:,i] corresponds to (source, neighbor)
-    edge_features = deltas[edge_indices[0], edge_indices[1]] # (num_edges,2), the difference between each agent
-    edge_features = edge_features.astype(np.float32)
+    edge_indices = neighbors_and_source_idx[:, selection] # (2,num_edges), [:,i] corresponds to (source, neighbor)
 
-    if debug_checks:
-        assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
+    edge_features = np.concatenate((deltas[edge_indices[0], edge_indices[1]], # (num_edges,2), the difference between each agent
+                                    relative_priorities[edge_indices[0], edge_indices[1]][:, None]), axis=1) # (num_edges,1), relative priority
+
+    return edge_indices, edge_features
+
+
+def calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents, bd_pred):
     bd_pred_arr = None
     linear_dimensions = (grid_slices.shape[1]-2)**2 * num_layers
     if bd_pred is not None:
@@ -192,8 +178,8 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, ext
         # we should be able to get the up, down, left and right of each bd without fear of invalid indexing
         # (N, [Stop, Right, Down, Up, Left])
         x_mesh2, y_mesh2 = np.meshgrid(np.arange(-1,1+1), np.arange(-1,1+1), indexing='ij') # assumes k at least 1; getting a 3x3 grid centered at the same place
-        x_mesh2 = x_mesh2[None, :, :] + rowLocs[:, None, :] #  -> (N,3,3)
-        y_mesh2 = y_mesh2[None, :, :] + colLocs[:, None, :] # -> (N,3,3)
+        x_mesh2 = x_mesh2[None, :, :] + rowLocs[:, None, :] # (1, 3, 3) + (N, 1, 1) -> (N,3,3)
+        y_mesh2 = y_mesh2[None, :, :] + colLocs[:, None, :] # (1, 3, 3) + (N, 1, 1) -> (N,3,3)
         bd_list = bd_list[np.arange(num_agents)[:,None,None], x_mesh2, y_mesh2] # (N,3,3)
         # set diagonal entries to a big number
         flattened = np.reshape(bd_list, (-1, 9)) # (N,9) # (order (top to bot) left mid right, left mid right, left mid right)
@@ -206,10 +192,14 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, ext
         linear_dimensions+=5
     else:
         bd_pred_arr = np.array([])
-    
+
+    return bd_pred_arr, linear_dimensions
+
+
+def calculate_weights(matches, num_agents):
     # NOTE: calculate weights
     num_agent_goal_ratio = np.mean(matches)
-    weights = np.ones(num_agents)
+    weights = np.ones(num_agents) # (N,)
     # weights[np.invert(matches.flatten())] = 1/(np.sum(matches)+1)
     weights[matches.flatten()] -= num_agent_goal_ratio+0.001
     # weights[matches.flatten()] = 1/(np.sum(matches)+1)
@@ -221,6 +211,59 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, ext
     # random_values = np.random.rand(*stay_locations.shape)
     # flip_mask = (stay_locations == 1) & (random_values > 0.2) # make it so that with 80% probability it gets flipped to 0
     # weights[flip_mask] = 0
+    
+    return weights
+
+
+def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
+    """
+    pos_list: (N,2) positions
+    bd_list: (N,W,H) bd's
+    grid: (W,H) grid
+    priorities: (N,) EECBS priorities
+    k: (int) local region size
+    m: (int) number of closest neighbors to consider
+    # """
+    num_layers = 2 # grid and bd_slices intially
+    if extra_layers is not None:
+        if "agent_locations" in extra_layers:
+            num_layers+=1
+        if "agent_goal" in extra_layers:
+            num_layers+=1
+        if "near_goal_info" in extra_layers:
+            num_layers+=2
+        if "at_goal_grid" in extra_layers:
+            num_layers+=1
+    
+    num_agents = len(pos_list)
+    range_num_agents = np.arange(num_agents)
+
+    ### Numpy advanced indexing to get all agent slices at once
+    rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
+    colLocs = pos_list[:,1][:, None] # (N)->(N,1)
+    goalRowLocs, goalColLocs = goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
+    matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs)
+    if debug_checks:
+        assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
+
+    x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
+    # Adjust indices to gather slices
+    x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (N,1,1) -> (N,D,D)
+    y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (N,1,1) -> (N,D,D)
+    grid_slices = grid[x_mesh, y_mesh] # (W, H) -> (N,D,D)
+    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
+
+    node_features = calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLocs, goalColLocs, matches, x_mesh, y_mesh, 
+                                      grid, goal_locs, extra_layers, num_layers, num_agents) # (N,num_layers,D,D)
+    if debug_checks:
+        assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
+    
+    # Edge features include priorities
+    edge_indices, edge_features = calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities) # (2,num_edges), (num_edges,num_layers)
+
+    bd_pred_arr, linear_dimensions = calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents, bd_pred) # todo?
+
+    weights = calculate_weights(matches, num_agents) # (N,)
     
     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
                 edge_attr=torch.from_numpy(edge_features), bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,

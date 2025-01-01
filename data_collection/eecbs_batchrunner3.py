@@ -13,7 +13,7 @@ import json
 import multiprocessing
 # from custom_utils.custom_timer import CustomTimer
 from custom_utils.custom_timer import CustomTimer
-from custom_utils.common_helper import str2bool, getMapBDScenAgents
+from custom_utils.common_helper import str2bool, getMapScenAgents
 # from custom_utils.multirunner import createTmuxSession, runCommandWithTmux, killTmuxSession
 
 ###############################################################
@@ -81,7 +81,7 @@ mapsToMaxNumAgents = {
 
 def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, scenfile):
     """Command for running EECBS"""
-    mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
+    mapname, bdname, scenname, _ = getMapScenAgents(scenfile)
     bd_path = f"{outputFolder}/bd/{bdname}.{numAgents}.txt"
     # scenname = (scenfile.split("/")[-1])
     # mapname = mapfile.split("/")[-1].split(".")[0]
@@ -105,7 +105,7 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     """Command for running Python model"""
     # scenname = (scenfile.split("/")[-1])
     # mapname = mapfile.split("/")[-1].split(".")[0]
-    mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
+    mapname, bdname, scenname, _ = getMapScenAgents(scenfile)
     command = ""
     if runnerArgs["condaEnv"] is not None:
         command += "conda activate {} && ".format(runnerArgs["condaEnv"]) # e.g. conda activate pytorchfun && python -m gnn.simulator2
