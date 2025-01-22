@@ -46,7 +46,7 @@ class GNNStack(nn.Module):
         self.convs = nn.ModuleList([self.build_image_conv_model(linear_dim, in_channels, hidden_dim)]) # image conv layer
         self.lns = nn.ModuleList([nn.LayerNorm(hidden_dim), nn.LayerNorm(hidden_dim)])
         for _ in range(3):
-            self.convs.append(self.build_graph_conv_model(in_channels, hidden_dim, edge_dim)) # graph conv layer
+            self.convs.append(self.build_graph_conv_model(hidden_dim, hidden_dim, edge_dim)) # graph conv layer
             self.lns.append(nn.LayerNorm(hidden_dim))
         self.post_mp = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.Dropout(0.25),
                                      nn.Linear(hidden_dim, output_dim))
@@ -106,7 +106,7 @@ class GNNStack(nn.Module):
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
         
-        self.convs[0](x, bd_pred, edge_index, edge_attr)
+        x = self.convs[0](x, bd_pred, edge_index, edge_attr)  # (batch_size, 
             
         for i in range(1, self.num_layers):
             pdb.set_trace()
