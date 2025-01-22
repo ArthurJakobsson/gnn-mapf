@@ -30,14 +30,17 @@ def apply_masks(data_len, curdata):
     return curdata
 
 def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
+    # pdb.set_trace()
     """Modifies data in place"""
     ### Normalize edge attributes
     # data.edge_attr (num_edges,2) the deltas in each direction which can be negative
-    assert(edge_normalize in ["k"])
-    if edge_normalize == "k":
-        data.edge_attr /= k # Normalize edge attributes
-    else:
-        raise KeyError("Invalid edge normalization method: {}".format(edge_normalize))
+
+    # assert(edge_normalize in ["k"])
+    # if edge_normalize == "k":
+    #     data.edge_attr = data.edge_attr.type(torch.FloatTensor) # convert dtype to float32
+    #     data.edge_attr /= k # Normalize edge attributes
+    # else:
+    #     raise KeyError("Invalid edge normalization method: {}".format(edge_normalize))
 
     ### Normalize bd
     assert(bd_normalize in ["center"])
@@ -130,7 +133,7 @@ def calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLoc
 
 
 # (2,num_edges), (num_edges,num_layers)
-def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities):
+def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities, num_priority_copies):
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,m), each row is 0->num_agents
     deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
 
@@ -154,18 +157,22 @@ def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priori
     # edge_features = deltas[edge_indices[0], edge_indices[1]] # (num_edges,2), the difference between each agent
     # edge_features = edge_features.astype(np.float32)
 
-    pdb.set_trace()
+    # pdb.set_trace()
     # Priorities
     priorities_repeat = np.repeat(priorities[None,:], axis=0, repeats=num_agents)
     relative_priorities = -(priorities_repeat.T - priorities_repeat) # (N, N), i relative to j (positive is higher priority, 0 is highest priority)
+    
+    # normalize relative_priority in [-(num_agents-1), num_agents-1] to a value in [0, 1]
+    relative_priorities = (relative_priorities + (num_agents-1)) / (2*(num_agents-1))
 
     neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
     selection = distance_of_neighbors != np.inf # (N,m)
     edge_indices = neighbors_and_source_idx[:, selection] # (2,num_edges), [:,i] corresponds to (source, neighbor)
 
-    edge_features = np.concatenate((deltas[edge_indices[0], edge_indices[1]], # (num_edges,2), the difference between each agent
-                                    relative_priorities[edge_indices[0], edge_indices[1]][:, None]), axis=1) # (num_edges,1), relative priority
-
+    relative_priority = relative_priorities[edge_indices[0], edge_indices[1]][:, None] # (num_edges,1)
+    edge_features = np.concatenate((deltas[edge_indices[0], edge_indices[1]], # (num_edges,2), the position difference between agents
+                                    np.repeat(relative_priority, num_priority_copies,axis=1)), axis=1) # (num_edges,num_priority_copies)
+    
     return edge_indices, edge_features
 
 
@@ -215,7 +222,7 @@ def calculate_weights(matches, num_agents):
     return weights
 
 
-def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
+def create_data_object(pos_list, bd_list, grid, priorities, k, m, num_priority_copies, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
     """
     pos_list: (N,2) positions
     bd_list: (N,W,H) bd's
@@ -246,6 +253,7 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, ext
     if debug_checks:
         assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
 
+    # pdb.set_trace()
     x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
     # Adjust indices to gather slices
     x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (N,1,1) -> (N,D,D)
@@ -259,9 +267,8 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, ext
         assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     
     # Edge features include priorities
-    edge_indices, edge_features = calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities) # (2,num_edges), (num_edges,num_layers)
-
-    bd_pred_arr, linear_dimensions = calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents, bd_pred) # todo?
+    edge_indices, edge_features = calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities, num_priority_copies)
+    bd_pred_arr, linear_dimensions = calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents, bd_pred)
 
     weights = calculate_weights(matches, num_agents) # (N,)
     
@@ -272,7 +279,7 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, goal_locs, ext
 
 class MyOwnDataset(Dataset):
     def __init__(self, mapNpzFile, bdNpzFolder, pathNpzFolder,
-                processedOutputFolder, num_cores, k, m, extra_layers, bd_pred, num_per_pt):
+                processedOutputFolder, num_cores, k, m, num_priority_copies, extra_layers, bd_pred, num_per_pt):
         if num_cores != 1:
             raise NotImplementedError("Multiprocessing not supported yet")
         self.extra_layers = extra_layers
@@ -288,6 +295,7 @@ class MyOwnDataset(Dataset):
         self.ct = CustomTimer()
 
         self.num_cores = num_cores
+        self.num_priority_copies = num_priority_copies
         self.k = k # padding size
         self.m = m # number of agents considered close
         self.size = float('inf')
@@ -366,7 +374,7 @@ class MyOwnDataset(Dataset):
         assert(time_instance is not None)
         pos_list, labels, bd_list, grid, goal_locs, priorities = time_instance
 
-        curdata = create_data_object(pos_list, bd_list, grid, priorities, self.k, self.m, goal_locs, self.extra_layers, self.bd_pred, labels)
+        curdata = create_data_object(pos_list, bd_list, grid, priorities, self.k, self.m, self.num_priority_copies, goal_locs, self.extra_layers, self.bd_pred, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata
@@ -491,7 +499,8 @@ python -m gnn.dataloader --mapNpzFile=data_collection/data/benchmark_data/consta
       --pathNpzFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_npzs \
       --processedFolder=data_collection/data/logs/EXP_Test_batch/iter0/processed \
       --k=5 \
-      --m=3
+      --m=3 \
+      --num_priority_copies=10
 """
 
 if __name__ == "__main__":
@@ -513,6 +522,7 @@ if __name__ == "__main__":
     parser.add_argument("--processedFolder", help="processed folder to save pt", type=str, required=True)
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
+    parser.add_argument("--num_priority_copies", help="copies of relative priority to include in input", type=int, default=1)
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
     parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
@@ -521,7 +531,7 @@ if __name__ == "__main__":
 
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
-                        num_cores=1, k=args.k, m=args.m, extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=args.num_per_pt)
+                        num_cores=1, k=args.k, m=args.m, num_priority_copies=args.num_priority_copies, extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=args.num_per_pt)
 
 
 
