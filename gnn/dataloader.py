@@ -173,7 +173,7 @@ def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priori
     edge_features = np.concatenate((deltas[edge_indices[0], edge_indices[1]], # (num_edges,2), the position difference between agents
                                     np.repeat(relative_priority, num_priority_copies,axis=1)), axis=1) # (num_edges,num_priority_copies)
     
-    return edge_indices, edge_features
+    return edge_indices, edge_features.astype(np.float32)
 
 
 def calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents, bd_pred):

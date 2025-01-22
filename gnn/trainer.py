@@ -109,7 +109,6 @@ class GNNStack(nn.Module):
         x = self.convs[0](x, bd_pred, edge_index, edge_attr)  # (batch_size, 
             
         for i in range(1, self.num_layers):
-            pdb.set_trace()
             temp = self.convs[i](x, edge_index, edge_attr)
             x = temp
 
