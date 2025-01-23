@@ -424,12 +424,13 @@ python -m data_collection.constants_generator --mapFolder=data_collection/data/m
                  --deleteTextFiles=true \
                  "eecbs" \
                  --firstIter=true --cutoffTime=1
-
-python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
-                 --scenFolder=data_collection/data/mini_benchmark_data/scens \
-                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs \
-                 --outputFolder=data_collection/data/logs/EXP_Collect_BD/ \
+                 
+python -m data_collection.constants_generator --mapFolder=data_collection/data/benchmark_data/maps \
+                 --scenFolder=data_collection/data/benchmark_data/scens \
+                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
+                 --outputFolder=data_collection/data/logs/EXP_Collect_BD2/ \
                  --num_parallel_runs=50 \
+                 --deleteTextFiles=true \
                  "eecbs" \
                  --firstIter=true --cutoffTime=1
 

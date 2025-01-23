@@ -27,8 +27,9 @@ from torch_geometric.loader import DataLoader
 
 import torch_geometric.transforms as T
 
-from tensorboardX import SummaryWriter  # TODO: replace with Wandb
-# from sklearn.manifold import TSNE
+# from tensorboardX import SummaryWriter
+import wandb
+from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import random
 import multiprocessing
@@ -37,11 +38,11 @@ import multiprocessing
 # multiprocessing.set_start_method('spawn', force=True)
 
 class GNNStack(nn.Module):
-    def __init__(self, linear_dim, in_channels, hidden_dim, output_dim, edge_dim, relu_type, gnn_name, task='node'):
+    def __init__(self, linear_dim, in_channels, hidden_dim, output_dim, edge_dim, relu_type, gnn_name, use_edge_attr, task='node'):
         super(GNNStack, self).__init__()
         self.task = task
         self.relu_type = relu_type
-        self.gnn_func, self.use_edge_attr = self.gnn_func_from_name(gnn_name)
+        self.gnn_func, self.use_edge_attr = self.gnn_func_from_name(gnn_name, use_edge_attr)
         
         self.convs = nn.ModuleList([self.build_image_conv_model(linear_dim, in_channels, hidden_dim)]) # image conv layer
         self.lns = nn.ModuleList([nn.LayerNorm(hidden_dim), nn.LayerNorm(hidden_dim)])
@@ -56,20 +57,34 @@ class GNNStack(nn.Module):
         self.dropout = 0.25
         self.num_layers = 4
     
-    def gnn_func_from_name(self, gnn_name):
+    def gnn_func_from_name(self, gnn_name, use_edge_attr):
         # https://pytorch-geometric.readthedocs.io/en/latest/cheatsheet/gnn_cheatsheet.html
         # {gnn_name: (gnn_func, use_edge_attr), ...}
-        gnn_dict = {"SAGEConv": (pyg_nn.SAGEConv, False),
-                    "ResGatedGraphConv": (pyg_nn.ResGatedGraphConv, True),
-                    }
+        edge_attr_gnns = {"ResGatedGraphConv": pyg_nn.ResGatedGraphConv, 
+                            # "GATConv": pyg_nn.GATConv,
+                            "GATv2Conv": pyg_nn.GATv2Conv,
+                            "TransformerConv": pyg_nn.TransformerConv,
+                            # "GINEConv": pyg_nn.GINEConv,
+                            # "GMMConv": pyg_nn.GMMConv,
+                            # "SplineConv": pyg_nn.SplineConv,
+                            # "NNConv": pyg_nn.NNConv,
+                            # "CGConv": pyg_nn.CGConv,
+                            # "PNAConv": pyg_nn.PNAConv,
+                            "GENConv": pyg_nn.GENConv,
+                            # "PDNConv": pyg_nn.PDNConv,
+                            # "GeneralConv": pyg_nn.GeneralConv,
+                            }
+        no_edge_attr_gnns = {"SAGEConv": pyg_nn.SAGEConv,
+                            }
         
-        if gnn_name in gnn_dict:
-            gnn_func, use_edge_attr = gnn_dict[gnn_name]
+        if gnn_name in edge_attr_gnns:
+            return edge_attr_gnns[gnn_name], use_edge_attr
+        elif gnn_name in no_edge_attr_gnns:
+            if use_edge_attr:
+                print(f"Warning: {gnn_name} does not support edge features.")
+            return no_edge_attr_gnns[gnn_name], False
         else:
             raise ValueError(f"{gnn_name} not supported")
-        
-        print(f"use_edge_attr={use_edge_attr}")
-        return gnn_func, use_edge_attr
 
     def build_image_conv_model(self, linear_dim, in_channels, hidden_dim):
         return CustomConv(linear_dim, in_channels, hidden_dim, self.relu_type, self.use_edge_attr)
@@ -96,21 +111,23 @@ class GNNStack(nn.Module):
         edge_index = data.edge_index  # (2,num_edges)
         batch = data.batch  # (batch_size)
         bd_pred = data.bd_pred
-
-        if self.use_edge_attr:
-            edge_attr = data.edge_attr  # (num_edges,2+num_priority_copies)
-            assert(edge_attr != None)
-        else:
-            edge_attr = None
+        edge_attr = data.edge_attr  # (num_edges,2+num_priority_copies)
 
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
         
-        x = self.convs[0](x, bd_pred, edge_index, edge_attr)  # (batch_size, 
+        # image conv model
+        if self.use_edge_attr:
+            x = self.convs[0](x, bd_pred, edge_index, edge_attr=edge_attr)  
+        else:
+            x = self.convs[0](x, bd_pred, edge_index) 
             
         for i in range(1, self.num_layers):
-            temp = self.convs[i](x, edge_index, edge_attr)
-            x = temp
+            # graph conv model
+            if self.use_edge_attr:
+                x = self.convs[i](x, edge_index, edge_attr=edge_attr) 
+            else:
+                x = self.convs[i](x, edge_index)
 
             emb = x
             if self.relu_type!="relu":
@@ -149,10 +166,11 @@ class CustomConv(pyg_nn.MessagePassing):
         self.use_edge_attr = use_edge_attr
 
     def forward(self, x, bd_pred, edge_index, edge_attr=None):
+        # TODO: use edge_attr
+        
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)  # (2,num_edges)
 
         flattened_conv = torch.flatten(self.conv_self(x), start_dim=1)
-        # TODO: use edge_attr
 
         if bd_pred.shape[0]>2:
             flattened_conv = torch.hstack([flattened_conv, bd_pred]) 
@@ -184,8 +202,7 @@ def save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test
     if double_test_acc > max_double_test_acc:
         torch.save(model, model_path + '/max_double_test_acc.pt')
 
-def train(combined_dataset, writer, run_lr, edge_dim, relu_type, my_batch_size, dataset_size, gnn_name):
-
+def train(combined_dataset, run_lr, edge_dim, relu_type, my_batch_size, dataset_size, gnn_name, use_edge_attr, logging):
     # data_size = len(dataset)
     # loader = DataLoader(dataset[:int(data_size * 0.8)], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
     # test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
@@ -204,18 +221,33 @@ def train(combined_dataset, writer, run_lr, edge_dim, relu_type, my_batch_size, 
     num_classes = combined_dataset.datasets[0].num_classes
     lin_dim = combined_dataset.datasets[0][0].lin_dim
     num_channels = combined_dataset.datasets[0][0].num_channels
-    model = GNNStack(lin_dim,num_channels, 128, num_classes, edge_dim, relu_type=relu_type, gnn_name=gnn_name, task='node').to(device)
+    model = GNNStack(lin_dim,num_channels, 128, num_classes, edge_dim, relu_type=relu_type, gnn_name=gnn_name, use_edge_attr=use_edge_attr, task='node').to(device)
     opt = optim.AdamW(model.parameters(), lr=run_lr, weight_decay=5e-4)
     scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5, min_lr=1e-5)
     min_loss = float('inf')
     max_test_acc = max_double_test_acc = float('-inf')
 
+    num_epochs = 10
+    if logging:
+        wandb.init(
+            # set the wandb project where this run will be logged
+            project="gnn-mapf",
+
+            # track hyperparameters and run metadata
+            config={
+            "learning_rate": lr,
+            "GNN model": args.gnn_name,
+            "use_edge_attr": use_edge_attr,
+            "epochs": num_epochs,
+            }
+        )
+
     patience = 10
     no_improvement = 0
     results = []
 
-    for epoch in range(10):
+    for epoch in range(num_epochs):
         total_loss = 0
         correct = 0
         second_correct = 0
@@ -253,10 +285,9 @@ def train(combined_dataset, writer, run_lr, edge_dim, relu_type, my_batch_size, 
         train_acc = correct / total_samples * 100
         train_top2_acc = (correct + second_correct) / total_samples * 100
 
-        writer.add_scalar("loss", total_loss, epoch)
-        writer.add_scalar("train_accuracy", train_acc, epoch)
-        writer.add_scalar("train_top2_accuracy", train_top2_acc, epoch)
-        scheduler.step(total_loss)
+        # writer.add_scalar("loss", total_loss, epoch)
+        # writer.add_scalar("train_accuracy", train_acc, epoch)
+        # writer.add_scalar("train_top2_accuracy", train_top2_acc, epoch)
 
         # runtime = time.time() - start_time
         
@@ -274,8 +305,15 @@ def train(combined_dataset, writer, run_lr, edge_dim, relu_type, my_batch_size, 
 
         test_acc, double_test_acc = test(test_loader, model)
         print(f"Epoch {epoch}. Loss: {total_loss:.4f}. Train accuracy: {train_acc:.2f}%. Train Top2 accuracy: {train_top2_acc:.2f}%. Test accuracy: {test_acc:.4f}. Top2 Test accuracy: {double_test_acc:.4f}")
-        writer.add_scalar("test_accuracy", test_acc, epoch)
-        writer.add_scalar("test_top2_accuracy", double_test_acc, epoch)
+        
+        # writer.add_scalar("test_accuracy", test_acc, epoch)
+        # writer.add_scalar("test_top2_accuracy", double_test_acc, epoch)
+        if logging:
+            wandb.log({"loss": total_loss, 
+                        "train_accuracy": train_acc, 
+                        "train_top2_accuracy": train_top2_acc,
+                        "test_accuracy": test_acc,
+                        "test_top2_accuracy": double_test_acc})
 
         save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test_acc, max_double_test_acc)
 
@@ -347,11 +385,11 @@ def visualize():
 '''
 python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test_batch --experiment=exp0 --iternum=0 --num_cores=4 \
   --processedFolders=data_collection/data/logs/EXP_Test_batch/iter0/processed \
-  --k=5 \
-  --m=3 \
+  --k=5 --m=3 --lr=0.01 \
   --num_priority_copies=10 \
-  --lr=0.01 \
-  --gnn_name=SAGEConv
+  --gnn_name=GENConv \
+  --use_edge_attr \
+  --logging
 '''
 # python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4 \
 #   --processedFolders=data_collection/data/logs/EXP_Test3/iter0/processed \
@@ -372,6 +410,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", help="learning_rate", type=float)
     parser.add_argument("--relu_type", help="relu type", type=str)
     parser.add_argument("--gnn_name", help="pytorch-geometric GNN to use", type=str, default="SAGEConv")
+    parser.add_argument("--use_edge_attr", help="use edge_attr if supported", action='store_true')
     # parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
     # parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
     parser.add_argument("--processedFolders", help="processed npz folders, comma seperated!", type=str, required=True)
@@ -381,6 +420,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--dataset_size', type=int, default=-1)
     # parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
+    parser.add_argument("--logging", help="wandb logging", action='store_true')
 
     args = parser.parse_args()
     lr = args.lr
@@ -396,7 +436,7 @@ if __name__ == "__main__":
     random.seed(0)
     torch.backends.cudnn.deterministic = True
 
-    writer = SummaryWriter(f"./data_collection/data/logs/train_logs/"+expname+"_"+itername)
+    # writer = SummaryWriter(f"./data_collection/data/logs/train_logs/"+expname+"_"+itername)
     if args.dataset_size>0:
         model_path = exp_folder+f"/{itername}"+f"/models_{args.dataset_size}/"
     else:
@@ -425,8 +465,8 @@ if __name__ == "__main__":
     # Combine into single large dataset
     dataset = torch.utils.data.ConcatDataset(dataset_list)
     print(f"Combined {len(dataset_list)} datasets for a combined size of {len(dataset)}")
-    
-    model = train(dataset, writer, lr, edge_dim, relu_type, args.batch_size, args.dataset_size, args.gnn_name)
+
+    model = train(dataset, lr, edge_dim, relu_type, args.batch_size, args.dataset_size, args.gnn_name, args.use_edge_attr, args.logging)
 
     with open(f"{model_path}/finished.txt", "w") as f:
         f.write("")
