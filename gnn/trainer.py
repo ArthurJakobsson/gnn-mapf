@@ -116,11 +116,8 @@ class GNNStack(nn.Module):
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
         
-        # image conv model
-        if self.use_edge_attr:
-            x = self.convs[0](x, bd_pred, edge_index, edge_attr=edge_attr)  
-        else:
-            x = self.convs[0](x, bd_pred, edge_index) 
+        # compress x
+        x = self.convs[0](x, bd_pred, edge_index) 
             
         for i in range(1, self.num_layers):
             # graph conv model
@@ -165,19 +162,13 @@ class CustomConv(pyg_nn.MessagePassing):
             self.relu_func = F.leaky_relu
         self.use_edge_attr = use_edge_attr
 
-    def forward(self, x, bd_pred, edge_index, edge_attr=None):
-        # TODO: use edge_attr
-        
+    def forward(self, x, bd_pred, edge_index):        
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)  # (2,num_edges)
 
         flattened_conv = torch.flatten(self.conv_self(x), start_dim=1)
 
         if bd_pred.shape[0]>2:
             flattened_conv = torch.hstack([flattened_conv, bd_pred]) 
-
-        # priorities
-        # edge_attr has shape (num_edges,2+num_priority_copies)
-        # flattened_conv = torch.hstack([flattened_conv, bd_pred])
             
         self_x = self.relu_func(flattened_conv)        
         self_x = self.lin_self(self_x)
