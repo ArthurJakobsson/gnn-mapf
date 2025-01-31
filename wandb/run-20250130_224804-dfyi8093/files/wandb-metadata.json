@@ -1,0 +1,53 @@
+{
+  "os": "Linux-6.9.3-76060903-generic-x86_64-with-glibc2.35",
+  "python": "CPython 3.10.12",
+  "startedAt": "2025-01-31T03:48:04.559726Z",
+  "args": [
+    "--exp_folder=data_collection/data/logs/EXP_mini_old",
+    "--experiment=exp0",
+    "--iternum=0",
+    "--num_cores=4",
+    "--processedFolders=data_collection/data/logs/EXP_mini_old/iter0/processed",
+    "--k=5",
+    "--m=3",
+    "--lr=0.01",
+    "--num_priority_copies=10",
+    "--gnn_name=SAGEConv",
+    "--logging"
+  ],
+  "program": "-m gnn.trainer",
+  "git": {
+    "remote": "https://github.com/ArthurJakobsson/gnn-mapf.git",
+    "commit": "e23603c70ed648677cd8499ab77dfac1df4e7fc1"
+  },
+  "email": "mmliu@andrew.cmu.edu",
+  "root": "/home/michelle/mapf/gnn-mapf",
+  "host": "system76-pc",
+  "executable": "/usr/bin/python",
+  "cpu_count": 64,
+  "cpu_count_logical": 128,
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "4030829412352",
+      "used": "3302976495616"
+    }
+  },
+  "memory": {
+    "total": "540619091968"
+  },
+  "cpu": {
+    "count": 64,
+    "countLogical": 128
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 4090",
+      "memoryTotal": "25757220864",
+      "cudaCores": 16384,
+      "architecture": "Ada"
+    }
+  ],
+  "cudaVersion": "12.7"
+}
