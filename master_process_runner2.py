@@ -6,10 +6,10 @@ import argparse
 
 # example runs
 '''
-python run_pipeline2.py --data_path=medium_benchmark_data --exp_path=EXP_medium_priorities --iternum=0 \
+python master_process_runner2.py --data_path=medium_benchmark_data --exp_path=EXP_medium_priorities --iternum=0 \
     --mode=collect_data \
     --clean
-python run_pipeline2.py --data_path=medium_benchmark_data --exp_path=EXP_medium_priorities --iternum=0 \
+python master_process_runner2.py --data_path=medium_benchmark_data --exp_path=EXP_medium_priorities --iternum=0 \
     --mode=train \
     --models="SAGEConv" \
     --clean
