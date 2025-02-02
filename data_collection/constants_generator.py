@@ -84,8 +84,11 @@ def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, sce
     for aKey in eecbsArgs["args"]:
         command += " --{}={}".format(aKey, eecbsArgs["args"][aKey])
         
-    command += " --agentNum={} --agents={} --firstIter={} --bd_file={}".format(
-                numAgents, scenfile, firstIter, bd_path)
+    # TODO: buildrelease4 does not recognize option --firstIter
+    # command += " --agentNum={} --agents={} --firstIter={} --bd_file={}".format(
+                # numAgents, scenfile, firstIter, bd_path)
+    command += " --agentNum={} --agents={} --bd_file={}".format(
+                numAgents, scenfile, bd_path)
     command += " --output={} --map={}".format(outputfile, mapfile)
     command += " --sipp=1"
     return command
@@ -419,16 +422,7 @@ Collecting initial bd and map data:
 python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
                  --scenFolder=data_collection/data/mini_benchmark_data/scens \
                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs \
-                 --outputFolder=data_collection/data/logs/EXP_Collect_BD/ \
-                 --num_parallel_runs=50 \
-                 --deleteTextFiles=true \
-                 "eecbs" \
-                 --firstIter=true --cutoffTime=1
-                 
-python -m data_collection.constants_generator --mapFolder=data_collection/data/benchmark_data/maps \
-                 --scenFolder=data_collection/data/benchmark_data/scens \
-                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
-                 --outputFolder=data_collection/data/logs/EXP_Collect_BD2/ \
+                 --outputFolder=data_collection/data/logs/EXP_Collect_BD \
                  --num_parallel_runs=50 \
                  --deleteTextFiles=true \
                  "eecbs" \

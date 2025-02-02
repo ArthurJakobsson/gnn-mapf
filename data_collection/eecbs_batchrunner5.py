@@ -86,7 +86,11 @@ def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, sce
     for aKey in eecbsArgs["args"]:
         command += " --{}={}".format(aKey, eecbsArgs["args"][aKey])
     outputPathFile = f"{outputFolder}/paths/{scenname}.{numAgents}.txt"
-    command += " --agentNum={} --agents={} --outputPaths={} --firstIter={} --bd_file={}".format(
+    
+    # TODO: buildrelease4 does not recognize option --firstIter
+    # command += " --agentNum={} --agents={} --firstIter={} --bd_file={}".format(
+                # numAgents, scenfile, firstIter, bd_path)
+    command += " --agentNum={} --agents={} --outputPaths={} --bd_file={}".format(
                 numAgents, scenfile, outputPathFile, firstIter, bd_path)
     command += " --output={} --map={}".format(outputfile, mapfile)
     command += " --sipp=1"
