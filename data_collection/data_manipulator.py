@@ -9,7 +9,8 @@ import pdb
 import pandas as pd
 from torch.utils.data import Dataset
 from collections import defaultdict
-import multiprocessing
+import ray.util.multiprocessing
+# import multiprocessing
 # print(os.path.abspath(os.getcwd()))
 # sys.path.insert(0, './data_collection/')
 # sys.path.append(os.path.abspath(os.getcwd())+"/custom_utils/")
@@ -24,7 +25,49 @@ from custom_utils.common_helper import getMapScenAgents
 3. dictionary that maps bd_name to bd
 4. write tuples of (map name, bd name, paths np) to npz
 '''
-
+ 
+# mapsToMaxNumAgents = {
+#     "Berlin_1_256": 1000,
+#     "Boston_0_256": 1000,
+#     "Paris_1_256": 1000,
+#     "brc202d": 1000,
+#     "den312d": 1000, 
+#     "den520d": 1000,
+#     "dense_map_15_15_0":50,
+#     "dense_map_15_15_1":50,
+#     "corridor_30_30_0":50,
+#     "empty_8_8": 32,
+#     "empty_16_16": 128,
+#     "empty_32_32": 512,
+#     "empty_48_48": 1000,
+#     "ht_chantry": 1000,
+#     "ht_mansion_n": 1000,
+#     "lak303d": 1000,
+#     "lt_gallowstemplar_n": 1000,
+#     "maze_128_128_1": 1000,
+#     "maze_128_128_10": 1000,
+#     "maze_128_128_2": 1000,
+#     "maze_32_32_2": 333,
+#     "maze_32_32_4": 395,
+#     "orz900d": 1000,
+#     "ost003d": 1000,
+#     "random_32_32_10": 461,
+#     "random_32_32_10_custom_0": 461,
+#     "random_32_32_10_custom_1": 461,
+#     "random_32_32_20": 409,
+#     "random_64_64_10_custom_0": 1000,
+#     "random_64_64_10_custom_1": 1000,
+#     "random_64_64_10": 1000,
+#     "random_64_64_20": 1000,
+#     "room_32_32_4": 341,
+#     "room_64_64_16": 1000,
+#     "room_64_64_8": 1000,
+#     "w_woundedcoast": 1000,
+#     "warehouse_10_20_10_2_1": 1000,
+#     "warehouse_10_20_10_2_2": 1000,
+#     "warehouse_20_40_10_2_1": 1000,
+#     "warehouse_20_40_10_2_2": 1000,
+# }
 
 class PipelineDataset(Dataset):
     '''
@@ -357,7 +400,7 @@ def batch_map(dir, num_parallel):
     if num_parallel == 1:
         return res
     
-    with multiprocessing.Pool(processes=num_parallel) as pool:
+    with ray.multiprocessing.Pool(processes=num_parallel) as pool:
         results = pool.starmap(parse_map, inputs_list)
 
     for i in range(len(inputs_list)):
@@ -408,7 +451,6 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
     input: directory of backward djikstras (string)
     output: dictionary mapping goals to backward djikstras
     '''
-    # assert(1 + 1 == 3)
     goal_to_index = {} # map goal tuple to index in goal_to_bd: tuple->int
     scen_to_goals = {} # scen to array of goal indexes per agent: str->np (n,)
     goal_bds = [] # [np (w, h)]
@@ -444,13 +486,13 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
     if num_parallel == 1:
         return scen_to_goals, np.asarray(goal_bds)
 
-    with multiprocessing.Pool(processes=num_parallel) as pool:
+    with ray.util.multiprocessing.Pool(processes=num_parallel) as pool:
         results = pool.starmap(parse_bd, inputs_list)
 
     for i in range(len(inputs_list)):
         scenname = scennames_list[i]
         agent_to_bd = results[i] # list
-        add_unique_goals_to_dict(agent_to_bd, scenname)
+        add_unique_goals_to_dict(agent_to_bd, scenname, goal_bds)
 
     return scen_to_goals, np.asarray(goal_bds)
 
@@ -499,7 +541,6 @@ def batch_path(dir):
     return res1
 
 
-
 def main():
     # cmdline argument parsing: take in dirs for paths, maps, and bds, and where you want the outputted npz
     parser = argparse.ArgumentParser()
@@ -529,6 +570,7 @@ def main():
     # constants_generator
     if args.bdIn and args.goalsOutFile and args.bdOutFile \
                  and args.mapIn and args.scenIn and args.mapOutFile:
+        print("Running data_manipulator for constants_generator...")
         assert(args.mapOutFile.endswith(".npz"))
         if os.path.exists(args.mapOutFile):
             print("Map file already exists, skipping map parsing")
@@ -541,23 +583,24 @@ def main():
             np.savez_compressed(f"{args.mapOutFile}", **maps)
             ct.printTimes("Parsing maps")
         # parse each bd, add to global dict
-        assert(args.goalsOutFile.endswith(".npz"))
+        assert(args.goalsOutFile.endswith("_goals.npz"))
         os.makedirs(os.path.dirname(args.goalsOutFile), exist_ok=True)
-        assert(args.bdOutFile.endswith(".npz"))
+        assert(args.bdOutFile.endswith("_bds.npz"))
         os.makedirs(os.path.dirname(args.bdOutFile), exist_ok=True)
 
         if os.path.exists(args.bdOutFile) and os.path.exists(args.goalsOutFile):
             print("BD file already exists, skipping bd parsing")
-            pass
         else:
             with ct("Parsing bds"):
-                scen_to_goals, bds = batch_bd(args.bdIn, args.scenIn, args.num_parallel)
+                scen_to_goals, goal_bds = batch_bd(args.bdIn, args.scenIn, args.num_parallel)
             np.savez_compressed(args.goalsOutFile, **scen_to_goals)
-            np.savez_compressed(args.bdOutFile, bds)
+            np.savez_compressed(args.bdOutFile, goal_bds)
+
             ct.printTimes("Parsing bds")
 
     # eecbs_batchrunner
     if args.pathsIn and args.pathOutFile:
+        print("Running data_manipulator for eecbs_batchrunner...")
         # parse each path, add to global list
         assert(args.pathOutFile.endswith(".npz"))
         print(args.pathOutFile)

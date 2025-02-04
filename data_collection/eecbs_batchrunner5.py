@@ -472,7 +472,11 @@ def generic_batch_runner(args):
                 maximumAgents = mapsToMaxNumAgents[mapFile]
                 agentNumbers = [maximumAgents]
             else:
-                agentNumbers = [int(x) for x in args.numAgents.split(",")]
+                maximumAgents = mapsToMaxNumAgents[mapFile]
+                agentNumbers = [int(x) for x in args.numAgents.split(",") if int(x) <= maximumAgents]
+                if len(agentNumbers) == 0:
+                    print(f"Warning: No valid agent numbers for {mapFile}, using maximum number of agents {maximumAgents}")
+                    agentNumbers = [maximumAgents]
 
             static_dict[mapFile]["agentRange"] = agentNumbers
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])

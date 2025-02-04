@@ -7,16 +7,18 @@ import time
 
 # example runs
 '''
-python master_process_runner2.py --data_path=$PROJECT/data/mini_benchmark_data \
+python sbatch_master_process_runner2.py --data_path=$PROJECT/data/mini_benchmark_data \
     --exp_path=$PROJECT/data/logs/EXP_mini_priorities --iternum=0 \
-    --mode=eecbs_batchrunner \
-    --mode=constants_generator \
-    --mode=dataloader \
+    --eecbs_batchrunner --constants_generator --dataloader \
+    --num_parallel_runs=10 \
     --clean
-python master_process_runner2.py --data_path=$PROJECT/data/mini_benchmark_data \
+    
+python sbatch_master_process_runner2.py --data_path=$PROJECT/data/mini_benchmark_data \
     --exp_path=$PROJECT/data/logs/EXP_mini_priorities --iternum=0 \
-    --mode=trainer \
-    --models="SAGEConv" \
+    --trainer \
+    --logging \
+    --models="ResGatedGraphConv" \
+    --use_edge_attr \
     --clean
 '''
 
@@ -46,7 +48,7 @@ NO_EDGE_ATTR_GNNS = ["SAGEConv"]
 '''
 
 
-def eecbs_batchrunner(args):
+def run_eecbs_batchrunner(args):
     clean_batchrunner_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/'
 
     batchrunner_cmd = f'''python -m data_collection.eecbs_batchrunner5 --mapFolder={args.data_path}/maps \\
@@ -67,7 +69,7 @@ def eecbs_batchrunner(args):
     print(f"eecbs_batchrunner: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
 
 
-def constants_generator(args):
+def run_constants_generator(args):
     clean_constants_exp_cmd = f'rm -rf {args.data_path}/logs/EXP_Collect_BD/'
     clean_constants_data_cmd = f'rm -rf {args.data_path}/constant_npzs/'
 
@@ -91,7 +93,7 @@ def constants_generator(args):
     print(f"constants_generator: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
     
 
-def dataloader(args):
+def run_dataloader(args):
     clean_pts_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/processed'
     clean_pts_csv_cmd = f'rm {args.exp_path}/iter{args.iternum}/status_data_processed.csv'
     
@@ -113,22 +115,24 @@ def dataloader(args):
     print(f"data_loader: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
 
 
-def trainer(args, model):
-    clean_models_cmd = f'rm -rf {args.exp_path}/models_{model}'
+def run_trainer(args, model):
+    clean_models_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/models_{model}'
 
     trainer_cmd = f'''python -m gnn.trainer --exp_folder={args.exp_path} --experiment=exp0 --iternum={args.iternum} --num_cores=4 \\
         --processedFolders={args.exp_path}/iter{args.iternum}/processed \\
         --k=5 --m=3 --lr=0.01 \\
         --num_priority_copies=10 \\
-        --gnn_name={model} \\
-        --logging'''
+        --gnn_name="{model}"'''
     
+    if args.logging:
+        trainer_cmd += ' --logging'
+
     if args.use_edge_attr:
-        trainer_cmd += '\\ \n--use_edge_attr'
+        trainer_cmd += ' --use_edge_attr'
     if args.multistep_input:
-        trainer_cmd += '\\ \n--multistep_input'
+        trainer_cmd += ' --multistep_input'
     if args.multistep_output:
-        trainer_cmd += '\\ \n--multistep_output'
+        trainer_cmd += ' --multistep_output'
     
     if args.clean:
         subprocess.run(clean_models_cmd, shell=True, check=True)
@@ -144,23 +148,32 @@ if __name__ == "__main__":
     parser.add_argument('--data_path', type=str)
     parser.add_argument('--exp_path', type=str)
     parser.add_argument('--iternum', type=str)
-    parser.add_argument('--mode', type=str)
+    
+    parser.add_argument('--eecbs_batchrunner', action='store_true')
+    parser.add_argument('--constants_generator', action='store_true')
+    parser.add_argument('--dataloader', action='store_true')
+    parser.add_argument('--trainer', action='store_true')
+
     parser.add_argument('--models', type=str)
+    parser.add_argument('--logging', action='store_true')
+
     parser.add_argument('--use_edge_attr', action='store_true')
     parser.add_argument('--multistep_input', action='store_true')
     parser.add_argument('--multistep_output', action='store_true')
+    
     parser.add_argument('--clean', action='store_true')
     parser.add_argument('--num_parallel_runs', type=int, default=10)
 
     args = parser.parse_args()
 
-    if args.mode == 'eecbs_batchrunner':
-        eecbs_batchrunner(args)
-    if args.mode == 'constants_generator':
-        constants_generator(args)
-    if args.mode == 'dataloader':
-        dataloader(args)
-    if args.mode == 'trainer':
+    if args.eecbs_batchrunner:
+        run_eecbs_batchrunner(args)
+    if args.constants_generator:
+        run_constants_generator(args)
+    if args.dataloader:
+        run_dataloader(args)
+    if args.trainer:
         for model in args.models.strip().split():
+            assert(model in EDGE_ATTR_GNNS or model in NO_EDGE_ATTR_GNNS)
             if args.use_edge_attr: assert(model in EDGE_ATTR_GNNS)
-            trainer(args, model)
+            run_trainer(args, model)

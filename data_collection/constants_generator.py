@@ -84,7 +84,7 @@ def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, sce
     for aKey in eecbsArgs["args"]:
         command += " --{}={}".format(aKey, eecbsArgs["args"][aKey])
         
-    # TODO: buildrelease4 does not recognize option --firstIter
+    # TODO: build_release4 does not recognize option --firstIter
     # command += " --agentNum={} --agents={} --firstIter={} --bd_file={}".format(
                 # numAgents, scenfile, firstIter, bd_path)
     command += " --agentNum={} --agents={} --bd_file={}".format(
@@ -248,7 +248,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
         command = " ".join(["python", "-m", "data_collection.data_manipulator",
                         f"--bdIn={mapOutputFolder}/bd", f"--goalsOutFile={goalsOutputNpz}", f"--bdOutFile={bdOutputNpz}", 
                         f"--scenIn={scensInputFolder}", f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
-                        f"--num_parallel={numWorkersParallelForDataManipulator}"])
+                        f"--bdTemp={mapOutputFolder}", f"--num_parallel={numWorkersParallelForDataManipulator}"])
         
         input_list.append((command,))
     
@@ -421,12 +421,11 @@ def generic_batch_runner(args):
 Collecting initial bd and map data:
 python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
                  --scenFolder=data_collection/data/mini_benchmark_data/scens \
-                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs \
-                 --outputFolder=data_collection/data/logs/EXP_Collect_BD \
+                 --constantMapAndBDFolder=data_collection/data/mini_benchmark_data/constant_npzs \
+                 --outputFolder=data_collection/data/logs/EXP_Collect_BD_mini \
                  --num_parallel_runs=50 \
-                 --deleteTextFiles=true \
                  "eecbs" \
-                 --firstIter=true --cutoffTime=1
+                 --cutoffTime=1
 
 """
 if __name__ == "__main__":
@@ -444,8 +443,7 @@ if __name__ == "__main__":
                         type=int, required=True)
     parser.add_argument('--chosen_map', help="For benchmarking choose just one map from all the maps", 
                         type=str, default=None)
-    parser.add_argument('--deleteTextFiles', help="delete outputFolder when done", 
-                        type=bool, default=False)
+    parser.add_argument('--deleteTextFiles', help="delete outputFolder when done", action='store_true')
     # parser.add_argument("--iter", help="iteration number", type=int, default=0) #this is used only for the seed for simulation now
 
     # Subparses for C++ EECBS or Python ML model
@@ -457,7 +455,7 @@ if __name__ == "__main__":
 
     ### EECBS parser
     eecbs_parser = subparsers.add_parser("eecbs", help="Run eecbs")
-    eecbs_parser.add_argument("--eecbsPath", help="path to eecbs executable", type=str, default="./data_collection/eecbs/build_release3/eecbs")
+    eecbs_parser.add_argument("--eecbsPath", help="path to eecbs executable", type=str, default="./data_collection/eecbs/build_release4/eecbs")
     eecbs_parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
     # EECBS driver parameters
     eecbs_parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
