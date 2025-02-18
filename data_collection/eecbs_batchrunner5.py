@@ -551,20 +551,12 @@ def generic_batch_runner(args):
 python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
     --scenFolder=data_collection/data/mini_benchmark_data/scens \
     --numAgents=50,100 \
-    --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_outputs \
+    --outputFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_outputs \
     --num_parallel_runs=10 \
     "eecbs" \
-    --outputPathNpzFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_npzs \
+    --outputPathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
     --firstIter=true --cutoffTime=5
 
-python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/benchmark_data/maps \
-    --scenFolder=data_collection/data/benchmark_data/scens \
-    --numAgents=50,100 \
-    --outputFolder=data_collection/data/logs/EXP_Test_batch2/iter0/eecbs_outputs \
-    --num_parallel_runs=10 \
-    "eecbs" \
-    --outputPathNpzFolder=data_collection/data/logs/EXP_Test_batch2/iter0/eecbs_npzs \
-    --firstIter=true --cutoffTime=5
 
 Note: These are likely outdated, but the general structure should be the same
 Python model specific:

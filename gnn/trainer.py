@@ -43,7 +43,7 @@ class GNNStack(nn.Module):
         self.task = task
         self.relu_type = relu_type
         self.gnn_func, self.use_edge_attr = self.gnn_func_from_name(gnn_name, use_edge_attr)
-        
+
         self.convs = nn.ModuleList([self.build_image_conv_model(linear_dim, in_channels, hidden_dim)]) # image conv layer
         self.lns = nn.ModuleList([nn.LayerNorm(hidden_dim), nn.LayerNorm(hidden_dim)])
         for _ in range(3):
@@ -170,7 +170,7 @@ class CustomConv(pyg_nn.MessagePassing):
         if bd_pred.shape[0]>2:
             flattened_conv = torch.hstack([flattened_conv, bd_pred]) 
             
-        self_x = self.relu_func(flattened_conv)        
+        self_x = self.relu_func(flattened_conv)  
         self_x = self.lin_self(self_x)
 
         x_neighbors = self.relu_func(flattened_conv)
@@ -212,7 +212,7 @@ def train(combined_dataset, run_lr, edge_dim, relu_type, my_batch_size, dataset_
     num_classes = combined_dataset.datasets[0].num_classes
     lin_dim = combined_dataset.datasets[0][0].lin_dim
     num_channels = combined_dataset.datasets[0][0].num_channels
-    model = GNNStack(lin_dim,num_channels, 128, num_classes, edge_dim, relu_type=relu_type, gnn_name=gnn_name, use_edge_attr=use_edge_attr, task='node').to(device)
+    model = GNNStack(lin_dim, num_channels, 128, num_classes, edge_dim, relu_type=relu_type, gnn_name=gnn_name, use_edge_attr=use_edge_attr, task='node').to(device)
     opt = optim.AdamW(model.parameters(), lr=run_lr, weight_decay=5e-4)
     scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=5, min_lr=1e-5)
@@ -374,10 +374,12 @@ def visualize():
 
 ### Example run
 '''
-python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test_batch --experiment=exp0 --iternum=0 --num_cores=4 \
-  --processedFolders=data_collection/data/logs/EXP_Test_batch/iter0/processed \
+python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_mini --experiment=exp0 --iternum=0 --num_cores=4 \
+  --processedFolders=data_collection/data/logs/EXP_mini/iter0/processed \
   --k=5 --m=3 --lr=0.01 \
   --num_priority_copies=10 \
+  --num_multi_inputs=3 \
+  --num_multi_outputs=2 \
   --gnn_name=GENConv \
   --use_edge_attr \
   --logging
@@ -398,6 +400,8 @@ if __name__ == "__main__":
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
     parser.add_argument("--num_priority_copies", help="copies of relative priority to include in input", type=int, default=1)
+    parser.add_argument("--num_multi_inputs", help="number of previous steps to include in input", type=int, default=1)
+    parser.add_argument("--num_multi_outputs", help="number of next steps to predict in output", type=int, default=1)
     parser.add_argument("--lr", help="learning_rate", type=float)
     parser.add_argument("--relu_type", help="relu type", type=str)
     parser.add_argument("--gnn_name", help="pytorch-geometric GNN to use", type=str, default="SAGEConv")
@@ -450,6 +454,7 @@ if __name__ == "__main__":
         dataset = MyOwnDataset(mapNpzFile=None, bdNpzFolder=None, pathNpzFolder=None,
                             processedOutputFolder=folder, num_cores=1, k=args.k, m=args.m, 
                             num_priority_copies=args.num_priority_copies, 
+                            num_multi_inputs=args.num_multi_inputs, num_multi_outputs=args.num_multi_outputs,
                             extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=16)
         dataset_list.append(dataset)
 

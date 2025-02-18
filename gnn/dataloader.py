@@ -79,14 +79,15 @@ def get_bd_prefs(pos_list, bds, range_num_agents):
 
 def calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLocs, goalColLocs, matches, x_mesh, y_mesh, 
                       grid, goal_locs, extra_layers, num_layers, num_agents):
-    N,D = bd_slices.shape[0], bd_slices.shape[1]
+    h,N,D,_ = bd_slices.shape # (h,N,D,D)
 
-    node_features = np.empty((N,num_layers,D,D),dtype=np.float32) # default num_layers = 2 (grid slices and bd slices)
+    node_features = np.empty((N,num_layers,D,D),dtype=np.float32) # default num_layers = 2 (grid slices and bd slices) * h steps for each
     node_feature_idx = 0
-    node_features[:,node_feature_idx] = grid_slices
-    node_feature_idx +=1
-    node_features[:,node_feature_idx] = bd_slices
-    node_feature_idx +=1
+    for i in range(h):
+        node_features[:,node_feature_idx] = grid_slices[i]
+        node_feature_idx +=1
+        node_features[:,node_feature_idx] = bd_slices[i]
+        node_feature_idx +=1
 
     if extra_layers is not None:
         if "agent_locations" in extra_layers:
@@ -135,7 +136,7 @@ def calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLoc
 # (2,num_edges), (num_edges,num_layers)
 def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities, num_priority_copies):
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,m), each row is 0->num_agents
-    deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
+    deltas = pos_list[0, :, None, :] - pos_list[0, None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
 
     ## Calculate the distance between each agent, einsum is faster than other options
     dists = np.einsum('ijk,ijk->ij', deltas, deltas, optimize='optimal').astype(float) # (N,N), the L2^2 distance between each agent
@@ -178,7 +179,7 @@ def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priori
 
 def calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents, bd_pred):
     bd_pred_arr = None
-    linear_dimensions = (grid_slices.shape[1]-2)**2 * num_layers
+    linear_dimensions = (grid_slices.shape[2]-2)**2 * num_layers
     if bd_pred is not None:
         # TODO get the best location to go next, just according to the bd
         # NOTE: because we pad all bds with a large number, 
@@ -206,7 +207,7 @@ def calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents,
 def calculate_weights(matches, num_agents):
     # NOTE: calculate weights
     num_agent_goal_ratio = np.mean(matches)
-    weights = np.ones(num_agents) # (N,)
+    weights = np.ones(matches.shape[0]*num_agents) # (h*N,)
     # weights[np.invert(matches.flatten())] = 1/(np.sum(matches)+1)
     weights[matches.flatten()] -= num_agent_goal_ratio+0.001
     # weights[matches.flatten()] = 1/(np.sum(matches)+1)
@@ -222,9 +223,9 @@ def calculate_weights(matches, num_agents):
     return weights
 
 
-def create_data_object(pos_list, bd_list, grid, priorities, k, m, num_priority_copies, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
+def create_data_object(pos_list, bd_list, grid, priorities, num_multi_inputs, k, m, num_priority_copies, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
     """
-    pos_list: (N,2) positions
+    pos_list: (h,N,2) positions
     bd_list: (N,W,H) bd's
     grid: (W,H) grid
     priorities: (N,) EECBS priorities
@@ -241,25 +242,31 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, num_priority_c
             num_layers+=2
         if "at_goal_grid" in extra_layers:
             num_layers+=1
+    num_layers *= num_multi_inputs # for each input timestep
     
-    num_agents = len(pos_list)
+    num_agents = pos_list.shape[1]
     range_num_agents = np.arange(num_agents)
 
     ### Numpy advanced indexing to get all agent slices at once
-    rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
-    colLocs = pos_list[:,1][:, None] # (N)->(N,1)
+    rowLocs = pos_list[:,:,0][:, :, None] # (h,N)->(h,N,1), Note doing (N)[:,None] adds an extra dimension
+    colLocs = pos_list[:,:,1][:, :, None] # (h,N)->(h,N,1)
     goalRowLocs, goalColLocs = goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
+
     matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs)
     if debug_checks:
         assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
 
     # pdb.set_trace()
+    h = rowLocs.shape[0]
     x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
+    x_mesh = np.tile(x_mesh, (h, 1, 1)) # (h,D,D)
+    y_mesh = np.tile(y_mesh, (h, 1, 1)) # (h,D,D)
+
     # Adjust indices to gather slices
-    x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (N,1,1) -> (N,D,D)
-    y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (N,1,1) -> (N,D,D)
+    x_mesh = x_mesh[:, None, :, :] + rowLocs[:, :, None, :] # (h,D,D) + (N,1,1) -> (N,D,D)
+    y_mesh = y_mesh[:, None, :, :] + colLocs[:, :, None, :] # (h,D,D) + (N,1,1) -> (N,D,D)
     grid_slices = grid[x_mesh, y_mesh] # (W, H) -> (N,D,D)
-    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
+    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (h,N,D,D)
 
     node_features = calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLocs, goalColLocs, matches, x_mesh, y_mesh, 
                                       grid, goal_locs, extra_layers, num_layers, num_agents) # (N,num_layers,D,D)
@@ -277,9 +284,65 @@ def create_data_object(pos_list, bd_list, grid, priorities, k, m, num_priority_c
                 weights = torch.from_numpy(weights), y = torch.from_numpy(labels))
 
 
+# def create_data_object(pos_list, bd_list, grid, priorities, k, m, num_priority_copies, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
+#     """
+#     pos_list: (N,2) positions
+#     bd_list: (N,W,H) bd's
+#     grid: (W,H) grid
+#     priorities: (N,) EECBS priorities
+#     k: (int) local region size
+#     m: (int) number of closest neighbors to consider
+#     # """
+#     num_layers = 2 # grid and bd_slices intially
+#     if extra_layers is not None:
+#         if "agent_locations" in extra_layers:
+#             num_layers+=1
+#         if "agent_goal" in extra_layers:
+#             num_layers+=1
+#         if "near_goal_info" in extra_layers:
+#             num_layers+=2
+#         if "at_goal_grid" in extra_layers:
+#             num_layers+=1
+    
+#     num_agents = len(pos_list)
+#     range_num_agents = np.arange(num_agents)
+
+#     ### Numpy advanced indexing to get all agent slices at once
+#     rowLocs = pos_list[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
+#     colLocs = pos_list[:,1][:, None] # (N)->(N,1)
+#     goalRowLocs, goalColLocs = goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
+#     matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs)
+#     if debug_checks:
+#         assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
+
+#     # pdb.set_trace()
+#     x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
+#     # Adjust indices to gather slices
+#     x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (N,1,1) -> (N,D,D)
+#     y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (N,1,1) -> (N,D,D)
+#     grid_slices = grid[x_mesh, y_mesh] # (W, H) -> (N,D,D)
+#     bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
+
+#     node_features = calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLocs, goalColLocs, matches, x_mesh, y_mesh, 
+#                                       grid, goal_locs, extra_layers, num_layers, num_agents) # (N,num_layers,D,D)
+#     if debug_checks:
+#         assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
+    
+#     # Edge features include priorities
+#     edge_indices, edge_features = calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities, num_priority_copies)
+#     bd_pred_arr, linear_dimensions = calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents, bd_pred)
+
+#     weights = calculate_weights(matches, num_agents) # (N,)
+    
+#     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
+#                 edge_attr=torch.from_numpy(edge_features), bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
+#                 weights = torch.from_numpy(weights), y = torch.from_numpy(labels))
+
+
 class MyOwnDataset(Dataset):
     def __init__(self, mapNpzFile, bdNpzFolder, pathNpzFolder,
-                processedOutputFolder, num_cores, k, m, num_priority_copies, extra_layers, bd_pred, num_per_pt):
+                processedOutputFolder, num_cores, k, m, num_priority_copies, num_multi_inputs, num_multi_outputs,
+                extra_layers, bd_pred, num_per_pt):
         if num_cores != 1:
             raise NotImplementedError("Multiprocessing not supported yet")
         self.extra_layers = extra_layers
@@ -296,6 +359,8 @@ class MyOwnDataset(Dataset):
 
         self.num_cores = num_cores
         self.num_priority_copies = num_priority_copies
+        self.num_multi_inputs = num_multi_inputs
+        self.num_multi_outputs = num_multi_outputs
         self.k = k # padding size
         self.m = m # number of agents considered close
         self.size = float('inf')
@@ -334,7 +399,7 @@ class MyOwnDataset(Dataset):
     @property
     def num_classes(self) -> int:
         """REQUIRED: Otherwise dataset will iterate through everything really slowly"""
-        return 5
+        return 5**self.num_multi_outputs
 
     @property
     def raw_file_names(self):
@@ -374,7 +439,7 @@ class MyOwnDataset(Dataset):
         assert(time_instance is not None)
         pos_list, labels, bd_list, grid, goal_locs, priorities = time_instance
 
-        curdata = create_data_object(pos_list, bd_list, grid, priorities, self.k, self.m, self.num_priority_copies, goal_locs, self.extra_layers, self.bd_pred, labels)
+        curdata = create_data_object(pos_list, bd_list, grid, priorities, self.num_multi_inputs, self.k, self.m, self.num_priority_copies, goal_locs, self.extra_layers, self.bd_pred, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata
@@ -411,7 +476,8 @@ class MyOwnDataset(Dataset):
                     bdNpzFile = f"{self.bdNpzFolder}/{bd_file_name}"
                     goalsNpzFile = bdNpzFile[:-7] + "goals.npz"
                     self.ct.start("Loading")
-                    cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, goalsNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents)
+                    cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, goalsNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents,
+                                                                    self.num_multi_inputs, self.num_multi_outputs)
                     print(f"Loading: {npz_path} of size {len(cur_dataset)}")
 
                     self.ct.stop("Loading")
@@ -494,13 +560,15 @@ class MyOwnDataset(Dataset):
 
 ### Example run
 """
-python -m gnn.dataloader --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
-      --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs \
-      --pathNpzFolder=data_collection/data/logs/EXP_Test_batch/iter0/eecbs_npzs \
-      --processedFolder=data_collection/data/logs/EXP_Test_batch/iter0/processed \
+python -m gnn.dataloader --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
+      --bdNpzFolder=data_collection/data/mini_benchmark_data/constant_npzs \
+      --pathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
+      --processedFolder=data_collection/data/logs/EXP_mini/iter0/processed \
       --k=5 \
       --m=3 \
-      --num_priority_copies=10
+      --num_priority_copies=10 \
+      --num_multi_inputs=3 \
+      --num_multi_outputs=2
 """
 
 if __name__ == "__main__":
@@ -523,15 +591,22 @@ if __name__ == "__main__":
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
     parser.add_argument("--num_priority_copies", help="copies of relative priority to include in input", type=int, default=1)
+    parser.add_argument("--num_multi_inputs", help="number of previous steps to include in input", type=int, default=1)
+    parser.add_argument("--num_multi_outputs", help="number of next steps to predict in output", type=int, default=1)
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
     parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     parser.add_argument('--num_per_pt', type=int, default=16, help="number of graphs per pt file")
     args = parser.parse_args()
 
+    assert(1 <= args.num_multi_inputs)
+    assert(1 <= args.num_multi_outputs <= 3)
+
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
-                        num_cores=1, k=args.k, m=args.m, num_priority_copies=args.num_priority_copies, extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=args.num_per_pt)
+                        num_cores=1, k=args.k, m=args.m, num_priority_copies=args.num_priority_copies, 
+                        num_multi_inputs=args.num_multi_inputs, num_multi_outputs=args.num_multi_outputs,
+                        extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=args.num_per_pt)
 
 
 

@@ -75,7 +75,8 @@ class PipelineDataset(Dataset):
     '''
 
     # instantiate class variables
-    def __init__(self, mapFileNpz, goalsFileNpz, bdFileNpz, pathFileNpz, k, size, max_agents, helper_bd_preprocess="middle"):
+    def __init__(self, mapFileNpz, goalsFileNpz, bdFileNpz, pathFileNpz, k, size, max_agents, 
+                 num_multi_inputs, num_multi_outputs, helper_bd_preprocess="middle"):
         '''
         INPUT:
             numpy_data_path: the path to the npz file storing all map, backward dijkstra, and path information across all EECBS runs. (string)
@@ -116,6 +117,10 @@ class PipelineDataset(Dataset):
         self.size = size
         # self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
         self.max_agents = max_agents
+
+        self.num_multi_inputs = num_multi_inputs
+        self.num_multi_outputs = num_multi_outputs
+
         self.helper_bd_preprocess = helper_bd_preprocess
 
         self.parse_npz2()
@@ -124,6 +129,35 @@ class PipelineDataset(Dataset):
     # get number of instances in total (length of training data)
     def __len__(self):
         return self.length # go through the tn2 dict with # data and np arrays saved, and sum all the ints
+
+    # # return the data for a particular instance: the location, bd, and map
+    # def __getitem__(self, idx):
+    #     '''
+    #     INPUT: index (must be smaller than len(self))
+    #     OUTPUT: map, bd, and direction
+    #         map: (2k+1, 2k+1)
+    #         bd: (2k+1, 2k+1)
+    #         other agent bds: (4,2k+1,2k+1)
+    #         direction: (2)
+    #     centered version. when passing in the map and bd, return a (2k+1,2k+1) window centered at current location of agent.
+    #     '''
+    #     if idx >= self.__len__():
+    #         print("Index too large for {}-sample dataset".format(self.__len__()))
+    #         return
+    #     bd, grid, paths, timestep, max_timesteps, priorities = self.find_instance(idx)
+    #     cur_locs = paths[timestep] # (N,2)
+    #     next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
+    #     end_locs = paths[-1]
+    #     deltas = next_locs - cur_locs # (N,2)
+
+    #     # Define the mapping from direction vectors to indices
+    #     direction_labels = np.array([(0,0), (0,1), (1,0), (-1,0), (0,-1)]) # (5,2)
+    #     # Find the index of each direction in the possible_directions array
+    #     indices = np.argmax(np.all(deltas[:, None] == direction_labels, axis=2), axis=1)
+    #     # Create a one-hot encoded array using np.eye
+    #     labels = np.eye(direction_labels.shape[0])[indices]
+    #     # assert(np.all(labels == slow_labels))
+    #     return cur_locs, labels, bd, grid, end_locs, priorities
 
     # return the data for a particular instance: the location, bd, and map
     def __getitem__(self, idx):
@@ -140,20 +174,47 @@ class PipelineDataset(Dataset):
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
         bd, grid, paths, timestep, max_timesteps, priorities = self.find_instance(idx)
-        cur_locs = paths[timestep] # (N,2)
-        next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
-        end_locs = paths[-1]
-        deltas = next_locs - cur_locs # (N,2)
+        # cur_locs = paths[timestep] # (N,2) 
+
+        start_idle_steps = max(0, self.num_multi_inputs-timestep)
+        input_move_steps = self.num_multi_inputs-start_idle_steps
+        # print(f"multi_input_locs: {start_idle_steps}*[0] + [{timestep-input_move_steps}: {timestep})]")
+        input_locs = np.vstack((np.tile(paths[0], (start_idle_steps, 1, 1)),
+                                     paths[timestep-input_move_steps: timestep])) # (N,h,2), h history (input steps)
+        assert(input_locs.shape[0] == self.num_multi_inputs)
+
+        # next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
+        # deltas = next_locs - cur_locs # (N,2)
+
+        output_move_steps = min(max_timesteps - timestep - 1, self.num_multi_outputs)
+        end_idle_steps = self.num_multi_outputs - output_move_steps
+        # print(f"cur_multi_output_locs: [{timestep}: {timestep + output_move_steps}) + {end_idle_steps}*[{timestep + output_move_steps - 1}]")
+        # print(f"next_multi_output_locs: [{timestep+1}: {timestep + output_move_steps+1}) + {end_idle_steps}*[{timestep + output_move_steps}]")
+        cur_multi_output_locs = np.vstack((paths[timestep: timestep + output_move_steps],
+                                   np.tile(paths[timestep + output_move_steps - 1], (end_idle_steps, 1, 1))))
+        next_multi_output_locs = np.vstack((paths[timestep+1: timestep + output_move_steps+1],
+                                   np.tile(paths[timestep + output_move_steps], (end_idle_steps, 1, 1))))
+        assert(cur_multi_output_locs.shape[0] == next_multi_output_locs.shape[0] == self.num_multi_outputs)
+        
+        deltas = (next_multi_output_locs-cur_multi_output_locs).swapaxes(0, 1) # (N,ns,2), ns = num steps we predict (3 steps: 125 1-hot vector)
+        # assert(np.all(np.equal(cur_multi_locs[1:], next_multi_locs[:-1])))
 
         # Define the mapping from direction vectors to indices
         direction_labels = np.array([(0,0), (0,1), (1,0), (-1,0), (0,-1)]) # (5,2)
         # Find the index of each direction in the possible_directions array
-        indices = np.argmax(np.all(deltas[:, None] == direction_labels, axis=2), axis=1)
+        
+        indices = np.argmax(np.all(deltas[:, :, None] == direction_labels, axis=3), axis=2)
+        # assert(np.all(np.equal(indices, indices2[:,0])))
+        weights = [5**i for i in range(self.num_multi_outputs)]
+        one_hot_indices = np.dot(indices, weights)
+        
         # Create a one-hot encoded array using np.eye
-        labels = np.eye(direction_labels.shape[0])[indices]
+        labels = np.eye(direction_labels.shape[0]**self.num_multi_outputs)[one_hot_indices]
+        
+        output_locs = paths[-1]
         # assert(np.all(labels == slow_labels))
-        return cur_locs, labels, bd, grid, end_locs, priorities
-
+        # return cur_locs, labels, bd, grid, end_locs, priorities
+        return input_locs, labels, bd, grid, output_locs, priorities
 
     def find_instance(self, idx): 
         '''
@@ -484,6 +545,8 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
             raise RuntimeError("bad bd dir")
 
     if num_parallel == 1:
+        print("# max goal index:", max([max(scen_to_goals[scenname]) for scenname in scen_to_goals]))
+        print("# unique BDs:", np.asarray(goal_bds).shape)
         return scen_to_goals, np.asarray(goal_bds)
 
     with ray.util.multiprocessing.Pool(processes=num_parallel) as pool:
@@ -570,7 +633,7 @@ def main():
     # constants_generator
     if args.bdIn and args.goalsOutFile and args.bdOutFile \
                  and args.mapIn and args.scenIn and args.mapOutFile:
-        print("Running data_manipulator for constants_generator...")
+        print(f"Running data_manipulator for constants_generator ({args.bdIn})...")
         assert(args.mapOutFile.endswith(".npz"))
         if os.path.exists(args.mapOutFile):
             print("Map file already exists, skipping map parsing")

@@ -248,7 +248,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
         command = " ".join(["python", "-m", "data_collection.data_manipulator",
                         f"--bdIn={mapOutputFolder}/bd", f"--goalsOutFile={goalsOutputNpz}", f"--bdOutFile={bdOutputNpz}", 
                         f"--scenIn={scensInputFolder}", f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
-                        f"--bdTemp={mapOutputFolder}", f"--num_parallel={numWorkersParallelForDataManipulator}"])
+                        f"--num_parallel={numWorkersParallelForDataManipulator}"])
         
         input_list.append((command,))
     
