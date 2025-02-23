@@ -1,4 +1,4 @@
-
+# Standard library imports
 import os
 import subprocess
 import argparse
@@ -10,12 +10,19 @@ import time
 import numpy as np
 import sys
 
+# Custom imports
 from custom_utils.common_helper import str2bool
 from sbatch_master_process_runner import generate_sh_script, startup_small
 
+# Global variable to track timing between events
 last_recorded_time = datetime.datetime.now()
 
 def log_time(event_name):
+    """
+    Logs timing information for different events to a file
+    Args:
+        event_name: Name of the event being timed
+    """
     cur_time = datetime.datetime.now()
     with open(f"./{LE}/timing.txt", mode='a') as file:
         file.write(f"{event_name} recorded at {cur_time}. \t\t Duration: \t {(cur_time-last_recorded_time).total_seconds()} \n")
@@ -59,28 +66,28 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid setting: {args.which_setting}")
 
     if ".json" in args.numAgents and "map_configs" not in args.numAgents:
-        args.numAgents = "map_configs/"+args.numAgents   
+        args.numAgents = "map_configs/"+args.numAgents
 
     if args.mini_test:
         # source_maps_scens = "./data_collection/data/mini_benchmark_data"
         source_maps_scens = f"./data_collection/data/{args.data_folder}"
-    else: 
+    else:
         source_maps_scens = "./data_collection/data/benchmark_data"
 
-    
+
     source_maps_scens = f"{source_maps_scens}_{args.num_scens}"
     LE = f"data_collection/data/logs/{args.expName}"
     os.makedirs(LE, exist_ok=True)
-    
+
     num_cores = multiprocessing.cpu_count()
     first_iteration = "true"
     print("Current Path:", os.getcwd())
 
-    
+
     log_time("begin")
     constantMapAndBDFolder = "data_collection/data/benchmark_data/constant_npzs"
     constantMapNpz = f"{constantMapAndBDFolder}/all_maps.npz"
-    
+
     iterFolder = f"{LE}/iter{args.iternum}"
     if not os.path.exists(iterFolder):
         os.makedirs(iterFolder)
@@ -94,11 +101,11 @@ if __name__ == "__main__":
 
 
     ### Run best model on simulator on scens to create new scenes
-    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3",
                     f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
-                    f"--outputFolder={pymodel_outputs_folder}", 
+                    f"--outputFolder={pymodel_outputs_folder}",
                     f"--num_parallel_runs={min(20, args.num_parallel)}", f"--iter={args.iternum}",
                     "\"pymodel\"",
                     f"--modelPath={iterFolder}/models/max_test_acc.pt",
@@ -134,15 +141,15 @@ if __name__ == "__main__":
                     shutil.copy(f"{folder_path}/paths/{file}", f"{encountered_scens}/{file}")
 
     ### Clean up the pymodel_outputs_folder
-    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3",
                     f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
-                    f"--outputFolder={pymodel_outputs_folder}", 
+                    f"--outputFolder={pymodel_outputs_folder}",
                     f"--num_parallel_runs={args.num_parallel}", f"--iter={args.iternum}",
                     "\"clean\" --keepNpys=true"])
     subprocess.run(command, shell=True, check=True)
-    
+
     args.iternum += 1
     generate_sh_script(LE, "run_main", "sbatch_master_process_runner.py", args, chosen_section="setup")
     startup_small(LE)
