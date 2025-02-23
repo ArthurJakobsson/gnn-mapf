@@ -90,9 +90,42 @@ for key,val in num_datapoints.items():
 # held_maps = ["Paris_1_256", "empty_48_48", "maze_128_128_2", "random_64_64_10", "warehouse_10_20_10_2_1", "den312d"]
 
 
-unheld_maps = ["Berlin_1_256","Boston_0_256","empty_16_16","empty_32_32","ht_chantry","ht_mansion_n","lak303d","lt_gallowstemplar_n","maze_32_32_2","maze_32_32_4","ost003d","random_32_32_20","random_64_64_20","room_32_32_4","room_64_64_16","room_64_64_8","warehouse_10_20_10_2_2","warehouse_20_40_10_2_1","warehouse_20_40_10_2_2"]
+# unheld_maps = ["Berlin_1_256","Boston_0_256","empty_16_16","empty_32_32","ht_chantry","ht_mansion_n","lak303d","lt_gallowstemplar_n","maze_32_32_2","maze_32_32_4","ost003d","random_32_32_20","random_64_64_20","room_32_32_4","room_64_64_16","room_64_64_8","warehouse_10_20_10_2_2","warehouse_20_40_10_2_1","warehouse_20_40_10_2_2"]
 
 held_maps = ["Paris_1_256", "den312d", "den520d","empty_48_48", "maze_128_128_2", "random_32_32_10", "random_64_64_10", "warehouse_10_20_10_2_1"]
+
+unheld_maps = [
+                "room_32_32_4",
+                "room_64_64_16",
+                "room_64_64_8"]
+                # ["warehouse_10_20_10_2_1",
+                #     "warehouse_10_20_10_2_2",
+                #     "warehouse_20_40_10_2_1",
+                #     "warehouse_20_40_10_2_2",
+                #     "random_32_32_10",
+                #     "random_32_32_20",
+                #     "random_64_64_10",
+                #     "random_64_64_20"
+                #     ]
+                # 
+                # ["den312d",
+                # "den520d",
+                # "empty_16_16",
+                # "empty_32_32",
+                # "empty_48_48",
+                # "maze_32_32_2",
+                # "maze_32_32_4",
+                # "maze_128_128_2"]
+                # ["Berlin_1_256",
+                # "Boston_0_256",
+                # "Paris_1_256",
+                # "ht_chantry",
+                # "ht_mansion_n",
+                # "lak303d",
+                # "lt_gallowstemplar_n",
+                # "ost003d"]#, \\
+                # 
+                # 
 
 # maps = ["Berlin_1_256", "den312d"]
 # maps = mapsToMaxNumAgents.keys()
@@ -221,7 +254,7 @@ def plot_success_rate(data, ax, mapname, info_type, last_row):
 
 def plot_all_maps_single_row(maps, which_folders, output_path, image_folder):
     # Create a 3x6 grid for subplots (3 rows for info types, 6 columns for maps)
-    fig, axes = plt.subplots(3, len(maps), figsize=(100, 10))  # 3 rows (one per info type), 6 maps (columns)
+    fig, axes = plt.subplots(3, len(maps), figsize=(15, 10))  # 3 rows (one per info type), 6 maps (columns)
     
     # Plot each info type in a separate row
     info_types = ["Success_Rate", "Runtime", "Solution_Cost"]
@@ -246,6 +279,8 @@ def plot_all_maps_single_row(maps, which_folders, output_path, image_folder):
         axes[row, 0].text(-0.2, 0.5, display_info_type, fontsize=13, va='center', rotation=90, transform=axes[row, 0].transAxes)
 
     for col, mapfile in enumerate(maps):
+        if mapfile in held_maps:
+            mapfile += "*"
         fig.text((col+0.1)/len(maps), 1.05, mapfile, fontsize=15, fontstyle='italic', ha='left')
         
     labels = [word.replace("GNNMAPF", "").replace("_", " ").replace("agents", "SSIL CS-PIBT").replace("CSFreeze", "SSIL CS-Naive").replace("results", "") for word in labels]

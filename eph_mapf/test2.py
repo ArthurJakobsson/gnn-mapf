@@ -175,6 +175,7 @@ def test_instance(args):
                 use_aep,
                 aep_astar_type,
             )
+            print("I WENT INTO THE FOR LOOP\n")
             if st == TIMEOUT_STEP_VAL:
                 print(f"Timeout for ensemble {conf_}")
             successes.append(su)
@@ -207,6 +208,7 @@ def test_instance(args):
             runtime,
         )
     else:
+        print("I DIN'T GO INTO THE FOR LOOP\n")
         # Else, just run the test
         # return test_one_case(args, use_stepinfer_method, astar_type, active_agent_radius, use_aep, aep_astar_type)
         return test_one_case(
@@ -290,6 +292,7 @@ def test_model(checkpoint_name: Union[int, str], config=config):
             tests = load_data(case, config=config)
 
             tests = [(test, network, config) for test in tests]
+            
             ret = tqdm(pool.imap(test_instance, tests), total=len(tests))
             
             if config.ensemble is not None:
