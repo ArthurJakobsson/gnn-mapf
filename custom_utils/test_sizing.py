@@ -2,6 +2,13 @@ import os
 import torch
 import time
 
+
+'''
+This script is used to test the effect of the size of the arrays on the loading time and access time of the data.
+
+This is not used in the main codebase and was only used as a tester for implementation methods.
+'''
+
 def load_graphs(folder_path, num_graphs=200):
     files = sorted([f for f in os.listdir(folder_path) if f.endswith('.pt')])[:num_graphs]
     graphs = [torch.load(os.path.join(folder_path, f)) for f in files]

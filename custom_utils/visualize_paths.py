@@ -11,6 +11,16 @@ import pandas as pd
 from PIL import Image
 import multiprocessing as mp
 
+
+'''
+This script was use originally to visualize and animate the paths of agents in the environment.
+
+This script is independent from the main function of the project.
+
+TODO: The file paths need updating before use. 
+'''
+
+
 def parse_scene(scen_file):
     """Input: scenfile
     Output: start_locations, goal_locations

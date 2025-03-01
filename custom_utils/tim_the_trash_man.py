@@ -27,6 +27,15 @@
 import os
 import shutil
 
+
+'''
+This script is used to clean up the root directory and the raw_data directory.
+
+This is not used in the main codebase and was only used in an early non-self-contained version of the project.
+
+NOTE: Please use with caution. This script will delete files which you probably want to keep.
+'''
+
 # clean root
 
 dir_name = "./"
