@@ -10,7 +10,8 @@ import yaml
 try:
     config = yaml.safe_load(open("./eph_mapf/config.yaml", "r"))
 except:
-    config = yaml.safe_load(open("./eph_mapf/src/data/config.yaml", "r"))
+    # config = yaml.safe_load(open("./eph_mapf/src/data/config.yaml", "r"))
+    config = yaml.safe_load(open("./data/config.yaml", "r"))
 
 OBSTACLE, FREE_SPACE = config["grid_map"]["OBSTACLE"], config["grid_map"]["FREE_SPACE"]
 
