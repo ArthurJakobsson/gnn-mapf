@@ -14,7 +14,7 @@ parser_dictionary = {
     "batch_size": {"type": int, "default": 64, "help": "batch size for training"},
     "relu_type": {"type": str, "default": "relu"},
     "expName": {"help": "Name of the experiment, e.g. Test5", "required": True},
-    "numAgents": {"help": "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max or include .json for pulling from config file, see eecbs_batchrunner3.py ", "type": str, "required": True},
+    "numAgents": {"help": "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max or include .json for pulling from config file, see eecbs_batchrunner.py ", "type": str, "required": True},
     "extra_layers": {"help": "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid", "type": str, "default": None},
     "bd_pred": {"type": str, "default": None, "help": "bd_predictions added to NN, type anything if adding"},
     "which_setting": {"help": "[Arthur, Rishi, PSC]", "required": True}, # E.g. use --which_setting to determine using conda env or different aspects

@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     args = parse_arguments(flags)
     if args.which_setting == "Arthur":
-        conda_env = None # Used in eecbs_batchrunner3 for simulator2.py
+        conda_env = None # Used in eecbs_batchrunner for simulator2.py
     elif args.which_setting == "Rishi":
         conda_env = "pytorchfun"
     elif args.which_setting == "PSC":
@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
 
     ### Run best model on simulator on scens to create new scenes
-    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3",
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner",
                     f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
@@ -140,7 +140,7 @@ if __name__ == "__main__":
                     shutil.copy(f"{folder_path}/paths/{file}", f"{encountered_scens}/{file}")
 
     ### Clean up the pymodel_outputs_folder
-    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3",
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner",
                     f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",

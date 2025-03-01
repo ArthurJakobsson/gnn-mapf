@@ -163,7 +163,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     model_path = args.model_path
     # model_path = f"data_collection/data/logs/{args.expname}/iter{args.iternum}/models/max_test_acc.pt"
     
-    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner", 
                 f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                 f"--numAgents={args.numAgents}",
                 f"--constantMapAndBDFolder={constantMapAndBDFolder}",
@@ -190,7 +190,7 @@ def run_gnn_mapf(mapname,num_agents, args):
     print(command)
     subprocess.run(command, shell=True, check=True)
     
-    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner", 
                 f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                 f"--numAgents={args.numAgents}",
                 f"--constantMapAndBDFolder={constantMapAndBDFolder}",

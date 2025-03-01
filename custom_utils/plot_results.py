@@ -8,6 +8,16 @@ import matplotlib
 matplotlib.use('Agg')  # Required to not use display 
 import matplotlib.pyplot as plt
 
+'''
+This script is used to plot the results of the training process. It reads the results from the csv files and plots the success rate and number of agents at goal for each epoch. It also plots the overall success rate and number of agents at goal over epochs.
+
+This is a standalone script that can be run from the command line. It takes the main folder containing the results of the training as input and saves the plots in the same folder.
+
+This script is not fully up-to-date, but contains many useful data plotting functions.
+
+This file is independent from the main project scripts.
+'''
+
 def plot_bar_with_annotations(ax, data, title):
     """
     Input:

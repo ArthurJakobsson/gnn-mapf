@@ -606,7 +606,7 @@ def generic_batch_runner(args):
 ## Example calls of BatchRunner3
 """
 Note: These are likely outdated, but the general structure should be the same
-python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps \
+python -m data_collection.eecbs_batchrunner --mapFolder=data_collection/data/benchmark_data/maps \
                  --scenFolder=data_collection/data/benchmark_data/scens \
                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
                  --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/[eecbs_outputs or pymodel_outputs] \
@@ -620,7 +620,7 @@ Python model specific:
                  --modelPath=data_collection/data/logs/EXP_Test2/iter0/models/max_test_acc.pt \
                  --k=4 --m=5 --maxSteps=100 --shieldType=CS-PIBT \
 Cleaning the output folders (to save memory):
-python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps \
+python -m data_collection.eecbs_batchrunner --mapFolder=data_collection/data/benchmark_data/maps \
                  --scenFolder=data_collection/data/benchmark_data/scens \
                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
                  --outputFolder=data_collection/data/logs/EXP_Test_batch/iter0/[eecbs_outputs or pymodel_outputs] \
@@ -629,7 +629,7 @@ python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/be
                  "clean" --keepNpys=True
 
 Collecting initial bd and map data:
-python -m data_collection.eecbs_batchrunner3 --mapFolder=data_collection/data/benchmark_data/maps \
+python -m data_collection.eecbs_batchrunner --mapFolder=data_collection/data/benchmark_data/maps \
                  --scenFolder=data_collection/data/benchmark_data/scens \
                  --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs2 \
                  --outputFolder=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs \

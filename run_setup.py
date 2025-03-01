@@ -106,7 +106,7 @@ if __name__ == "__main__":
     # For other iterations, use scenarios from previous iteration
     if args.iternum == 0:
         # Initial iteration processing
-        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3",
+        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner",
                         f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     else:
         # Subsequent iteration processing
         previous_encountered_scens = f"{LE}/iter{args.iternum-1}/encountered_scens"
-        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3",
+        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner",
                     f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={previous_encountered_scens}",
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     log_time(f"Iter {args.iternum}: Finished eecbs")
 
     # Clean up EECBS outputs
-    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3",
+    command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner",
                     f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                     f"--numAgents={args.numAgents}",
                     f"--constantMapAndBDFolder={constantMapAndBDFolder}",

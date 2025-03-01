@@ -6,8 +6,6 @@ import shutil
 import multiprocessing
 import datetime
 import time
-
-from custom_utils.common_helper import str2bool
 from custom_utils.argparser_main import parse_arguments
 
 last_recorded_time = datetime.datetime.now()
@@ -51,7 +49,7 @@ if __name__ == "__main__":
 
     args = parse_arguments(flags)
     if args.which_setting == "Arthur":
-        conda_env = None # Used in eecbs_batchrunner3 for simulator2.py
+        conda_env = None # Used in eecbs_batchrunner for simulator2.py
     elif args.which_setting == "Rishi":
         conda_env = "pytorchfun"
     elif args.which_setting == "PSC":
@@ -99,7 +97,7 @@ if __name__ == "__main__":
         if iternum == 0: # Special logic in the first iteration
             # if args.generate_initial:
             # Run initial data collection
-            command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+            command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner", 
                             f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                             f"--numAgents={args.numAgents}",
                             f"--constantMapAndBDFolder={constantMapAndBDFolder}",
@@ -119,7 +117,7 @@ if __name__ == "__main__":
         else:
             ### Run eecbs labeler on encountered scens
             previous_encountered_scens = f"{LE}/iter{iternum-1}/encountered_scens"
-            command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+            command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner", 
                         f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={previous_encountered_scens}",
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
@@ -136,7 +134,7 @@ if __name__ == "__main__":
         
         
         ### Clean up the eecbs_outputs_folder
-        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner", 
                         f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
@@ -180,7 +178,7 @@ if __name__ == "__main__":
         # pdb.set_trace()
 
         ### Run best model on simulator on scens to create new scenes
-        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner", 
                         f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
@@ -220,7 +218,7 @@ if __name__ == "__main__":
                         shutil.copy(f"{folder_path}/paths/{file}", f"{encountered_scens}/{file}")
 
         ### Clean up the pymodel_outputs_folder
-        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner3", 
+        command = " ".join(["python", "-m", "data_collection.eecbs_batchrunner", 
                         f"--mapFolder={source_maps_scens}/maps",  f"--scenFolder={source_maps_scens}/scens",
                         f"--numAgents={args.numAgents}",
                         f"--constantMapAndBDFolder={constantMapAndBDFolder}",
