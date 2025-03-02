@@ -709,7 +709,7 @@ def main(args: argparse.ArgumentParser):
 
 ### Example command
 """
-python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
+python -m gnn.simulator --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
       --mapName=random_32_32_10 --scenFile=data_collection/data/benchmark_data/scens/random_32_32_10-random-1.scen \
       --agentNum=440 --bdNpzFile=data_collection/data/benchmark_data/constant_npzs/random_32_32_10_bds.npz \
       --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
@@ -720,7 +720,7 @@ python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/consta
       --maxSteps=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5
 
 # --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
-python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
+python -m gnn.simulator --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
       --mapName=den312d --scenFile=data_collection/data/benchmark_data/scens/den312d-random-1.scen \
       --bdNpzFile=data_collection/data/benchmark_data/constant_npzs/den312d_bds.npz \
       --modelPath=data_collection/data/logs/EXP_den312d_lacam2/iter0/models/max_test_acc.pt --useGPU=False \

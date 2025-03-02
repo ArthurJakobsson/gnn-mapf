@@ -108,8 +108,8 @@ def getPyModelCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, 
     mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
     command = ""
     if runnerArgs["condaEnv"] is not None:
-        command += "conda activate {} && ".format(runnerArgs["condaEnv"]) # e.g. conda activate pytorchfun && python -m gnn.simulator2
-    command += "python -m gnn.simulator2"
+        command += "conda activate {} && ".format(runnerArgs["condaEnv"]) # e.g. conda activate pytorchfun && python -m gnn.simulator
+    command += "python -m gnn.simulator"
 
     # Simulator parameters
     for aKey in runnerArgs["args"]:
@@ -675,21 +675,21 @@ if __name__ == "__main__":
 
     ### Python ML Model
     pymodel_parser = subparsers.add_parser("pymodel", help="Run python model")
-    pymodel_parser.add_argument('--condaEnv', type=str, help="name of conda env to activate for simulator2.py", required=False)
+    pymodel_parser.add_argument('--condaEnv', type=str, help="name of conda env to activate for simulator.py", required=False)
     # Simulator parameters
     pymodel_parser.add_argument('--modelPath', type=str, required=True)
     pymodel_parser.add_argument('--useGPU', type=lambda x: bool(str2bool(x)), required=True)
     pymodel_parser.add_argument('--k', type=int, help="local window size", required=True)
     pymodel_parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
-    pymodel_parser.add_argument('--maxSteps', type=str, help="see simulator2", required=True)
+    pymodel_parser.add_argument('--maxSteps', type=str, help="see simulator", required=True)
     pymodel_parser.add_argument('--shieldType', type=str, default='CS-PIBT')
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
     pymodel_parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     pymodel_parser.add_argument('--bd_pred', type=str, default=None, help="bd_predictions added to NN, type anything if adding")
     pymodel_parser.add_argument('--lacamLookahead', type=int, default=0)
     # Output parameters
-    pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)
-    pymodel_parser.add_argument('--percentSuccessGenerationReduction', help="see simulator2", type=float, required=True)
+    pymodel_parser.add_argument('--numScensToCreate', help="see simulator", type=int, required=True)
+    pymodel_parser.add_argument('--percentSuccessGenerationReduction', help="see simulator", type=float, required=True)
     pymodel_parser.add_argument('--timeLimit', help="cs-pibt/lacam timeout", type=int, required=True)
     
  

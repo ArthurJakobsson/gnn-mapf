@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     args = parse_arguments(flags)
     if args.which_setting == "Arthur":
-        conda_env = None # Used in eecbs_batchrunner for simulator2.py
+        conda_env = None # Used in eecbs_batchrunner for simulator.py
     elif args.which_setting == "Rishi":
         conda_env = "pytorchfun"
     elif args.which_setting == "PSC":

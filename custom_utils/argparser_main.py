@@ -5,7 +5,7 @@ from custom_utils.common_helper import str2bool
 parser_dictionary = {
     "expnum": {"help": "experiment number", "type": int},
     "mini_test": {"type": lambda x: bool(str2bool(x))},
-    "numScensToCreate": {"type": int, "help": "number of scens to create per pymodel, see simulator2.py", "default": 20},
+    "numScensToCreate": {"type": int, "help": "number of scens to create per pymodel, see simulator.py", "default": 20},
     "num_parallel": {"type": int, "help": "number of parallel processes to run", "default": 1},
     "data_folder": {"type": str, "help": "name of folder with data"},
     "k": {"type": int, "default": 4, "help": "radius of box around agent, box is (2kx1) x (2k+1)"}, 
