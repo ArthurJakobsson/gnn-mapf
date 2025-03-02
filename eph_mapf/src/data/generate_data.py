@@ -12,7 +12,8 @@ from .utils import generate_random_agents, load_map, map_partition
 try:
     config = yaml.safe_load(open("./eph_mapf/config.yaml", "r"))
 except:
-    config = yaml.safe_load(open("./eph_mapf/src/data/config.yaml", "r"))
+    config = yaml.safe_load(open("./data/config.yaml", "r"))
+# config = yaml.safe_load(open("./data/config.yaml", "r"))
 
 
 def generate_movingai(num_instances, test_env_settings=config["test_env_settings"]):
