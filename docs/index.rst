@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-SSIL GNN MAPF with Simulation and DAgger Pipeline's documentation
+SSIL GNN MAPF with Simulation and DAgger Documentation
 =============================================================================
 
 .. toctree::

@@ -11,9 +11,9 @@ specifically EECBS and Python-based ML models.
 
 The batch runner handles:
 
-1. Parallel execution of MAPF solver runs across multiple scenarios and maps
-2. Data collection and processing of results
-3. Conversion of results to NPZ format for machine learning applications
+#. Parallel execution of MAPF solver runs across multiple scenarios and maps
+#. Data collection and processing of results
+#. Conversion of results to NPZ format for machine learning applications
 
 .. note::
 
@@ -242,10 +242,11 @@ suitable for machine learning applications. It handles maps, backward Dijkstra (
 and path data.
 
 Key operations:
-- Parse map files (.map) to NumPy arrays
-- Process backward Dijkstra (BD) files to NumPy arrays
-- Convert agent path information to NumPy arrays
-- Save data in compressed NPZ format for efficient loading
+
+* Parse map files (.map) to NumPy arrays
+* Process backward Dijkstra (BD) files to NumPy arrays
+* Convert agent path information to NumPy arrays
+* Save data in compressed NPZ format for efficient loading
 
 Classes
 ^^^^^^^
