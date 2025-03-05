@@ -8,6 +8,7 @@ import time
 # example runs
 '''
 python sbatch_master_process_runner2.py --data_path=$PROJECT/data/mini_benchmark_data \
+    --temp_bd_path=$PROJECT/data/logs/EXP_Collect_BD \
     --exp_path=$PROJECT/data/logs/EXP_mini_priorities --iternum=0 \
     --eecbs_batchrunner --constants_generator --dataloader \
     --num_parallel_runs=10 \
@@ -62,22 +63,24 @@ def run_eecbs_batchrunner(args):
         --cutoffTime=5'''
 
     if args.clean:
-        subprocess.run(clean_batchrunner_cmd, shell=True, check=True)
+        try:
+            subprocess.run(clean_batchrunner_cmd, shell=True, check=True)
+        except: pass
 
     t0 = time.time()
     subprocess.run(batchrunner_cmd, shell=True, check=True)
-    print(f"eecbs_batchrunner: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
+    print(f"\neecbs_batchrunner: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
 
 
 def run_constants_generator(args):
-    clean_constants_exp_cmd = f'rm -rf {args.data_path}/logs/EXP_Collect_BD/'
+    clean_constants_exp_cmd = f'rm -rf {args.temp_bd_path}/'
     clean_constants_data_cmd = f'rm -rf {args.data_path}/constant_npzs/'
 
     constants_cmd = f'''python -m data_collection.constants_generator \\
         --mapFolder={args.data_path}/maps \\
         --scenFolder={args.data_path}/scens \\
         --constantMapAndBDFolder={args.data_path}/constant_npzs \\
-        --outputFolder={args.data_path}/logs/EXP_Collect_BD/ \\
+        --outputFolder={args.temp_bd_path}/ \\
         --num_parallel_runs={args.num_parallel_runs} \\
         --deleteTextFiles=true \\
         "eecbs" \\
@@ -85,12 +88,14 @@ def run_constants_generator(args):
         --cutoffTime=1'''
 
     if args.clean:
-        subprocess.run(clean_constants_exp_cmd, shell=True, check=True)
-        subprocess.run(clean_constants_data_cmd, shell=True, check=True)
+        try: 
+            subprocess.run(clean_constants_exp_cmd, shell=True, check=True)
+            subprocess.run(clean_constants_data_cmd, shell=True, check=True)
+        except: pass
         
     t0 = time.time()
     subprocess.run(constants_cmd, shell=True, check=True)
-    print(f"constants_generator: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
+    print(f"\nconstants_generator: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
     
 
 def run_dataloader(args):
@@ -103,16 +108,19 @@ def run_dataloader(args):
         --processedFolder={args.exp_path}/iter{args.iternum}/processed \\
         --k=5 \\
         --m=3 \\
-        --num_priority_copies=10'''
+        --num_priority_copies=10 \\
+        --num_multi_inputs={args.num_multi_inputs} \\
+        --num_multi_outputs={args.num_multi_outputs}'''
     
     if args.clean:
-        subprocess.run(clean_pts_cmd, shell=True, check=True)
-        try: subprocess.run(clean_pts_csv_cmd, shell=True, check=True)
+        try: 
+            subprocess.run(clean_pts_cmd, shell=True, check=True)
+            subprocess.run(clean_pts_csv_cmd, shell=True, check=True)
         except: pass
     
     t0 = time.time()
     subprocess.run(dataloader_cmd, shell=True, check=True)
-    print(f"data_loader: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
+    print(f"\ndata_loader: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
 
 
 def run_trainer(args, model):
@@ -122,30 +130,30 @@ def run_trainer(args, model):
         --processedFolders={args.exp_path}/iter{args.iternum}/processed \\
         --k=5 --m=3 --lr=0.01 \\
         --num_priority_copies=10 \\
+        --num_multi_inputs={args.num_multi_inputs} \\
+        --num_multi_outputs={args.num_multi_outputs} \\
         --gnn_name="{model}"'''
     
     if args.logging:
         trainer_cmd += ' --logging'
-
     if args.use_edge_attr:
         trainer_cmd += ' --use_edge_attr'
-    if args.multistep_input:
-        trainer_cmd += ' --multistep_input'
-    if args.multistep_output:
-        trainer_cmd += ' --multistep_output'
     
     if args.clean:
-        subprocess.run(clean_models_cmd, shell=True, check=True)
+        try:
+            subprocess.run(clean_models_cmd, shell=True, check=True)
+        except: pass
     
     t0 = time.time()
     subprocess.run(trainer_cmd, shell=True, check=True)
-    print(f"trainer: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
+    print(f"\ntrainer: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--data_path', type=str)
+    parser.add_argument('--temp_bd_path', type=str, default=None)
     parser.add_argument('--exp_path', type=str)
     parser.add_argument('--iternum', type=str)
     
@@ -158,8 +166,8 @@ if __name__ == "__main__":
     parser.add_argument('--logging', action='store_true')
 
     parser.add_argument('--use_edge_attr', action='store_true')
-    parser.add_argument('--multistep_input', action='store_true')
-    parser.add_argument('--multistep_output', action='store_true')
+    parser.add_argument('--num_multi_inputs', default=1)
+    parser.add_argument('--num_multi_outputs', default=1)
     
     parser.add_argument('--clean', action='store_true')
     parser.add_argument('--num_parallel_runs', type=int, default=10)
@@ -169,6 +177,7 @@ if __name__ == "__main__":
     if args.eecbs_batchrunner:
         run_eecbs_batchrunner(args)
     if args.constants_generator:
+        assert(args.temp_bd_path != None)
         run_constants_generator(args)
     if args.dataloader:
         run_dataloader(args)

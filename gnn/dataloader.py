@@ -78,16 +78,32 @@ def get_bd_prefs(pos_list, bds, range_num_agents):
 
 
 def calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLocs, goalColLocs, matches, x_mesh, y_mesh, 
-                      grid, goal_locs, extra_layers, num_layers, num_agents):
-    h,N,D,_ = bd_slices.shape # (h,N,D,D)
+                      grid, goal_locs, extra_layers, num_layers, input_deltas):
+    """
+    bd_slices: (N,D,D)
+    grid_slices: (N,D,D)
+    rowLocs: (N,1)
+    colLocs: (N,1)
+    goalRowLocs: (N,1)
+    goalColLocs: (N,1)
+    matches: (N,1)
+    x_mesh: (N,D,D)
+    y_mesh: (N,D,D)
+    grid: (W,H)
+    goal_locs: (N,2)
+    input_deltas: (N, h, 2), h=num_multistep_inputs
+    """
+    
+    N,D,_ = bd_slices.shape # (N,D,D), N=num_agents
 
-    node_features = np.empty((N,num_layers,D,D),dtype=np.float32) # default num_layers = 2 (grid slices and bd slices) * h steps for each
+    node_features = np.empty((N,num_layers,D,D),dtype=np.float32) # (N,num_layers,D,D)
     node_feature_idx = 0
-    for i in range(h):
-        node_features[:,node_feature_idx] = grid_slices[i]
-        node_feature_idx +=1
-        node_features[:,node_feature_idx] = bd_slices[i]
-        node_feature_idx +=1
+    node_features[:,node_feature_idx] = grid_slices
+    node_feature_idx +=1
+    node_features[:,node_feature_idx] = bd_slices
+    node_feature_idx +=1
+    
+    # TODO
 
     if extra_layers is not None:
         if "agent_locations" in extra_layers:
@@ -99,8 +115,8 @@ def calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLoc
     
         if "agent_goal" in extra_layers:
             # NOTE: for 1 hot goal version
-            goal_pos = np.zeros((num_agents, grid.shape[0], grid.shape[1])) # (N,W,H)   
-            goal_pos[np.arange(num_agents), goalRowLocs, goalColLocs] = 1 # (N,W,H)
+            goal_pos = np.zeros((N, grid.shape[0], grid.shape[1])) # (N,W,H)   
+            goal_pos[np.arange(N), goalRowLocs, goalColLocs] = 1 # (N,W,H)
             node_features[:,node_feature_idx] = goal_pos
             node_feature_idx +=1
             
@@ -136,7 +152,7 @@ def calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLoc
 # (2,num_edges), (num_edges,num_layers)
 def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities, num_priority_copies):
     agent_indices = np.repeat(np.arange(num_agents)[None,:], axis=0, repeats=m).T # (N,m), each row is 0->num_agents
-    deltas = pos_list[0, :, None, :] - pos_list[0, None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
+    deltas = pos_list[:, None, :] - pos_list[None, :, :] # (N,1,2) - (1,N,2) -> (N,N,2), the difference between each agent
 
     ## Calculate the distance between each agent, einsum is faster than other options
     dists = np.einsum('ijk,ijk->ij', deltas, deltas, optimize='optimal').astype(float) # (N,N), the L2^2 distance between each agent
@@ -206,8 +222,9 @@ def calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents,
 
 def calculate_weights(matches, num_agents):
     # NOTE: calculate weights
+    # pdb.set_trace()
     num_agent_goal_ratio = np.mean(matches)
-    weights = np.ones(matches.shape[0]*num_agents) # (h*N,)
+    weights = np.ones(num_agents) # (N,)
     # weights[np.invert(matches.flatten())] = 1/(np.sum(matches)+1)
     weights[matches.flatten()] -= num_agent_goal_ratio+0.001
     # weights[matches.flatten()] = 1/(np.sum(matches)+1)
@@ -223,15 +240,18 @@ def calculate_weights(matches, num_agents):
     return weights
 
 
-def create_data_object(pos_list, bd_list, grid, priorities, num_multi_inputs, k, m, num_priority_copies, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
+def create_data_object(cur_locs, input_deltas, bd_list, grid, priorities, num_multi_inputs, k, m, 
+                       num_priority_copies, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
     """
-    pos_list: (h,N,2) positions
+    cur_locs: (N,2) positions
     bd_list: (N,W,H) bd's
     grid: (W,H) grid
     priorities: (N,) EECBS priorities
     k: (int) local region size
     m: (int) number of closest neighbors to consider
-    # """
+    num_priority_copies: copies of relative priority to include in edge features
+    goal_locs: (N,2)
+    """
     num_layers = 2 # grid and bd_slices intially
     if extra_layers is not None:
         if "agent_locations" in extra_layers:
@@ -244,37 +264,37 @@ def create_data_object(pos_list, bd_list, grid, priorities, num_multi_inputs, k,
             num_layers+=1
     num_layers *= num_multi_inputs # for each input timestep
     
-    num_agents = pos_list.shape[1]
+    num_agents = len(cur_locs)
     range_num_agents = np.arange(num_agents)
 
     ### Numpy advanced indexing to get all agent slices at once
-    rowLocs = pos_list[:,:,0][:, :, None] # (h,N)->(h,N,1), Note doing (N)[:,None] adds an extra dimension
-    colLocs = pos_list[:,:,1][:, :, None] # (h,N)->(h,N,1)
+    rowLocs = cur_locs[:,0][:, None] # (N)->(N,1), Note doing (N)[:,None] adds an extra dimension
+    colLocs = cur_locs[:,1][:, None] # (N)->(N,1)
     goalRowLocs, goalColLocs = goal_locs[:,0][:, None], goal_locs[:,1][:, None]  # (N,1), (N,1)
 
     matches = (rowLocs == goalRowLocs) & (colLocs == goalColLocs)
+
     if debug_checks:
-        assert(grid[pos_list[:,0], pos_list[:,1]].all() == 0) # Make sure all agents are on empty space
+        assert(grid[cur_locs[0], cur_locs[1]].all() == 0) # Make sure all agents are on empty space
 
     # pdb.set_trace()
     h = rowLocs.shape[0]
     x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
-    x_mesh = np.tile(x_mesh, (h, 1, 1)) # (h,D,D)
-    y_mesh = np.tile(y_mesh, (h, 1, 1)) # (h,D,D)
 
     # Adjust indices to gather slices
-    x_mesh = x_mesh[:, None, :, :] + rowLocs[:, :, None, :] # (h,D,D) + (N,1,1) -> (N,D,D)
-    y_mesh = y_mesh[:, None, :, :] + colLocs[:, :, None, :] # (h,D,D) + (N,1,1) -> (N,D,D)
+    x_mesh = x_mesh[None, :, :] + rowLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
+    y_mesh = y_mesh[None, :, :] + colLocs[:, None, :] # (1,D,D) + (D,1,D) -> (N,D,D)
     grid_slices = grid[x_mesh, y_mesh] # (W, H) -> (N,D,D)
-    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (h,N,D,D)
+    bd_slices = bd_list[range_num_agents[:,None,None], x_mesh, y_mesh] # (N,D,D)
 
-    node_features = calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLocs, goalColLocs, matches, x_mesh, y_mesh, 
-                                      grid, goal_locs, extra_layers, num_layers, num_agents) # (N,num_layers,D,D)
+    # Node features
+    node_features = calculate_node_features(bd_slices, grid_slices, rowLocs, colLocs, goalRowLocs, goalColLocs, matches, 
+                                            x_mesh, y_mesh, grid, goal_locs, extra_layers, num_layers, input_deltas) # (N,num_layers,D,D)
     if debug_checks:
         assert(node_features[:,0,k,k].all() == 0) # Make sure all agents are on empty space
     
     # Edge features include priorities
-    edge_indices, edge_features = calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priorities, num_priority_copies)
+    edge_indices, edge_features = calculate_edge_features(cur_locs, num_agents, range_num_agents, m, k, priorities, num_priority_copies)
     bd_pred_arr, linear_dimensions = calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents, bd_pred)
 
     weights = calculate_weights(matches, num_agents) # (N,)
@@ -437,9 +457,9 @@ class MyOwnDataset(Dataset):
         # if not time_instance: 
         #     return #idk why but the last one is None
         assert(time_instance is not None)
-        pos_list, labels, bd_list, grid, goal_locs, priorities = time_instance
+        cur_locs, input_deltas, labels, bd_list, grid, goal_locs, priorities = time_instance
 
-        curdata = create_data_object(pos_list, bd_list, grid, priorities, self.num_multi_inputs, self.k, self.m, self.num_priority_copies, goal_locs, self.extra_layers, self.bd_pred, labels)
+        curdata = create_data_object(cur_locs, input_deltas, bd_list, grid, priorities, self.num_multi_inputs, self.k, self.m, self.num_priority_copies, goal_locs, self.extra_layers, self.bd_pred, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
         return curdata
@@ -590,7 +610,7 @@ if __name__ == "__main__":
     parser.add_argument("--processedFolder", help="processed folder to save pt", type=str, required=True)
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
-    parser.add_argument("--num_priority_copies", help="copies of relative priority to include in input", type=int, default=1)
+    parser.add_argument("--num_priority_copies", help="copies of relative priority to include in edge features", type=int, default=1)
     parser.add_argument("--num_multi_inputs", help="number of previous steps to include in input", type=int, default=1)
     parser.add_argument("--num_multi_outputs", help="number of next steps to predict in output", type=int, default=1)
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"

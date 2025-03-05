@@ -117,6 +117,7 @@ class PipelineDataset(Dataset):
         self.size = size
         # self.parse_npz(loaded) # TODO change len(dataloader) = max_timesteps
         self.max_agents = max_agents
+        self.direction_labels = np.array([(0,0), (0,1), (1,0), (-1,0), (0,-1)]) # (5,2) 
 
         self.num_multi_inputs = num_multi_inputs
         self.num_multi_outputs = num_multi_outputs
@@ -174,47 +175,29 @@ class PipelineDataset(Dataset):
             print("Index too large for {}-sample dataset".format(self.__len__()))
             return
         bd, grid, paths, timestep, max_timesteps, priorities = self.find_instance(idx)
-        # cur_locs = paths[timestep] # (N,2) 
+        cur_locs = paths[timestep] # (N,2) 
+        goal_locs = paths[-1] # (N,2) 
 
-        start_idle_steps = max(0, self.num_multi_inputs-timestep)
-        input_move_steps = self.num_multi_inputs-start_idle_steps
-        # print(f"multi_input_locs: {start_idle_steps}*[0] + [{timestep-input_move_steps}: {timestep})]")
-        input_locs = np.vstack((np.tile(paths[0], (start_idle_steps, 1, 1)),
-                                     paths[timestep-input_move_steps: timestep])) # (N,h,2), h history (input steps)
-        assert(input_locs.shape[0] == self.num_multi_inputs)
+        start_locs = paths[max(0,timestep-self.num_multi_inputs): timestep+1] # (h+1,N,2)
+        multi_input_locs = np.vstack((np.tile(start_locs[0], (self.num_multi_inputs+1-len(start_locs), 1, 1)), # (h+1,N,2)
+                                        start_locs)) # (N,h,2), h = num input steps (history)
+        input_deltas = (multi_input_locs[1:]-multi_input_locs[:-1]).swapaxes(0, 1) # (N,h,2)
 
-        # next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
-        # deltas = next_locs - cur_locs # (N,2)
-
-        output_move_steps = min(max_timesteps - timestep - 1, self.num_multi_outputs)
-        end_idle_steps = self.num_multi_outputs - output_move_steps
-        # print(f"cur_multi_output_locs: [{timestep}: {timestep + output_move_steps}) + {end_idle_steps}*[{timestep + output_move_steps - 1}]")
-        # print(f"next_multi_output_locs: [{timestep+1}: {timestep + output_move_steps+1}) + {end_idle_steps}*[{timestep + output_move_steps}]")
-        cur_multi_output_locs = np.vstack((paths[timestep: timestep + output_move_steps],
-                                   np.tile(paths[timestep + output_move_steps - 1], (end_idle_steps, 1, 1))))
-        next_multi_output_locs = np.vstack((paths[timestep+1: timestep + output_move_steps+1],
-                                   np.tile(paths[timestep + output_move_steps], (end_idle_steps, 1, 1))))
-        assert(cur_multi_output_locs.shape[0] == next_multi_output_locs.shape[0] == self.num_multi_outputs)
-        
-        deltas = (next_multi_output_locs-cur_multi_output_locs).swapaxes(0, 1) # (N,ns,2), ns = num steps we predict (3 steps: 125 1-hot vector)
-        # assert(np.all(np.equal(cur_multi_locs[1:], next_multi_locs[:-1])))
+        end_locs = paths[timestep: timestep+self.num_multi_outputs+1] # (ns+1,N,2)
+        multi_output_locs = np.vstack((end_locs, 
+                                        np.tile(end_locs[-1], (self.num_multi_outputs+1-len(end_locs), 1, 1)))) # (ns+1,N,2)
+        output_deltas = (multi_output_locs[1:]-multi_output_locs[:-1]).swapaxes(0, 1) # (N,ns,2), ns = num output steps. We predict (ns=3: 125 1-hot vector)
 
         # Define the mapping from direction vectors to indices
-        direction_labels = np.array([(0,0), (0,1), (1,0), (-1,0), (0,-1)]) # (5,2)
         # Find the index of each direction in the possible_directions array
-        
-        indices = np.argmax(np.all(deltas[:, :, None] == direction_labels, axis=3), axis=2)
-        # assert(np.all(np.equal(indices, indices2[:,0])))
+        indices = np.argmax(np.all(output_deltas[:, :, None] == self.direction_labels, axis=3), axis=2)
         weights = [5**i for i in range(self.num_multi_outputs)]
         one_hot_indices = np.dot(indices, weights)
         
         # Create a one-hot encoded array using np.eye
-        labels = np.eye(direction_labels.shape[0]**self.num_multi_outputs)[one_hot_indices]
+        labels = np.eye(self.direction_labels.shape[0]**self.num_multi_outputs)[one_hot_indices]
         
-        output_locs = paths[-1]
-        # assert(np.all(labels == slow_labels))
-        # return cur_locs, labels, bd, grid, end_locs, priorities
-        return input_locs, labels, bd, grid, output_locs, priorities
+        return cur_locs, input_deltas, labels, bd, grid, goal_locs, priorities
 
     def find_instance(self, idx): 
         '''
