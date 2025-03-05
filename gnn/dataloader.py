@@ -34,10 +34,10 @@ def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
     ### Normalize edge attributes
     # data.edge_attr (num_edges,2) the deltas in each direction which can be negative
     assert(edge_normalize in ["k"])
-    if edge_normalize == "k":
-        data.edge_attr /= k # Normalize edge attributes
-    else:
-        raise KeyError("Invalid edge normalization method: {}".format(edge_normalize))
+    # if edge_normalize == "k":
+    #     data.edge_attr /= k # Normalize edge attributes
+    # else:
+    #     raise KeyError("Invalid edge normalization method: {}".format(edge_normalize))
 
     ### Normalize bd
     assert(bd_normalize in ["center"])
@@ -223,7 +223,8 @@ def create_data_object(pos_list, bd_list, grid, k, m, goal_locs, extra_layers, b
     # weights[flip_mask] = 0
     
     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
-                edge_attr=torch.from_numpy(edge_features), bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
+                # edge_attr=torch.from_numpy(edge_features), 
+                bd_pred=torch.from_numpy(bd_pred_arr), lin_dim=linear_dimensions, num_channels=num_layers,
                 weights = torch.from_numpy(weights), y = torch.from_numpy(labels))
 
 

@@ -165,9 +165,9 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
         action_index = constrained_agents_to_action[agent_id]
         moves_ordered = moves_ordered[action_index:action_index+1] # Only consider that action
     
-    cur_time=time.time()
-    if cur_time-start_time>timeLimit:
-        return False
+    # cur_time=time.time()
+    # if cur_time-start_time>timeLimit:
+    #     return False
 
     current_pos = current_locs[agent_id] # (2)
     for aMove in moves_ordered:
@@ -212,6 +212,10 @@ def pibtRecursive(grid_map, agent_id, action_preferences, planned_agents, move_m
         else:
             # No conflict
             return True
+        
+    cur_time=time.time()
+    if cur_time-start_time>timeLimit:
+        return False
         
     # No valid move found
     return False
@@ -609,6 +613,9 @@ def main(args: argparse.ArgumentParser):
     print(args.modelPath)
     model = torch.load(args.modelPath, map_location=device)
     model.eval()
+    # from torch_geometric.nn import summary
+    # print(summary(model, (create_data_object(start_locations, bd, map_grid, k, args.m, goal_locations, args.extra_layers, args.bd_pred).to(device))))
+    # pdb.set_trace()
 
     # Set seeds
     np.random.seed(args.seed)
