@@ -72,6 +72,10 @@ mapsToMaxNumAgents = {
     "warehouse_10_20_10_2_2": 1000,
     "warehouse_20_40_10_2_1": 1000,
     "warehouse_20_40_10_2_2": 1000,
+
+    "tiny_1": 2,
+    "tiny_2": 2,
+    "tiny_3": 2,
 }
 
 
@@ -254,7 +258,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
     
     if len(input_list) > 0:
         with ray.util.multiprocessing.Pool(processes=min(len(input_list), num_workers//numWorkersParallelForDataManipulator)) as pool:
-            pool.starmap(helperRun, input_list)
+            pool.starmap(helperRun, input_list[:3])
     else:
         print("No data manipulator runs as all paths npz files already exist")
     ct.stop("Data Manipulator")
@@ -421,11 +425,12 @@ def generic_batch_runner(args):
 Collecting initial bd and map data:
 python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
                  --scenFolder=data_collection/data/mini_benchmark_data/scens \
-                 --constantMapAndBDFolder=data_collection/data/mini_benchmark_data/constant_npzs \
-                 --outputFolder=data_collection/data/logs/EXP_Collect_BD_mini \
+                 --constantMapAndBDFolder=data_collection/data/benchmark_data/constant_npzs \
+                 --outputFolder=data_collection/data/logs/EXP_Collect_BD \
                  --num_parallel_runs=50 \
+                 --deleteTextFiles=true \
                  "eecbs" \
-                 --cutoffTime=1
+                 --firstIter=true --cutoffTime=1
 
 """
 if __name__ == "__main__":
@@ -443,7 +448,8 @@ if __name__ == "__main__":
                         type=int, required=True)
     parser.add_argument('--chosen_map', help="For benchmarking choose just one map from all the maps", 
                         type=str, default=None)
-    parser.add_argument('--deleteTextFiles', help="delete outputFolder when done", action='store_true')
+    parser.add_argument('--deleteTextFiles', help="delete outputFolder when done", 
+                        type=bool, default=False)
     # parser.add_argument("--iter", help="iteration number", type=int, default=0) #this is used only for the seed for simulation now
 
     # Subparses for C++ EECBS or Python ML model
@@ -455,7 +461,7 @@ if __name__ == "__main__":
 
     ### EECBS parser
     eecbs_parser = subparsers.add_parser("eecbs", help="Run eecbs")
-    eecbs_parser.add_argument("--eecbsPath", help="path to eecbs executable", type=str, default="./data_collection/eecbs/build_release4/eecbs")
+    eecbs_parser.add_argument("--eecbsPath", help="path to eecbs executable", type=str, default="./data_collection/eecbs/build_release3/eecbs")
     eecbs_parser.add_argument('--firstIter', dest='firstIter', type=lambda x: bool(str2bool(x)))
     # EECBS driver parameters
     eecbs_parser.add_argument("--cutoffTime", help="cutoffTime", type=int, default=60)
