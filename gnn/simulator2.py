@@ -433,13 +433,14 @@ def runNNOnState(cur_locs, bd, grid_map, k, m, model, device, goal_locations, ar
     """Inputs:
         cur_locs: (N,2)
     Outputs:
-        probs: (N,5)
+        probs: (N,5) 
     """
+    # TODO: ex. for (N, 25), sum probabilities
 
     with torch.no_grad():
         # Create the data object
         timer.start("create_nn_data")
-        data = create_data_object(cur_locs, bd, grid_map, k, m, goal_locations, args.extra_layers, args.bd_pred)
+        data = create_data_object(cur_locs, bd, grid_map, k, m, goal_locations, args.extra_layers, args.bd_pred) # TODO
         data = normalize_graph_data(data, k)
         data = data.to(device)
         timer.stop("create_nn_data")

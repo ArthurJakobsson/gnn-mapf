@@ -261,7 +261,6 @@ def create_data_object(cur_locs, one_hot_inputs, bd_list, grid, priorities, num_
             num_layers+=2
         if "at_goal_grid" in extra_layers:
             num_layers+=1
-    num_layers *= num_multi_inputs # for each input timestep
     
     num_agents = len(cur_locs)
     range_num_agents = np.arange(num_agents)
@@ -299,12 +298,13 @@ def create_data_object(cur_locs, one_hot_inputs, bd_list, grid, priorities, num_
     weights = calculate_weights(matches, num_agents) # (N,)
 
     if bd_pred_arr.size == 0:
-        inputs_bd_arr = one_hot_inputs
+        histories_preds = one_hot_inputs
     else:
-        inputs_bd_arr = np.concatenate((one_hot_inputs, bd_pred_arr[:, None, :]), axis=1)
+        histories_preds = np.concatenate((one_hot_inputs, bd_pred_arr[:, None, :]), axis=1)
+    linear_dimensions += num_multi_inputs*5 # one hot vectors
     
     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
-                edge_attr=torch.from_numpy(edge_features), agent_data=torch.from_numpy(inputs_bd_arr), lin_dim=linear_dimensions, num_channels=num_layers,
+                edge_attr=torch.from_numpy(edge_features), histories_preds=torch.from_numpy(histories_preds), lin_dim=linear_dimensions, num_channels=num_layers,
                 weights = torch.from_numpy(weights), y = torch.from_numpy(labels))
 
 
@@ -537,12 +537,12 @@ python -m gnn.dataloader --mapNpzFile=data_collection/data/mini_benchmark_data/c
       --k=5 \
       --m=3 \
       --num_priority_copies=10 \
-      --num_multi_inputs=3 \
-      --num_multi_outputs=2
+      --num_multi_inputs=0torch.flatten(histories_preds, start_dim=1) \
+      --num_multi_outputs=1 --bd_pred
 """
 
 if __name__ == "__main__":
-    """
+    """s
     This file takes in npzs and processes them into pt files.
 
     We assume the following file structure:
@@ -561,7 +561,7 @@ if __name__ == "__main__":
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
     parser.add_argument("--num_priority_copies", help="copies of relative priority to include in edge features", type=int, default=1)
-    parser.add_argument("--num_multi_inputs", help="number of previous steps to include in input", type=int, default=1)
+    parser.add_argument("--num_multi_inputs", help="number of previous steps to include in input", type=int, default=0)
     parser.add_argument("--num_multi_outputs", help="number of next steps to predict in output", type=int, default=1)
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
     parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
@@ -569,7 +569,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_per_pt', type=int, default=16, help="number of graphs per pt file")
     args = parser.parse_args()
 
-    assert(1 <= args.num_multi_inputs)
+    assert(0 <= args.num_multi_inputs)
     assert(1 <= args.num_multi_outputs <= 3)
 
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 

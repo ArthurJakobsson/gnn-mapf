@@ -43,7 +43,7 @@ class GNNStack(nn.Module):
         self.task = task
         self.relu_type = relu_type
         self.gnn_func, self.use_edge_attr = self.gnn_func_from_name(gnn_name, use_edge_attr)
-
+        
         self.convs = nn.ModuleList([self.build_image_conv_model(linear_dim, in_channels, hidden_dim)]) # image conv layer
         self.lns = nn.ModuleList([nn.LayerNorm(hidden_dim), nn.LayerNorm(hidden_dim)])
         for _ in range(3):
@@ -110,14 +110,14 @@ class GNNStack(nn.Module):
         x = data.x  # (batch_size,2,D,D) float64
         edge_index = data.edge_index  # (2,num_edges)
         batch = data.batch  # (batch_size)
-        bd_pred = data.bd_pred
+        histories_preds = data.histories_preds
         edge_attr = data.edge_attr  # (num_edges,2+num_priority_copies)
 
         if data.num_node_features == 0:
             x = torch.ones(data.num_nodes, 1)
         
         # compress x
-        x = self.convs[0](x, bd_pred, edge_index) 
+        x = self.convs[0](x, histories_preds, edge_index) 
             
         for i in range(1, self.num_layers):
             # graph conv model
@@ -162,14 +162,15 @@ class CustomConv(pyg_nn.MessagePassing):
             self.relu_func = F.leaky_relu
         self.use_edge_attr = use_edge_attr
 
-    def forward(self, x, bd_pred, edge_index):        
+    def forward(self, x, histories_preds, edge_index):        
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)  # (2,num_edges)
 
         flattened_conv = torch.flatten(self.conv_self(x), start_dim=1)
+        # print(x.shape) 
+        # print(torch.flatten(histories_preds, start_dim=1).shape)
+        flattened_conv = torch.hstack([flattened_conv, torch.flatten(histories_preds, start_dim=1)]) 
+        flattened_conv = flattened_conv.type(torch.float32)
 
-        if bd_pred.shape[0]>2:
-            flattened_conv = torch.hstack([flattened_conv, bd_pred]) 
-            
         self_x = self.relu_func(flattened_conv)  
         self_x = self.lin_self(self_x)
 
@@ -363,9 +364,9 @@ python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_mini --experime
   --processedFolders=data_collection/data/logs/EXP_mini/iter0/processed \
   --k=5 --m=3 --lr=0.01 \
   --num_priority_copies=10 \
-  --num_multi_inputs=3 \
-  --num_multi_outputs=2 \
-  --gnn_name=GENConv \
+  --num_multi_inputs=0 \
+  --num_multi_outputs=1 \
+  --gnn_name=ResGatedGraphConv \
   --use_edge_attr \
   --logging
 '''
@@ -419,11 +420,10 @@ if __name__ == "__main__":
     if dataset_size>0:
         model_path = exp_folder+f"/{itername}"+f"/models_{dataset_size}/"
     else:
-        model_path = exp_folder+f"/{itername}"+f"/models_{gnn_name}{'_priorities' if use_edge_attr else ''}/"
+        model_path = exp_folder+f"/{itername}"+f"/models_{gnn_name}_{num_multi_inputs}_{num_multi_outputs}{'_priorities' if use_edge_attr else ''}/"
     finished_file = model_path + "/finished.txt"
     if os.path.exists(finished_file):
         print(f"Model already trained for {experiment} {itername}")
-        exit(0)
 
     os.makedirs(model_path, exist_ok=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

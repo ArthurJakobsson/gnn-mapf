@@ -183,12 +183,12 @@ class PipelineDataset(Dataset):
                                         start_locs)) # (N,h,2), h = num input steps (history)
         input_deltas = (multi_input_locs[1:]-multi_input_locs[:-1]).swapaxes(0, 1) # (N,h,2)
         input_indices = np.argmax(np.all(input_deltas[:, :, None] == self.direction_labels, axis=3), axis=2)
-        one_hot_inputs = np.eye(self.direction_labels.shape[0])[input_indices]
+        one_hot_inputs = np.eye(5)[input_indices]
 
         end_locs = paths[timestep: timestep+self.num_multi_outputs+1] # (ns+1,N,2)
         multi_output_locs = np.vstack((end_locs, 
                                         np.tile(end_locs[-1], (self.num_multi_outputs+1-len(end_locs), 1, 1)))) # (ns+1,N,2)
-        output_deltas = (multi_output_locs[1:]-multi_output_locs[:-1]).swapaxes(0, 1) # (N,ns,2), ns = num output steps. We predict (ns=3: 125 1-hot vector)
+        output_deltas = (multi_output_locs[1:]-multi_output_locs[:-1]).swapaxes(0, 1) # (N,ns,2), ns = num output steps (ns=3: size 125 1-hot vector)
 
         # Define the mapping from direction vectors to indices
         # Find the index of each direction in the possible_directions array
@@ -196,7 +196,7 @@ class PipelineDataset(Dataset):
         weights = [5**i for i in range(self.num_multi_outputs)]
         
         # Create a one-hot encoded array using np.eye
-        labels = np.eye(self.direction_labels.shape[0]**self.num_multi_outputs)[np.dot(output_indices, weights)]
+        labels = np.eye(5**self.num_multi_outputs)[np.dot(output_indices, weights)]
         
         return cur_locs, one_hot_inputs, labels, bd, grid, goal_locs, priorities
 

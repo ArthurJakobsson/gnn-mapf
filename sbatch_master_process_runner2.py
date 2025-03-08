@@ -7,20 +7,16 @@ import time
 
 # example runs
 '''
-python sbatch_master_process_runner2.py --data_path=$PROJECT/data/mini_benchmark_data \
-    --temp_bd_path=$PROJECT/data/logs/EXP_Collect_BD \
-    --exp_path=$PROJECT/data/logs/EXP_mini_priorities --iternum=0 \
-    --eecbs_batchrunner --constants_generator --dataloader \
-    --num_parallel_runs=10 \
+python sbatch_master_process_runner2.py --machine=omega \
+    --collect_data \
+    --data_path=mini_benchmark_data --exp_path=EXP_mini_0_1 \
     --clean
     
-python sbatch_master_process_runner2.py --data_path=$PROJECT/data/mini_benchmark_data \
-    --exp_path=$PROJECT/data/logs/EXP_mini_priorities --iternum=0 \
-    --trainer \
-    --logging \
-    --models="ResGatedGraphConv" \
-    --use_edge_attr \
-    --clean
+python sbatch_master_process_runner2.py --machine=omega \
+    --trainer --models="ResGatedGraphConv" --use_edge_attr \
+    --data_path=mini_benchmark_data --exp_path=EXP_mini_0_1 \
+    --clean \
+    --logging
 '''
 
 EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
@@ -35,16 +31,11 @@ NO_EDGE_ATTR_GNNS = ["SAGEConv"]
         - eecbs_npzs: path npzs
         - processed: pt files
         - models: model pts
-    --iternum
     
     --mode: <collect_data|train>
         - collect_data: constants_generator, eecbs_batchrunner, dataloader
-        - train: trainer using models specified below
+        - train: trainer
         
-    --use_edge_attr
-    --multistep_input
-    --multistep_output  
-
     --clean: delete old files
 '''
 
@@ -152,11 +143,13 @@ def run_trainer(args, model):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--machine', type=str)
     parser.add_argument('--data_path', type=str)
-    parser.add_argument('--temp_bd_path', type=str, default=None)
+    parser.add_argument('--temp_bd_path', type=str, default='EXP_Collect_BD')
     parser.add_argument('--exp_path', type=str)
-    parser.add_argument('--iternum', type=str)
+    parser.add_argument('--iternum', type=str, default='0')
     
+    parser.add_argument('--collect_data', action='store_true')
     parser.add_argument('--eecbs_batchrunner', action='store_true')
     parser.add_argument('--constants_generator', action='store_true')
     parser.add_argument('--dataloader', action='store_true')
@@ -166,13 +159,27 @@ if __name__ == "__main__":
     parser.add_argument('--logging', action='store_true')
 
     parser.add_argument('--use_edge_attr', action='store_true')
-    parser.add_argument('--num_multi_inputs', default=1)
-    parser.add_argument('--num_multi_outputs', default=1)
     
     parser.add_argument('--clean', action='store_true')
     parser.add_argument('--num_parallel_runs', type=int, default=10)
 
     args = parser.parse_args()
+
+    assert(args.machine in ['omega', 'psc'])
+    if args.machine == 'omega':
+        args.data_path = 'data_collection/data/' + args.data_path
+        args.temp_bd_path = 'data_collection/data/' + args.temp_bd_path
+        args.exp_path = 'data_collection/data/logs/' + args.exp_path
+    elif args.machine == 'psc':
+        args.data_path = '$PROJECT/data/' + args.data_path
+        args.temp_bd_path = '$PROJECT/data/' + args.temp_bd_path
+        args.exp_path = '$PROJECT/data/logs/' + args.exp_path
+
+    if args.collect_data:
+        args.eecbs_batchrunner = args.constants_generator = args.dataloader = True
+
+    args.num_multi_inputs, args.num_multi_outputs = args.exp_path.strip().split('_')[-2:]
+    print(f'multi input: {args.num_multi_inputs}, multi output: {args.num_multi_outputs}')
 
     if args.eecbs_batchrunner:
         run_eecbs_batchrunner(args)
