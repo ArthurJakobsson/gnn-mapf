@@ -10,13 +10,14 @@ import shutil
 import json
 import glob
 
-
 import ray
 import ray.util.multiprocessing
-# from custom_utils.custom_timer import CustomTimer
 from custom_utils.custom_timer import CustomTimer
 from custom_utils.common_helper import str2bool, getMapScenAgents
 
+# constants_npzs
+#   mapname_bds.npz: contains unique bds
+#   mapname_goals.npz: contains scenname to goal indexes in mapname_bds.npz
 
 @ray.remote
 class SharedDict:
@@ -86,14 +87,10 @@ def getEECBSCommand(eecbsArgs, outputFolder, outputfile, mapfile, numAgents, sce
     command = f"{eecbsPath}"
 
     for aKey in eecbsArgs["args"]:
-        command += " --{}={}".format(aKey, eecbsArgs["args"][aKey])
+        command += f" --{aKey}={eecbsArgs['args'][aKey]}"
         
-    # TODO: build_release4 does not recognize option --firstIter
-    # command += " --agentNum={} --agents={} --firstIter={} --bd_file={}".format(
-                # numAgents, scenfile, firstIter, bd_path)
-    command += " --agentNum={} --agents={} --bd_file={}".format(
-                numAgents, scenfile, bd_path)
-    command += " --output={} --map={}".format(outputfile, mapfile)
+    command += f" --agentNum={numAgents} --agents={scenfile} --bd_file={bd_path}"
+    command += f" --output={outputfile} --map={mapfile}"
     command += " --sipp=1"
     return command
     
@@ -102,7 +99,7 @@ def getCommandForSingleInstance(runnerArgs, outputFolder, outputfile, mapfile, n
     if runnerArgs["command"] == "eecbs":
         return getEECBSCommand(runnerArgs, outputFolder, outputfile, mapfile, numAgents, scenfile)
     else:
-        raise ValueError("Unknown command: {}".format(runnerArgs["command"]))
+        raise ValueError(f"Unknown command: {runnerArgs['command']}")
 
 
 def detectExistingStatus(runnerArgs, mapfile, aNum, scenfile, df): # TODO update
@@ -124,7 +121,7 @@ def detectExistingStatus(runnerArgs, mapfile, aNum, scenfile, df): # TODO update
             continue
         if aKey not in df.columns:
             
-            raise KeyError("Error: {} not in the columns of the dataframe".format(aKey))
+            raise KeyError(f"Error: {aKey} not in the columns of the dataframe")
         df = df[df[aKey] == aValue]  # Filter the dataframe to only include the runs with the same parameters
     
     df = df[(df["map"] == mapfile) & (df["agents"] == scenfile) & (df["agentNum"] == aNum)]
@@ -134,7 +131,7 @@ def detectExistingStatus(runnerArgs, mapfile, aNum, scenfile, df): # TODO update
         # assert(len(df) == 1)
         if len(df) > 1:
             print("Warning, multiple runs with the same parameters, likely due to a previous crash")
-            print("Map: {}, NumAgents: {}, Scen: {}, # Found: {}".format(mapfile, aNum, scenfile, len(df)))
+            print(f"Map: {mapfile}, NumAgents: {aNum}, Scen: {scenfile}, # Found: {len(df)}")
         success = df["solution cost"].values[-1] != -1
         return True, success
     else:
@@ -187,7 +184,7 @@ def checkIfRunNextAgents(nameToNumRun, num_workers, idToWorkerOutputFilepath, st
         agentNumsToRun = static_dict[mapName]["agentRange"]
         assert(curAgentNum in agentNumsToRun)
         if agentNumsToRun.index(curAgentNum) + 1 == len(agentNumsToRun):
-            print("Finished all scens for map: {}".format(mapName))
+            print(f"Finished all scens for map: {mapName}")
             finished = True
         else:
             nextAgentNum = agentNumsToRun[agentNumsToRun.index(curAgentNum) + 1]
@@ -198,7 +195,7 @@ def checkIfRunNextAgents(nameToNumRun, num_workers, idToWorkerOutputFilepath, st
                 futures.append(runSingleInstanceMT.remote(nameToNumRun, num_workers, idToWorkerOutputFilepath, 
                                                             static_dict, *args))
     else: # If not, we are done
-        print("Finished all scens for map: {}".format(mapName))
+        print(f"Finished all scens for map: {mapName}")
         finished = True
 
     if finished:
@@ -340,11 +337,11 @@ def generic_batch_runner(args):
 
         ## Checks if the finished txt already exists, if so skip
         if os.path.exists(idToWorkerOutputFilepath(-2, mapFile)): # Check for finished.txt which signifies if eecbs has already been run
-            print("Skipping {} as finished.txt already exists".format(mapFile))
+            print(f"Skipping {mapFile} as finished.txt already exists")
             continue
         else: # Else, restart from scratch, so remove existing folders
             if os.path.exists(f"{outputFolder}/{mapFile}"):
-                print("Removing previous potentially partial run for {}".format(mapFile))
+                print(f"Removing previous potentially partial run for {mapFile}")
                 shutil.rmtree(f"{outputFolder}/{mapFile}", ignore_errors=False)
         maps_to_run.append(mapFile)
         
@@ -431,7 +428,6 @@ python -m data_collection.constants_generator --mapFolder=data_collection/data/m
                  --deleteTextFiles=true \
                  "eecbs" \
                  --firstIter=true --cutoffTime=1
-
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -450,7 +446,7 @@ if __name__ == "__main__":
                         type=str, default=None)
     parser.add_argument('--deleteTextFiles', help="delete outputFolder when done", 
                         type=bool, default=False)
-    # parser.add_argument("--iter", help="iteration number", type=int, default=0) #this is used only for the seed for simulation now
+    # parser.add_argument("--iter", help="iteration number", type=int, default=0) # this is used only for the seed for simulation now
 
     # Subparses for C++ EECBS or Python ML model
     subparsers = parser.add_subparsers(dest="command", required=True)

@@ -166,8 +166,7 @@ class CustomConv(pyg_nn.MessagePassing):
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)  # (2,num_edges)
 
         flattened_conv = torch.flatten(self.conv_self(x), start_dim=1)
-        # print(x.shape) 
-        # print(torch.flatten(histories_preds, start_dim=1).shape)
+        
         flattened_conv = torch.hstack([flattened_conv, torch.flatten(histories_preds, start_dim=1)]) 
         flattened_conv = flattened_conv.type(torch.float32)
 
@@ -194,7 +193,7 @@ def save_models(model, total_loss, min_loss, test_acc, max_test_acc, double_test
     if double_test_acc > max_double_test_acc:
         torch.save(model, model_path + '/max_double_test_acc.pt')
 
-def train(combined_dataset, run_lr, num_epochs, edge_dim, relu_type, my_batch_size, dataset_size, gnn_name, use_edge_attr):
+def train(combined_dataset, run_lr, num_epochs, edge_dim, relu_type, my_batch_size, dataset_size, gnn_name, use_edge_attr, logging):
     # data_size = len(dataset)
     # loader = DataLoader(dataset[:int(data_size * 0.8)], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
     # test_loader = DataLoader(dataset[int(data_size * 0.8):], batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
@@ -212,6 +211,7 @@ def train(combined_dataset, run_lr, num_epochs, edge_dim, relu_type, my_batch_si
     num_node_features = combined_dataset.datasets[0].num_node_features # datasets[0] is the first dataset in the combined dataset
     num_classes = combined_dataset.datasets[0].num_classes
     lin_dim = combined_dataset.datasets[0][0].lin_dim
+    # pdb.set_trace()
     num_channels = combined_dataset.datasets[0][0].num_channels
     model = GNNStack(lin_dim, num_channels, 128, num_classes, edge_dim, relu_type=relu_type, gnn_name=gnn_name, use_edge_attr=use_edge_attr, task='node').to(device)
     opt = optim.AdamW(model.parameters(), lr=run_lr, weight_decay=5e-4)
@@ -361,7 +361,7 @@ def visualize():
 ### Example run
 '''
 python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_mini --experiment=exp0 --iternum=0 --num_cores=4 \
-  --processedFolders=data_collection/data/logs/EXP_mini/iter0/processed \
+  --processedFolders=data_collection/data/logs/EXP_mini/iter0/processed_0_1 \
   --k=5 --m=3 --lr=0.01 \
   --num_priority_copies=10 \
   --num_multi_inputs=0 \
@@ -370,11 +370,6 @@ python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_mini --experime
   --use_edge_attr \
   --logging
 '''
-# python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_Test --experiment=exp0 --iternum=0 --num_cores=4 \
-#   --processedFolders=data_collection/data/logs/EXP_Test3/iter0/processed \
-#   --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
-#   --bdNpzFolder=data_collection/data/benchmark_data/constant_npzs \
-#   --pathNpzFolders=data_collection/data/logs/EXP_Test/iter0/eecbs_npzs
 
 if __name__ == "__main__":
     # current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -385,45 +380,45 @@ if __name__ == "__main__":
     parser.add_argument("--num_cores", help="num_cores", type=int)
     parser.add_argument("--k", help="window size", type=int)
     parser.add_argument("--m", help="num_nearby_agents", type=int)
-    parser.add_argument("--num_priority_copies", help="copies of relative priority to include in input", type=int, default=1)
-    parser.add_argument("--num_multi_inputs", help="number of previous steps to include in input", type=int, default=1)
-    parser.add_argument("--num_multi_outputs", help="number of next steps to predict in output", type=int, default=1)
     parser.add_argument("--lr", help="learning_rate", type=float)
     parser.add_argument("--relu_type", help="relu type", type=str)
+    parser.add_argument("--num_epochs", help="num_epochs", default=10)
     parser.add_argument("--gnn_name", help="pytorch-geometric GNN to use", type=str, default="SAGEConv")
     parser.add_argument("--use_edge_attr", help="use edge_attr if supported", action='store_true')
-    parser.add_argument("--num_epochs", help="num_epochs", default=10)
+    parser.add_argument("--num_priority_copies", help="copies of relative priority to include in input", type=int, default=10)
     # parser.add_argument("--mapNpzFile", help="map npz file", type=str, required=True)
     # parser.add_argument("--bdNpzFolder", help="bd npz file", type=str, required=True)
     parser.add_argument("--processedFolders", help="processed npz folders, comma seperated!", type=str, required=True)
     extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
     parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default=None)
     parser.add_argument('--bd_pred', help="bd_predictions added to NN", action='store_true')
+    parser.add_argument("--num_multi_inputs", help="number of previous steps to include in input", type=int, default=0)
+    parser.add_argument("--num_multi_outputs", help="number of next steps to predict in output", type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--dataset_size', type=int, default=-1)
     # parser.add_argument("--pathNpzFolders", help="path npz folders, comma seperated!", type=str, required=True)
     parser.add_argument("--logging", help="wandb logging", action='store_true')
 
     args = parser.parse_args()
-    for key, value in vars(args).items():
-        locals()[key] = value
-
-    edge_dim = 2 + num_priority_copies  # position difference between agents + repeated relative priority 
-    itername = "iter"+str(iternum)
     
     torch.manual_seed(0)
     np.random.seed(0)
     random.seed(0)
     torch.backends.cudnn.deterministic = True
 
-    # writer = SummaryWriter(f"./data_collection/data/logs/train_logs/"+experiment+"_"+itername)
+    k, m, lr, relu_type, num_epochs, extra_layers, batch_size = args.k, args.m, args.lr, args.relu_type, args.num_epochs, args.extra_layers, args.batch_size
+    gnn_name, use_edge_attr, num_priority_copies = args.gnn_name, args.use_edge_attr, args.num_priority_copies
+    bd_pred, num_multi_inputs, num_multi_outputs = args.bd_pred, args.num_multi_inputs, args.num_multi_outputs
+
+    dataset_size, exp_folder = args.dataset_size, args.exp_folder
+    itername = "iter"+str(args.iternum)
     if dataset_size>0:
         model_path = exp_folder+f"/{itername}"+f"/models_{dataset_size}/"
     else:
-        model_path = exp_folder+f"/{itername}"+f"/models_{gnn_name}_{num_multi_inputs}_{num_multi_outputs}{'_priorities' if use_edge_attr else ''}/"
+        model_path = exp_folder+f"/{itername}"+f"/models_{gnn_name}_{num_multi_inputs}_{num_multi_outputs}{'_priorities'*use_edge_attr}/"
     finished_file = model_path + "/finished.txt"
     if os.path.exists(finished_file):
-        print(f"Model already trained for {experiment} {itername}")
+        print(f"Model already trained for {args.experiment} {itername}")
 
     os.makedirs(model_path, exist_ok=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -432,7 +427,7 @@ if __name__ == "__main__":
     ### Load the dataset
     # Each processed folder is a dataset
     dataset_list = []
-    for folder in processedFolders.split(','):
+    for folder in args.processedFolders.split(','):
         if not os.path.exists(folder):
             raise Exception(f"Folder {folder} does not exist!")
         dataset = MyOwnDataset(mapNpzFile=None, bdNpzFolder=None, pathNpzFolder=None,
@@ -446,7 +441,8 @@ if __name__ == "__main__":
     dataset = torch.utils.data.ConcatDataset(dataset_list)
     print(f"Combined {len(dataset_list)} datasets for a combined size of {len(dataset)}")
 
-    if logging:
+    # Wandb logging
+    if args.logging:
         wandb.init(
             # set the wandb project where this run will be logged
             project="gnn-mapf",
@@ -463,7 +459,8 @@ if __name__ == "__main__":
             }
         )
 
-    model = train(dataset, lr, num_epochs, edge_dim, relu_type, batch_size, dataset_size, gnn_name, use_edge_attr)
+    edge_dim = 2 + num_priority_copies  # agent position difference (x,y) + repeated priorities
+    model = train(dataset, lr, num_epochs, edge_dim, relu_type, batch_size, dataset_size, gnn_name, use_edge_attr, args.logging)
 
     with open(f"{model_path}/finished.txt", "w") as f:
         f.write("")

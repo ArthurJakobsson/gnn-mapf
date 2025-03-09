@@ -10,10 +10,6 @@ import pandas as pd
 from torch.utils.data import Dataset
 from collections import defaultdict
 import ray.util.multiprocessing
-# import multiprocessing
-# print(os.path.abspath(os.getcwd()))
-# sys.path.insert(0, './data_collection/')
-# sys.path.append(os.path.abspath(os.getcwd())+"/custom_utils/")
 from custom_utils.custom_timer import CustomTimer
 from custom_utils.common_helper import getMapScenAgents
 
@@ -25,49 +21,7 @@ from custom_utils.common_helper import getMapScenAgents
 3. dictionary that maps bd_name to bd
 4. write tuples of (map name, bd name, paths np) to npz
 '''
- 
-# mapsToMaxNumAgents = {
-#     "Berlin_1_256": 1000,
-#     "Boston_0_256": 1000,
-#     "Paris_1_256": 1000,
-#     "brc202d": 1000,
-#     "den312d": 1000, 
-#     "den520d": 1000,
-#     "dense_map_15_15_0":50,
-#     "dense_map_15_15_1":50,
-#     "corridor_30_30_0":50,
-#     "empty_8_8": 32,
-#     "empty_16_16": 128,
-#     "empty_32_32": 512,
-#     "empty_48_48": 1000,
-#     "ht_chantry": 1000,
-#     "ht_mansion_n": 1000,
-#     "lak303d": 1000,
-#     "lt_gallowstemplar_n": 1000,
-#     "maze_128_128_1": 1000,
-#     "maze_128_128_10": 1000,
-#     "maze_128_128_2": 1000,
-#     "maze_32_32_2": 333,
-#     "maze_32_32_4": 395,
-#     "orz900d": 1000,
-#     "ost003d": 1000,
-#     "random_32_32_10": 461,
-#     "random_32_32_10_custom_0": 461,
-#     "random_32_32_10_custom_1": 461,
-#     "random_32_32_20": 409,
-#     "random_64_64_10_custom_0": 1000,
-#     "random_64_64_10_custom_1": 1000,
-#     "random_64_64_10": 1000,
-#     "random_64_64_20": 1000,
-#     "room_32_32_4": 341,
-#     "room_64_64_16": 1000,
-#     "room_64_64_8": 1000,
-#     "w_woundedcoast": 1000,
-#     "warehouse_10_20_10_2_1": 1000,
-#     "warehouse_10_20_10_2_2": 1000,
-#     "warehouse_20_40_10_2_1": 1000,
-#     "warehouse_20_40_10_2_2": 1000,
-# }
+
 
 class PipelineDataset(Dataset):
     '''
@@ -104,10 +58,8 @@ class PipelineDataset(Dataset):
         
         self.maps = dict(np.load(mapFileNpz))
 
-        # self.bds = dict(np.load(bdFileNpz))
-        scen_to_goal_indices = dict(np.load(goalsFileNpz)) # scen to goals: dict[scenname] = (n,) goal_indices
-        self.goal_to_bd = dict(np.load(bdFileNpz))['arr_0'] # goal_to_bd[goal_index] = bd (w, h)
-        self.scen_to_goal_indices = scen_to_goal_indices
+        self.scen_to_goals = dict(np.load(goalsFileNpz)) # scen to goals: dict[scenname] = goal indices (N,) 
+        self.goal_to_bd = dict(np.load(bdFileNpz))['arr_0'] # goal_to_bd[goal_index] = bd (W,H)
 
         paths = dict(np.load(pathFileNpz)) # Note: Very important to make this a dict() otherwise lazy loading kills performance later on
         self.tn2 = {k[:-6]: v for k, v in paths.items() if k[-6:] == "_paths"}
@@ -131,35 +83,6 @@ class PipelineDataset(Dataset):
     def __len__(self):
         return self.length # go through the tn2 dict with # data and np arrays saved, and sum all the ints
 
-    # # return the data for a particular instance: the location, bd, and map
-    # def __getitem__(self, idx):
-    #     '''
-    #     INPUT: index (must be smaller than len(self))
-    #     OUTPUT: map, bd, and direction
-    #         map: (2k+1, 2k+1)
-    #         bd: (2k+1, 2k+1)
-    #         other agent bds: (4,2k+1,2k+1)
-    #         direction: (2)
-    #     centered version. when passing in the map and bd, return a (2k+1,2k+1) window centered at current location of agent.
-    #     '''
-    #     if idx >= self.__len__():
-    #         print("Index too large for {}-sample dataset".format(self.__len__()))
-    #         return
-    #     bd, grid, paths, timestep, max_timesteps, priorities = self.find_instance(idx)
-    #     cur_locs = paths[timestep] # (N,2)
-    #     next_locs = paths[timestep+1] if timestep+1 < max_timesteps else cur_locs # (N,2)
-    #     end_locs = paths[-1]
-    #     deltas = next_locs - cur_locs # (N,2)
-
-    #     # Define the mapping from direction vectors to indices
-    #     direction_labels = np.array([(0,0), (0,1), (1,0), (-1,0), (0,-1)]) # (5,2)
-    #     # Find the index of each direction in the possible_directions array
-    #     indices = np.argmax(np.all(deltas[:, None] == direction_labels, axis=2), axis=1)
-    #     # Create a one-hot encoded array using np.eye
-    #     labels = np.eye(direction_labels.shape[0])[indices]
-    #     # assert(np.all(labels == slow_labels))
-    #     return cur_locs, labels, bd, grid, end_locs, priorities
-
     # return the data for a particular instance: the location, bd, and map
     def __getitem__(self, idx):
         '''
@@ -172,7 +95,7 @@ class PipelineDataset(Dataset):
         centered version. when passing in the map and bd, return a (2k+1,2k+1) window centered at current location of agent.
         '''
         if idx >= self.__len__():
-            print("Index too large for {}-sample dataset".format(self.__len__()))
+            print(f"Index too large for {self.__len__()}-sample dataset")
             return
         bd, grid, paths, timestep, max_timesteps, priorities = self.find_instance(idx)
         cur_locs = paths[timestep] # (N,2) 
@@ -233,31 +156,12 @@ class PipelineDataset(Dataset):
         num_agents = paths.shape[1]
         
         # bd = self.bds[scenname][:num_agents] # (N,H,W)
-        bd = self.goal_to_bd[self.scen_to_goal_indices[scenname]] 
+        bd = self.goal_to_bd[self.scen_to_goals[scenname]] 
         assert(bd.shape[0] >= num_agents)
         # pdb.set_trace()
         priorities = self.priorities[key_to_use+"_priorities"] # (N,)
 
         return bd, grid, paths, timestep_to_use, max_timesteps, priorities
-
-    # def parse_npz(self, loaded_paths, loaded_maps, loaded_bds):
-    #     self.tn2 = {k:v for k, v in loaded_paths.items()}
-    #     self.maps = {k:v for k, v in loaded_maps.items()}
-    #     self.bds = {k:v for k, v in loaded_bds.items()}
-
-    #     totalT = 0 
-    #     for ky, v in self.tn2.items():
-    #         t, n, _ = np.shape(v)
-    #         self.tn2[ky] = (t*n, v)
-    #         totalT += t
-    #     self.length = totalT # number of paths = number of timesteps
-    #     # self.twh = dict(items[k:]) # get all the paths in (t,w,h) form
-    #     npads = ((0,0),(self.k, self.k), (self.k, self.k))
-    #     for key in self.bds:
-    #         self.bds[key] = np.pad(self.bds[key], npads, mode="constant", constant_values=1073741823)
-    #         # self.bds[key] = np.transpose(self.bds[key], (0, 2, 1)) # (n,h,w) -> (n,w,h) NOTE that originally all bds are parsed in transpose TODO did i fix this correctly
-    #     for key in self.maps:
-    #         self.maps[key] = np.pad(self.maps[key], self.k, mode="constant", constant_values=1)
 
     def parse_npz2(self):
         totalT = 0 
@@ -265,7 +169,7 @@ class PipelineDataset(Dataset):
 
         for ky, v in self.tn2.items():
             kyname = ky.split(",")[1] # scenname
-            if any(scenname == kyname for scenname in self.scen_to_goal_indices.keys()):
+            if any(scenname == kyname for scenname in self.scen_to_goals.keys()):
                 t, n, _ = np.shape(v)
                 totalT += t
             else:
@@ -321,7 +225,7 @@ def parse_path(pathfile):
     '''
     # save dimensions for later array saving
     w = h = 0
-    # priorities
+    # save priorities
     priorities = None
     # maps timesteps to a list of agent coordinates
     timestepsToMaps = defaultdict(list)
@@ -453,41 +357,6 @@ def batch_map(dir, num_parallel):
         res[filename] = results[i]
         
     return res
-
-# def batch_bd(dir, num_parallel):
-#     '''
-#     goes through a directory of bd outputs, parsing each one and saving to a dictionary
-#     input: directory of backward djikstras (string)
-#     output: dictionary mapping filenames to backward djikstras
-#     '''
-#     # assert(1 + 1 == 3)
-#     res = {} # string->np
-#     inputs_list = []
-#     filenames_list = []
-#     # iterate over files in directory, parsing each map
-#     for filename in os.listdir(dir):
-#         f = os.path.join(dir, filename)
-#         # checking if it is a file
-#         if os.path.isfile(f):
-#             scenname, agents = filename.split(".")[:2] # e.g. Paris_1_256-random-1.10.txt, where 1 is scen, 10 is agents
-#             if num_parallel == 1:
-#                 res[scenname] = parse_bd(f)
-#             else:
-#                 inputs_list.append((f,))  # Note, need to pass in as tuple for use with starmap
-#                 filenames_list.append(scenname)
-#         else:
-#             raise RuntimeError("bad bd dir")
-    
-#     if num_parallel == 1:
-#         return res
-
-#     with multiprocessing.Pool(processes=num_parallel) as pool:
-#         results = pool.starmap(parse_bd, inputs_list)
-
-#     for i in range(len(inputs_list)):
-#         filename = filenames_list[i]
-#         res[filename] = results[i]
-#     return res
 
 
 def batch_bd(bdInDir, scenInDir, num_parallel):
@@ -682,6 +551,6 @@ def main():
 #       --mapOutFile=./data_collection/data/benchmark_data/constant_npzs/final_test8_map.npz 
 #       --mapIn=./data_collection/data/benchmark_data/maps --trainOut=./data_collection/data/logs/EXP0/labels/raw/train_final_test8_0 
 #       --num_parallel=1
-# python -m data_collection.data_manipulator --pathsIn=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs/empty_8_8/paths/ --pathOutFile=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_npzs/empty_8_8_paths.npz --bdIn=data_collection/data/logs/EXP_Collect_BD/iter0/eecbs_outputs/empty_8_8/bd --bdOutFile=data_collection/data/benchmark_data/constant_npzs2/empty_8_8_bds.npz --mapIn=data_collection/data/benchmark_data/maps --mapOutFile=data_collection/data/benchmark_data/constant_npzs2/empty_8_8_map.npz --num_parallel=1
+
 if __name__ == "__main__":
     main()

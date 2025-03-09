@@ -30,7 +30,6 @@ def apply_masks(data_len, curdata):
     return curdata
 
 def normalize_graph_data(data, k, edge_normalize="k", bd_normalize="center"):
-    # pdb.set_trace()
     """Modifies data in place"""
     ### Normalize edge attributes
     # data.edge_attr (num_edges,2) the deltas in each direction which can be negative
@@ -64,7 +63,6 @@ def get_bd_prefs(pos_list, bds, range_num_agents):
     range_num_agents: (N) range of number of agents
     """
     x_mesh2, y_mesh2 = np.meshgrid(np.arange(-1,1+1), np.arange(-1,1+1), indexing='ij') # assumes k at least 1; getting a 3x3 grid centered at the same place
-    # pdb.set_trace()
     x_mesh2 = x_mesh2[None, :, :] + np.expand_dims(pos_list[:,0], axis=(1,2)) #  -> (N,3,3)
     y_mesh2 = y_mesh2[None, :, :] + np.expand_dims(pos_list[:,1], axis=(1,2)) # -> (N,3,3)
     bd_subset = bds[range_num_agents[:,None,None], x_mesh2, y_mesh2] # (N,3,3)
@@ -73,7 +71,6 @@ def get_bd_prefs(pos_list, bds, range_num_agents):
     flattened = flattened.astype(float) + np.random.random(flattened.shape)*1e-6 # Add noise to break ties
     # NOTE: Random noise is extremely import for PIBT to work it seems
     prefs = np.argsort(flattened, axis=1, kind="quicksort") # (N,5) Stop, Right, Down, Up, Left
-    # pdb.set_trace()
     return prefs
 
 
@@ -172,7 +169,6 @@ def calculate_edge_features(pos_list, num_agents, range_num_agents, m, k, priori
     # edge_features = deltas[edge_indices[0], edge_indices[1]] # (num_edges,2), the difference between each agent
     # edge_features = edge_features.astype(np.float32)
 
-    # pdb.set_trace()
     # Priorities
     priorities_repeat = np.repeat(priorities[None,:], axis=0, repeats=num_agents)
     relative_priorities = -(priorities_repeat.T - priorities_repeat) # (N, N), i relative to j (positive is higher priority, 0 is highest priority)
@@ -220,7 +216,6 @@ def calculate_bd_pred_arr(grid_slices, rowLocs, colLocs, num_layers, num_agents,
 
 def calculate_weights(matches, num_agents):
     # NOTE: calculate weights
-    # pdb.set_trace()
     num_agent_goal_ratio = np.mean(matches)
     weights = np.ones(num_agents) # (N,)
     # weights[np.invert(matches.flatten())] = 1/(np.sum(matches)+1)
@@ -238,14 +233,14 @@ def calculate_weights(matches, num_agents):
     return weights
 
 
-def create_data_object(cur_locs, one_hot_inputs, bd_list, grid, priorities, num_multi_inputs, k, m, 
-                       num_priority_copies, goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
+def create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, k, m, num_priority_copies, 
+                       goal_locs, extra_layers, bd_pred, labels=np.array([]), debug_checks=False):
     """
     cur_locs: (N,2) positions
-    one_hot_inputs: (N, h, 5) one-hot vectors for each of the previous moves
     bd_list: (N,W,H) bd's
     grid: (W,H) grid
     priorities: (N,) EECBS priorities
+    multi_inputs: (N, h, 5) one-hot vectors for each of the previous moves
     k: (int) local region size
     m: (int) number of closest neighbors to consider
     num_priority_copies: copies of relative priority to include in edge features
@@ -275,7 +270,6 @@ def create_data_object(cur_locs, one_hot_inputs, bd_list, grid, priorities, num_
     if debug_checks:
         assert(grid[cur_locs[0], cur_locs[1]].all() == 0) # Make sure all agents are on empty space
 
-    # pdb.set_trace()
     h = rowLocs.shape[0]
     x_mesh, y_mesh = np.meshgrid(np.arange(-k,k+1), np.arange(-k,k+1), indexing='ij') # Each is (D,D)
 
@@ -300,12 +294,12 @@ def create_data_object(cur_locs, one_hot_inputs, bd_list, grid, priorities, num_
     if bd_pred_arr.size == 0:
         histories_preds = one_hot_inputs
     else:
-        histories_preds = np.concatenate((one_hot_inputs, bd_pred_arr[:, None, :]), axis=1)
-    linear_dimensions += num_multi_inputs*5 # one hot vectors
+        histories_preds = np.concatenate((multi_inputs, bd_pred_arr[:, None, :]), axis=1)
+    linear_dimensions += multi_inputs.shape[1]*5 # 5*h for one hot vectors
     
     return Data(x=torch.from_numpy(node_features), edge_index=torch.from_numpy(edge_indices), 
                 edge_attr=torch.from_numpy(edge_features), histories_preds=torch.from_numpy(histories_preds), lin_dim=linear_dimensions, num_channels=num_layers,
-                weights = torch.from_numpy(weights), y = torch.from_numpy(labels))
+                weights=torch.from_numpy(weights), y=torch.from_numpy(labels))
 
 
 class MyOwnDataset(Dataset):
@@ -406,9 +400,9 @@ class MyOwnDataset(Dataset):
         # if not time_instance: 
         #     return #idk why but the last one is None
         assert(time_instance is not None)
-        cur_locs, one_hot_inputs, labels, bd_list, grid, goal_locs, priorities = time_instance
+        cur_locs, multi_inputs, labels, bd_list, grid, goal_locs, priorities = time_instance
 
-        curdata = create_data_object(cur_locs, one_hot_inputs, bd_list, grid, priorities, self.num_multi_inputs, self.k, self.m, 
+        curdata = create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, self.k, self.m, 
                                      self.num_priority_copies, goal_locs, self.extra_layers, self.bd_pred, labels)
         curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
         # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
@@ -533,11 +527,11 @@ class MyOwnDataset(Dataset):
 python -m gnn.dataloader --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
       --bdNpzFolder=data_collection/data/mini_benchmark_data/constant_npzs \
       --pathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
-      --processedFolder=data_collection/data/logs/EXP_mini/iter0/processed \
+      --processedFolder=data_collection/data/logs/EXP_mini/iter0/processed_0_1 \
       --k=5 \
       --m=3 \
       --num_priority_copies=10 \
-      --num_multi_inputs=0torch.flatten(histories_preds, start_dim=1) \
+      --num_multi_inputs=0 \
       --num_multi_outputs=1 --bd_pred
 """
 
