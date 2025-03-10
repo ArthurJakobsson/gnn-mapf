@@ -292,7 +292,7 @@ def create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, k, m, 
     weights = calculate_weights(matches, num_agents) # (N,)
 
     if bd_pred_arr.size == 0:
-        histories_preds = one_hot_inputs
+        histories_preds = multi_inputs
     else:
         histories_preds = np.concatenate((multi_inputs, bd_pred_arr[:, None, :]), axis=1)
     linear_dimensions += multi_inputs.shape[1]*5 # 5*h for one hot vectors

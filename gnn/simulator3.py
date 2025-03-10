@@ -69,7 +69,7 @@ def createScenFile(locs, goal_locs, map_name, scenFilepath):
         f.write(f"version {len(locs)} \n")
         for i in range(locs.shape[0]):
             f.write(f"0\t{map_name}\t{0}\t{0}\t{locs[i,1]}\t{locs[i,0]}\t{goal_locs[i,1]}\t{goal_locs[i,0]}\t0 \n")
-    # print(f"Scen file created at: {scenFilepath}")
+    # print("Scen file created at: {}".format(scenFilepath))
 
 def getCosts(solution_path, goal_locs):
     """
@@ -282,6 +282,7 @@ def updatePriorities(prev_priorities, at_goal):
     # agent_priorities[at_goal] = 0 # Set priority to 0 if reached goal
     return agent_priorities
 
+# added multistep inputs
 def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs, multi_inputs,
           lacamLimit, start_time, timeLimit):
     """Inputs:
@@ -352,7 +353,7 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs,
             new_move, pibt_worked = pibt(grid_map, self.action_preferences, self.state, self.agent_priorities, curConstraint, start_time, timeLimit)
 
             if not pibt_worked: # Failed with the constraints
-                return None
+                return None, None
             new_state = self.state + new_move
             new_multi_inputs = update_multi_inputs(self.multi_inputs, new_move)
             return new_state, new_multi_inputs
@@ -410,7 +411,7 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs,
     return entirePath, success, numNodesExpanded, numGenerated
 
 class WrapperNNWithCache:
-    def __init__(self, bd, grid_map, model, device, k, m, goal_locations, args) -> None:
+    def __init__(self, bd, grid_map, model, device, k, m, goal_locations, eecbs_priorities, args) -> None:
         self.bd = bd
         self.grid_map = grid_map
         self.model = model
@@ -421,33 +422,33 @@ class WrapperNNWithCache:
         self.hits = 0
         self.goal_locations = goal_locations
         self.args = args
+        self.priorities = eecbs_priorities
 
-    def __call__(self, locs):
+    def __call__(self, locs, multi_inputs):
         key = str(locs)
         if key in self.saved_calls.keys():
             self.hits += 1
             return self.saved_calls[key]
         else:
-            probs = runNNOnState(locs, self.bd, self.grid_map, self.priorities, self.multi_inputs, self.k, self.m, self.num_priority_copies, 
+            probs = runNNOnState(locs, multi_inputs, self.bd, self.grid_map, self.priorities, self.k, self.m, 
                                  self.model, self.device, self.goal_locations, self.args)
             self.saved_calls[key] = probs
             return probs
 
-def runNNOnState(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k, m, num_priority_copies, 
+def runNNOnState(cur_locs, multi_inputs, bd_list, grid_map, eecbs_priorities, k, m,
                  model, device, goal_locations, args, timer: CustomTimer):
     """Inputs:
         cur_locs: (N,2)
     Outputs:
         probs: (N,5) 
     """
-    # TODO: ex. for (N, 25), sum probabilities
 
     with torch.no_grad():
         # Create the data object
         timer.start("create_nn_data")
 
         # pdb.set_trace() # TODO: args.bd_pred=true, k=5, lin dim should be 81*2+5=167
-        data = create_data_object(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k, m, num_priority_copies,
+        data = create_data_object(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k, m, args.num_priority_copies,
                                   goal_locations, args.extra_layers, args.bd_pred)
         data = normalize_graph_data(data, k)
         data = data.to(device)
@@ -464,7 +465,10 @@ def runNNOnState(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k,
         timer.stop("forward_pass")
 
         # Get the action preferences
-        probs = probabilities.cpu().detach().numpy() # (N,5)
+        probs = probabilities.cpu().detach().numpy() # (N,5**num_multi_outputs)
+        # Sum probabilities for first predicted step
+        probs = np.sum(np.reshape(probs, (probs.shape[0], 5, probs.shape[1]//5)), axis=2)
+        assert(probs.shape[1] == 5)
     return probs
 
 class WrapperBDGetActionPrefs:
@@ -480,7 +484,7 @@ class WrapperBDGetActionPrefs:
 
 def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations, 
              max_steps, shield_type, lacam_lookahead, args, timer: CustomTimer,
-             eecbs_priorities, num_priority_copies, num_multi_inputs, num_multi_outputs):
+             eecbs_priorities):
     """Inputs:
         grid_map: (H,W), note includes padding
         bd: (N,H,W), note includes padding
@@ -490,11 +494,11 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     if shield_type not in ["CS-PIBT", "CS-Freeze", "LaCAM"]:
         raise KeyError(f'Invalid shield type: {shield_type}')
     
-    wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, args)
+    wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, eecbs_priorities, args)
 
     def getActionPrefsFromLocs(locs, multi_inputs):
         # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
-        probs = runNNOnState(locs, bd, grid_map, eecbs_priorities, multi_inputs, k, m, num_priority_copies, 
+        probs = runNNOnState(locs, multi_inputs, bd, grid_map, eecbs_priorities, k, m, 
                              model, device, goal_locations, args, timer)
 
         ### Mask out invalid actions
@@ -502,7 +506,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         assert(not np.any(action_mask[:,0])) # First action should always be invalid
         probs[action_mask] = 1e-8  # Mask out probabilities for invalid actions, cannot set to 0 as it messes up sampling later
         probs = probs / probs.sum(axis=1, keepdims=True)  # Normalize to sum to 1
-        probs = probs / probs.sum(axis=1, keepdims=True)  # Normalize again to fix floating point error
+        probs = np.where(probs < 1e-8, 1e-8, probs)
         # assert(np.all(np.sum(probs,axis=1)==1))
         return convertProbsToPreferences(probs, "sampled")
     
@@ -519,7 +523,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     success = False
     MAX_USE_LACAM = 100  # Hardcoded limit on how many times to use LaCAM since it is slow
     start_time = time.time()
-    multi_inputs = np.tile(np.asarray([1,0,0,0,0]), (len(start_locations), num_multi_inputs, 1)) # initial history (N,h,5)
+    multi_inputs = np.tile(np.asarray([1,0,0,0,0]), (len(start_locations), args.num_multi_inputs, 1)) # initial history (N,h,5)
 
     for step in tqdm(range(max_steps)):
         # Update priorities
@@ -634,12 +638,9 @@ def main(args: argparse.ArgumentParser):
     bd = bd_npz[scen_to_goals_npz[bd_key]][:num_agents] # (max agents,H,W)->(N,H,W)
     bd = np.pad(bd, ((0,0),(k,k),(k,k)), 'constant', constant_values=12345678) # Add padding
 
-    # Get EECBS priorities
-    paths = dict(np.load(f"{args.eecbsNpzPath}/{args.mapName}_paths.npz"))
-    scenName = args.scenFile.split('.')[0].split('/')[-1]
-    eecbs_priorities = [v for k, v in paths.items() if f"{args.mapName}.map,{scenName}" in k and "_priorities" in k][0][:num_agents]
-    assert(len(eecbs_priorities) == num_agents)
-        
+    # Assign EECBS priorities
+    eecbs_priorities = np.asarray(range(num_agents))
+
     # Load the model
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.useGPU else "cpu") # Use GPU if available
     if not os.path.exists(args.modelPath):
@@ -669,7 +670,7 @@ def main(args: argparse.ArgumentParser):
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
             model, k, args.m, map_grid, bd, start_locations, goal_locations, 
             max_steps, args.shieldType, args.lacamLookahead, args, timer, 
-            eecbs_priorities, args.num_priority_copies, args.num_multi_inputs, args.num_multi_outputs)
+            eecbs_priorities)
     timer.stop("total_simulate")
     total_simulate_time = timer.getTimes("total_simulate")
     print(f"Success: {success}, Total cost true: {total_cost_true}, Total cost not at goal: {total_cost_not_resting_at_goal}, "+
@@ -745,13 +746,14 @@ def main(args: argparse.ArgumentParser):
 python -m gnn.simulator3 --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
         --mapName=random_32_32_10 --scenFile=data_collection/data/mini_benchmark_data/scens/random_32_32_10-random-1.scen \
         --agentNum=50 --bdPath=data_collection/data/mini_benchmark_data/constant_npzs/\
-        --eecbsNpzPath=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs/ \
-        --modelPath=data_collection/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_priorities/max_test_acc.pt --useGPU=False \
         --k=5 --m=3 \
         --outputCSVFile=data_collection/data/logs/EXP_mini/tests/results.csv \
         --outputPathsFile=data_collection/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
         --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-        --maxSteps=400 --seed=0 --shieldType=CS-PIBT --lacamLookahead=5 --timeLimit=100 --bd_pred
+        --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
+        --num_priority_copies=10 \
+        --useGPU=False --modelPath=data_collection/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_priorities/max_test_acc.pt \
+        --num_multi_inputs=0 --num_multi_outputs=1 --shieldType=LaCAM 
 
 # --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
 python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
@@ -773,7 +775,6 @@ if __name__ == '__main__':
     parser.add_argument('--scenFile', type=str, required=True)
     parser.add_argument('--agentNum', type=int, required=True)
     parser.add_argument('--bdPath', type=str, help="path containing bd npzs", required=True)
-    parser.add_argument('--eecbsNpzPath', type=str, help="path to directory containing mapname_paths.npz", required=True)
     parser.add_argument('--debug', type=lambda x: bool(str2bool(x)), help="Whether to enable debugging stats", default=False)
     # Simulator parameters
     parser.add_argument('--modelPath', type=str, required=True)

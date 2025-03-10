@@ -10,15 +10,20 @@ import time
 python sbatch_master_process_runner2.py --machine=omega \
     --collect_data --dataloader \
     --data_path=mini_benchmark_data --exp_path=EXP_mini \
-    --num_multi_inputs=0 num_multi_outputs=1 \
+    --num_multi_inputs=0 --num_multi_outputs=1 \
     --clean
     
 python sbatch_master_process_runner2.py --machine=omega \
     --trainer --model="ResGatedGraphConv" --use_edge_attr \
     --data_path=mini_benchmark_data --exp_path=EXP_mini \
-    --num_multi_inputs=0 num_multi_outputs=1 \
+    --num_multi_inputs=0 --num_multi_outputs=1 \
     --clean \
     --logging
+
+python sbatch_master_process_runner2.py --machine=omega \
+    --simulator --model="ResGatedGraphConv" --shield_type="CS-PIBT" --use_edge_attr \
+    --data_path=mini_benchmark_data --exp_path=EXP_mini \
+    --num_multi_inputs=0 --num_multi_outputs=1
 '''
 
 EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
@@ -40,14 +45,14 @@ NO_EDGE_ATTR_GNNS = ["SAGEConv"]
 def run_eecbs_batchrunner(args):
     clean_batchrunner_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/'
 
-    batchrunner_cmd = f'''python -m data_collection.eecbs_batchrunner5 --mapFolder={args.data_prefix+args.data_path}/maps \\
-        --scenFolder={args.data_prefix+args.data_path}/scens \\
+    batchrunner_cmd = f'''python -m data_collection.eecbs_batchrunner5 --mapFolder={args.data_path}/maps \\
+        --scenFolder={args.data_path}/scens \\
         --numAgents=50,100 \\
         --outputFolder={args.exp_path}/iter{args.iternum}/eecbs_outputs \\
         --num_parallel_runs={args.num_parallel_runs} \\
         "eecbs" \\
         --eecbsPath=./data_collection/eecbs/build_release4/eecbs \\
-        --outputPathNpzFolder={args.exp_prefix+args.exp_path}/iter{args.iternum}/eecbs_npzs \\
+        --outputPathNpzFolder={args.exp_path}/iter{args.iternum}/eecbs_npzs \\
         --cutoffTime=5'''
 
     if args.clean:
@@ -61,14 +66,14 @@ def run_eecbs_batchrunner(args):
 
 
 def run_constants_generator(args):
-    clean_constants_exp_cmd = f'rm -rf {args.data_prefix+args.temp_bd_path}/'
-    clean_constants_data_cmd = f'rm -rf {args.data_prefix+args.data_path}/constant_npzs/'
+    clean_constants_exp_cmd = f'rm -rf {args.temp_bd_path}/'
+    clean_constants_data_cmd = f'rm -rf {args.data_path}/constant_npzs/'
 
     constants_cmd = f'''python -m data_collection.constants_generator \\
-        --mapFolder={args.data_prefix+args.data_path}/maps \\
-        --scenFolder={args.data_prefix+args.data_path}/scens \\
-        --constantMapAndBDFolder={args.data_prefix+args.data_path}/constant_npzs \\
-        --outputFolder={args.data_prefix+args.temp_bd_path}/ \\
+        --mapFolder={args.data_path}/maps \\
+        --scenFolder={args.data_path}/scens \\
+        --constantMapAndBDFolder={args.data_path}/constant_npzs \\
+        --outputFolder={args.temp_bd_path}/ \\
         --num_parallel_runs={args.num_parallel_runs} \\
         --deleteTextFiles=true \\
         "eecbs" \\
@@ -87,18 +92,18 @@ def run_constants_generator(args):
     
 
 def run_dataloader(args):
-    clean_pts_cmd = f'rm -rf {args.exp_prefix+args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs}'
-    clean_pts_csv_cmd = f'rm {args.exp_prefix+args.exp_path}/iter{args.iternum}/status_data_processed_{args.num_multi_inputs}_{args.num_multi_outputs}.csv'
+    clean_pts_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs}'
+    clean_pts_csv_cmd = f'rm {args.exp_path}/iter{args.iternum}/status_data_processed_{args.num_multi_inputs}_{args.num_multi_outputs}.csv'
     
-    dataloader_cmd = f'''python -m gnn.dataloader --mapNpzFile={args.data_prefix+args.data_path}/constant_npzs/all_maps.npz \\
-        --bdNpzFolder={args.data_prefix+args.data_path}/constant_npzs \\
-        --pathNpzFolder={args.exp_prefix+args.exp_path}/iter{args.iternum}/eecbs_npzs \\
-        --processedFolder={args.exp_prefix+args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs} \\
+    dataloader_cmd = f'''python -m gnn.dataloader --mapNpzFile={args.data_path}/constant_npzs/all_maps.npz \\
+        --bdNpzFolder={args.data_path}/constant_npzs \\
+        --pathNpzFolder={args.exp_path}/iter{args.iternum}/eecbs_npzs \\
+        --processedFolder={args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs} \\
         --k=5 \\
         --m=3 \\
         --num_priority_copies=10 \\
         --num_multi_inputs={args.num_multi_inputs} \\
-        --num_multi_outputs={args.num_multi_outputs}'''
+        --num_multi_outputs={args.num_multi_outputs} --bd_pred'''
     
     if args.clean:
         try: 
@@ -112,10 +117,10 @@ def run_dataloader(args):
 
 
 def run_trainer(args, model):
-    clean_models_cmd = f'rm -rf {args.exp_prefix+args.exp_path}/iter{args.iternum}/models_{model}'
+    clean_models_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/models_{model}'
 
-    trainer_cmd = f'''python -m gnn.trainer --exp_folder={args.exp_prefix+args.exp_path} --experiment=exp0 --iternum={args.iternum} --num_cores=4 \\
-        --processedFolders={args.exp_prefix+args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs} \\
+    trainer_cmd = f'''python -m gnn.trainer --exp_folder={args.exp_path} --experiment=exp0 --iternum={args.iternum} --num_cores=4 \\
+        --processedFolders={args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs} \\
         --k=5 --m=3 --lr=0.01 \\
         --num_priority_copies=10 \\
         --num_multi_inputs={args.num_multi_inputs} \\
@@ -137,8 +142,32 @@ def run_trainer(args, model):
     print(f"\ntrainer: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
 
 
+
 def run_simulator(args, model):
-    simulator_cmd = ''' '''
+    clean_tests_cmd = f'rm -rf {args.exp_path}/tests'
+
+    priorities_str = '_priorities' if args.use_edge_attr else ''
+    simulator_cmd = f'''python -m gnn.simulator3 --mapNpzFile={args.data_path}/constant_npzs/all_maps.npz \
+        --mapName=random_32_32_10 --scenFile={args.data_path}/scens/random_32_32_10-random-1.scen \
+        --agentNum=50 --bdPath={args.data_path}/constant_npzs/\
+        --k=5 --m=3 \
+        --outputCSVFile={args.exp_path}/tests/results.csv \
+        --outputPathsFile={args.exp_path}/tests/encountered_scens/paths.npy \
+        --numScensToCreate=10 --outputScenPrefix={args.exp_path}/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
+        --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
+        --num_priority_copies=10 \
+        --useGPU=False --modelPath={args.exp_path}/iter0/models_{model}_{args.num_multi_inputs}_{args.num_multi_outputs}{priorities_str}/max_test_acc.pt \
+        --num_multi_inputs={args.num_multi_inputs} --num_multi_outputs={args.num_multi_outputs} --shieldType={args.shield_type}'''
+    
+    if args.clean:
+        try:
+            subprocess.run(clean_tests_cmd, shell=True, check=True)
+        except: pass
+    
+    t0 = time.time()
+    subprocess.run(simulator_cmd, shell=True, check=True)
+    print(f"\ntrainer: {time.strftime('%H:%M:%S',time.gmtime(time.time() - t0))}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -157,6 +186,7 @@ if __name__ == "__main__":
     parser.add_argument('--simulator', action='store_true')
 
     parser.add_argument('--model', type=str)
+    parser.add_argument('--shield_type', type=str)
     parser.add_argument('--logging', action='store_true')
 
     parser.add_argument('--use_edge_attr', action='store_true')
@@ -170,11 +200,13 @@ if __name__ == "__main__":
 
     assert(args.machine in ['omega', 'psc'])
     if args.machine == 'omega':
-        args.data_prefix = 'data_collection/data/'
-        args.exp_prefix = 'data_collection/data/logs/'
+        args.data_path = 'data_collection/data/' + args.data_path
+        args.temp_bd_path = 'data_collection/data/' + args.temp_bd_path
+        args.exp_path = 'data_collection/data/logs/' + args.exp_path
     elif args.machine == 'psc':
-        args.data_prefix = '$PROJECT/data/'
-        args.exp_prefix = '$PROJECT/data/logs/'
+        args.data_path = '$PROJECT/data/' + args.data_path
+        args.temp_bd_path = '$PROJECT/data/' + args.temp_bd_path
+        args.exp_path = '$PROJECT/data/logs/' + args.exp_path
 
     if args.collect_data:
         args.eecbs_batchrunner = args.constants_generator = True
@@ -195,6 +227,7 @@ if __name__ == "__main__":
         run_trainer(args, model)
     if args.simulator:
         model = args.model
+        assert(args.shield_type in ['CS-PIBT', 'CS-Freeze', 'LaCAM'])
         assert(model in EDGE_ATTR_GNNS or model in NO_EDGE_ATTR_GNNS)
         if args.use_edge_attr: assert(model in EDGE_ATTR_GNNS)
         run_simulator(args, model)
