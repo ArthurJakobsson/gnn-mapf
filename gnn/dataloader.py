@@ -476,7 +476,7 @@ class MyOwnDataset(Dataset):
                                                         "status": ["processed"], 
                                                         "num_pts": [len(cur_dataset)],
                                                         "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                                        "pxrocessing_time": [self.ct.getTimes("Processing", "list")[-1]]})
+                                                        "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
                         if len(self.df) == 0:
                             self.df = new_df
                         else:

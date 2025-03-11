@@ -59,7 +59,7 @@ class PipelineDataset(Dataset):
         self.maps = dict(np.load(mapFileNpz))
 
         self.scen_to_goals = dict(np.load(goalsFileNpz)) # scen to goals: dict[scenname] = goal indices (N,) 
-        self.goal_to_bd = dict(np.load(bdFileNpz))['arr_0'] # goal_to_bd[goal_index] = bd (W,H)
+        self.goal_to_bd = np.load(bdFileNpz)['arr_0'] # goal_to_bd[goal_index] = bd (W,H)
 
         paths = dict(np.load(pathFileNpz)) # Note: Very important to make this a dict() otherwise lazy loading kills performance later on
         self.tn2 = {k[:-6]: v for k, v in paths.items() if k[-6:] == "_paths"}
@@ -116,7 +116,7 @@ class PipelineDataset(Dataset):
         # Define the mapping from direction vectors to indices
         # Find the index of each direction in the possible_directions array
         output_indices = np.argmax(np.all(output_deltas[:, :, None] == self.direction_labels, axis=3), axis=2)
-        weights = [5**i for i in range(self.num_multi_outputs)]
+        weights = [5**i for i in range(self.num_multi_outputs)][::-1]
         
         # Create a one-hot encoded array using np.eye
         labels = np.eye(5**self.num_multi_outputs)[np.dot(output_indices, weights)]
@@ -128,6 +128,7 @@ class PipelineDataset(Dataset):
         returns the backward dijkstra, map, path arrays, and indices to get into the path array
         '''
 
+        t0 = time.time()
         # pdb.set_trace()
         assert(idx < self.length)
         # items = list(self.tn2.items())
@@ -155,11 +156,10 @@ class PipelineDataset(Dataset):
         max_timesteps = paths.shape[0]
         num_agents = paths.shape[1]
         
-        # bd = self.bds[scenname][:num_agents] # (N,H,W)
-        bd = self.goal_to_bd[self.scen_to_goals[scenname]] 
-        assert(bd.shape[0] >= num_agents)
-        # pdb.set_trace()
+        bd = self.goal_to_bd[self.scen_to_goals[scenname][:num_agents]] # (N,H,W)
         priorities = self.priorities[key_to_use+"_priorities"] # (N,)
+        assert(len(bd) == num_agents)
+        assert(len(priorities) == num_agents)
 
         return bd, grid, paths, timestep_to_use, max_timesteps, priorities
 

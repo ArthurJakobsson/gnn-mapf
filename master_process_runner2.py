@@ -7,20 +7,20 @@ import time
 
 # example runs
 '''
-python sbatch_master_process_runner2.py --machine=omega \
+python master_process_runner2.py --machine=omega \
     --collect_data --dataloader \
     --data_path=mini_benchmark_data --exp_path=EXP_mini \
     --num_multi_inputs=0 --num_multi_outputs=1 \
     --clean
     
-python sbatch_master_process_runner2.py --machine=omega \
+python master_process_runner2.py --machine=omega \
     --trainer --model="ResGatedGraphConv" --use_edge_attr \
     --data_path=mini_benchmark_data --exp_path=EXP_mini \
     --num_multi_inputs=0 --num_multi_outputs=1 \
     --clean \
     --logging
 
-python sbatch_master_process_runner2.py --machine=omega \
+python master_process_runner2.py --machine=omega \
     --simulator --model="ResGatedGraphConv" --shield_type="CS-PIBT" --use_edge_attr \
     --data_path=mini_benchmark_data --exp_path=EXP_mini \
     --num_multi_inputs=0 --num_multi_outputs=1
@@ -201,11 +201,11 @@ if __name__ == "__main__":
     assert(args.machine in ['omega', 'psc'])
     if args.machine == 'omega':
         args.data_path = 'data_collection/data/' + args.data_path
-        args.temp_bd_path = 'data_collection/data/' + args.temp_bd_path
+        args.temp_bd_path = 'data_collection/data/logs/' + args.temp_bd_path
         args.exp_path = 'data_collection/data/logs/' + args.exp_path
     elif args.machine == 'psc':
         args.data_path = '$PROJECT/data/' + args.data_path
-        args.temp_bd_path = '$PROJECT/data/' + args.temp_bd_path
+        args.temp_bd_path = '$PROJECT/data/logs/' + args.temp_bd_path
         args.exp_path = '$PROJECT/data/logs/' + args.exp_path
 
     if args.collect_data:

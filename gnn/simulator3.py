@@ -410,30 +410,30 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs,
     entirePath.reverse() # Reverse to get path from start to goal
     return entirePath, success, numNodesExpanded, numGenerated
 
-class WrapperNNWithCache:
-    def __init__(self, bd, grid_map, model, device, k, m, goal_locations, eecbs_priorities, args) -> None:
-        self.bd = bd
-        self.grid_map = grid_map
-        self.model = model
-        self.device = device
-        self.k = k
-        self.m = m
-        self.saved_calls = dict()
-        self.hits = 0
-        self.goal_locations = goal_locations
-        self.args = args
-        self.priorities = eecbs_priorities
+# class WrapperNNWithCache:
+#     def __init__(self, bd, grid_map, model, device, k, m, goal_locations, eecbs_priorities, args) -> None:
+#         self.bd = bd
+#         self.grid_map = grid_map
+#         self.model = model
+#         self.device = device
+#         self.k = k
+#         self.m = m
+#         self.saved_calls = dict()
+#         self.hits = 0
+#         self.goal_locations = goal_locations
+#         self.args = args
+#         self.priorities = eecbs_priorities
 
-    def __call__(self, locs, multi_inputs):
-        key = str(locs)
-        if key in self.saved_calls.keys():
-            self.hits += 1
-            return self.saved_calls[key]
-        else:
-            probs = runNNOnState(locs, multi_inputs, self.bd, self.grid_map, self.priorities, self.k, self.m, 
-                                 self.model, self.device, self.goal_locations, self.args)
-            self.saved_calls[key] = probs
-            return probs
+#     def __call__(self, locs, multi_inputs):
+#         key = str(locs)
+#         if key in self.saved_calls.keys():
+#             self.hits += 1
+#             return self.saved_calls[key]
+#         else:
+#             probs = runNNOnState(locs, multi_inputs, self.bd, self.grid_map, self.priorities, self.k, self.m, 
+#                                  self.model, self.device, self.goal_locations, self.args)
+#             self.saved_calls[key] = probs
+#             return probs
 
 def runNNOnState(cur_locs, multi_inputs, bd_list, grid_map, eecbs_priorities, k, m,
                  model, device, goal_locations, args, timer: CustomTimer):
@@ -447,7 +447,6 @@ def runNNOnState(cur_locs, multi_inputs, bd_list, grid_map, eecbs_priorities, k,
         # Create the data object
         timer.start("create_nn_data")
 
-        # pdb.set_trace() # TODO: args.bd_pred=true, k=5, lin dim should be 81*2+5=167
         data = create_data_object(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k, m, args.num_priority_copies,
                                   goal_locations, args.extra_layers, args.bd_pred)
         data = normalize_graph_data(data, k)
@@ -467,8 +466,11 @@ def runNNOnState(cur_locs, multi_inputs, bd_list, grid_map, eecbs_priorities, k,
         # Get the action preferences
         probs = probabilities.cpu().detach().numpy() # (N,5**num_multi_outputs)
         # Sum probabilities for first predicted step
-        probs = np.sum(np.reshape(probs, (probs.shape[0], 5, probs.shape[1]//5)), axis=2)
+
+        assert(probs.shape[1] == 5**args.num_multi_outputs)
+        probs = np.sum(np.reshape(probs, (probs.shape[0], 5, probs.shape[1]//5)), axis=2) # TODO
         assert(probs.shape[1] == 5)
+        
     return probs
 
 class WrapperBDGetActionPrefs:
@@ -494,7 +496,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     if shield_type not in ["CS-PIBT", "CS-Freeze", "LaCAM"]:
         raise KeyError(f'Invalid shield type: {shield_type}')
     
-    wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, eecbs_priorities, args)
+    # wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, eecbs_priorities, args)
 
     def getActionPrefsFromLocs(locs, multi_inputs):
         # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
@@ -586,7 +588,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     
     solution_path = np.array(solution_path) # (T<=max_steps+1,N,2)
     total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal = getCosts(solution_path, goal_locations)
-    print(f"Total cache hits: {wrapper_nn.hits}, Total size: {len(wrapper_nn.saved_calls)}")
+    # print(f"Total cache hits: {wrapper_nn.hits}, Total size: {len(wrapper_nn.saved_calls)}")
 
     return solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success
 
@@ -664,7 +666,7 @@ def main(args: argparse.ArgumentParser):
     if args.debug:
         profiler = cProfile.Profile()
         profiler.enable()
-
+        
     timer = CustomTimer()
     timer.start("total_simulate")
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
