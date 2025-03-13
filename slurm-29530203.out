@@ -1,0 +1,29 @@
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 569, in <module>
+    dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 337, in __init__
+    self.custom_process()
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 416, in custom_process
+    bd_folder = os.listdir(self.bdNpzFolder)
+FileNotFoundError: [Errno 2] No such file or directory: '/ocean/projects/cis240049p/mliu13/data/benchmark_data/constant_npzs'
+multi input: 3, multi output: 1
+Traceback (most recent call last):
+  File "/jet/home/mliu13/gnn-mapf/sbatch_master_process_runner2.py", line 193, in <module>
+    run_dataloader(args)
+  File "/jet/home/mliu13/gnn-mapf/sbatch_master_process_runner2.py", line 110, in run_dataloader
+    subprocess.run(dataloader_cmd, shell=True, check=True)
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/subprocess.py", line 526, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command 'python -m gnn.dataloader --mapNpzFile=$PROJECT/data/benchmark_data/constant_npzs/all_maps.npz \
+        --bdNpzFolder=$PROJECT/data/benchmark_data/constant_npzs \
+        --pathNpzFolder=$PROJECT/data/logs/EXP_full/iter0/eecbs_npzs \
+        --processedFolder=$PROJECT/data/logs/EXP_full/iter0/processed_3_1 \
+        --k=5 \
+        --m=3 \
+        --num_priority_copies=10 \
+        --num_multi_inputs=3 \
+        --num_multi_outputs=1' returned non-zero exit status 1.

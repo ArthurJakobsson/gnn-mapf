@@ -1,0 +1,66 @@
+2025-03-10 00:37:52,805	INFO worker.py:1841 -- Started a local Ray instance.
+Skipping den312d as finished.txt already exists
+Skipping maze_128_128_10 as finished.txt already exists
+Skipping ost003d as finished.txt already exists
+Skipping maze_32_32_4 as finished.txt already exists
+Skipping Berlin_1_256 as finished.txt already exists
+Skipping lt_gallowstemplar_n as finished.txt already exists
+Skipping ht_mansion_n as finished.txt already exists
+Skipping lak303d as finished.txt already exists
+Skipping warehouse_20_40_10_2_2 as finished.txt already exists
+Skipping warehouse_10_20_10_2_2 as finished.txt already exists
+Skipping empty_48_48 as finished.txt already exists
+Skipping empty_32_32 as finished.txt already exists
+Skipping random_64_64_10 as finished.txt already exists
+Skipping random_32_32_10 as finished.txt already exists
+Skipping Paris_1_256 as finished.txt already exists
+Skipping maze_128_128_2 as finished.txt already exists
+Skipping ht_chantry as finished.txt already exists
+Skipping den520d as finished.txt already exists
+Skipping random_64_64_20 as finished.txt already exists
+Skipping empty_16_16 as finished.txt already exists
+Skipping maze_32_32_2 as finished.txt already exists
+Skipping random_32_32_20 as finished.txt already exists
+Skipping room_64_64_8 as finished.txt already exists
+Skipping maze_128_128_1 as finished.txt already exists
+Skipping empty_8_8 as finished.txt already exists
+Skipping warehouse_10_20_10_2_1 as finished.txt already exists
+Skipping Boston_0_256 as finished.txt already exists
+Skipping room_32_32_4 as finished.txt already exists
+Skipping warehouse_20_40_10_2_1 as finished.txt already exists
+Skipping room_64_64_16 as finished.txt already exists
+------------ Finished eecbs Calls in :11.474 seconds
+Skipping: den312d as paths npz already exists
+Skipping: maze_128_128_10 as paths npz already exists
+Skipping: ost003d as paths npz already exists
+Skipping: maze_32_32_4 as paths npz already exists
+Skipping: Berlin_1_256 as paths npz already exists
+Skipping: lt_gallowstemplar_n as paths npz already exists
+Skipping: ht_mansion_n as paths npz already exists
+Skipping: lak303d as paths npz already exists
+Skipping: warehouse_20_40_10_2_2 as paths npz already exists
+Skipping: warehouse_10_20_10_2_2 as paths npz already exists
+Skipping: empty_48_48 as paths npz already exists
+Skipping: empty_32_32 as paths npz already exists
+Skipping: random_64_64_10 as paths npz already exists
+Skipping: random_32_32_10 as paths npz already exists
+Skipping: Paris_1_256 as paths npz already exists
+Skipping: maze_128_128_2 as paths npz already exists
+Skipping: ht_chantry as paths npz already exists
+Skipping: den520d as paths npz already exists
+Skipping: random_64_64_20 as paths npz already exists
+Skipping: empty_16_16 as paths npz already exists
+Skipping: maze_32_32_2 as paths npz already exists
+Skipping: random_32_32_20 as paths npz already exists
+Skipping: room_64_64_8 as paths npz already exists
+Skipping: maze_128_128_1 as paths npz already exists
+Skipping: empty_8_8 as paths npz already exists
+Skipping: warehouse_10_20_10_2_1 as paths npz already exists
+Skipping: Boston_0_256 as paths npz already exists
+Skipping: room_32_32_4 as paths npz already exists
+Skipping: warehouse_20_40_10_2_1 as paths npz already exists
+Skipping: room_64_64_16 as paths npz already exists
+No data manipulator runs as all paths npz files already exist
+------------ Finished Data Manipulator in :0.006 seconds
+2025-03-10 00:38:01,197	INFO worker.py:1841 -- Started a local Ray instance.
+slurmstepd: error: *** JOB 29542331 ON r083 CANCELLED AT 2025-03-10T00:40:11 ***

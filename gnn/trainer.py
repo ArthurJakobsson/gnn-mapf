@@ -415,7 +415,7 @@ if __name__ == "__main__":
     if dataset_size>0:
         model_path = exp_folder+f"/{itername}"+f"/models_{dataset_size}/"
     else:
-        model_path = exp_folder+f"/{itername}"+f"/models_{gnn_name}_{num_multi_inputs}_{num_multi_outputs}{'_priorities'*use_edge_attr}/"
+        model_path = exp_folder+f"/{itername}"+f"/models_{gnn_name}_{num_multi_inputs}_{num_multi_outputs}{'_p'*use_edge_attr}/"
     finished_file = model_path + "/finished.txt"
     if os.path.exists(finished_file):
         print(f"Model already trained for {args.experiment} {itername}")

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 569, in <module>
+    dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 337, in __init__
+    self.custom_process()
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 416, in custom_process
+    bd_folder = os.listdir(self.bdNpzFolder)
+FileNotFoundError: [Errno 2] No such file or directory: '/ocean/projects/cis240049p/mliu13/data/mini_benchmark_data/constant_npzs'
