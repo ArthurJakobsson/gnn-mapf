@@ -1,0 +1,41 @@
+2025-03-14 07:19:21,536	INFO worker.py:1841 -- Started a local Ray instance.
+Map: maze5_32_32_1 requires 1 runs
+Map: maze1_16_16_1 requires 1 runs
+Map: maze2_16_16_1 requires 1 runs
+Map: maze4_32_32_1 requires 1 runs
+Map: maze3_16_16_1 requires 1 runs
+Map: maze6_32_32_1 requires 1 runs
+[36m(checkIfRunNextAgents pid=48447)[0m Finished all scens for map: maze5_32_32_1
+[36m(checkIfRunNextAgents pid=48447)[0m Finished all scens for map: maze1_16_16_1
+[36m(checkIfRunNextAgents pid=48447)[0m Finished all scens for map: maze2_16_16_1
+------------ Finished eecbs Calls in :10.096 seconds
+COMMAND:  python -m data_collection.data_manipulator --bdIn=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Generate_mazes///maze5_32_32_1/bd --goalsOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze5_32_32_1_goals.npz --bdOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze5_32_32_1_bds.npz --scenIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//scens --mapIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//maps --mapOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/all_maps.npz --num_parallel=1
+COMMAND:  python -m data_collection.data_manipulator --bdIn=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Generate_mazes///maze1_16_16_1/bd --goalsOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze1_16_16_1_goals.npz --bdOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze1_16_16_1_bds.npz --scenIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//scens --mapIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//maps --mapOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/all_maps.npz --num_parallel=1
+COMMAND:  python -m data_collection.data_manipulator --bdIn=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Generate_mazes///maze2_16_16_1/bd --goalsOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze2_16_16_1_goals.npz --bdOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze2_16_16_1_bds.npz --scenIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//scens --mapIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//maps --mapOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/all_maps.npz --num_parallel=1
+COMMAND:  python -m data_collection.data_manipulator --bdIn=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Generate_mazes///maze4_32_32_1/bd --goalsOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze4_32_32_1_goals.npz --bdOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze4_32_32_1_bds.npz --scenIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//scens --mapIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//maps --mapOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/all_maps.npz --num_parallel=1
+COMMAND:  python -m data_collection.data_manipulator --bdIn=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Generate_mazes///maze3_16_16_1/bd --goalsOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze3_16_16_1_goals.npz --bdOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze3_16_16_1_bds.npz --scenIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//scens --mapIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//maps --mapOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/all_maps.npz --num_parallel=1
+COMMAND:  python -m data_collection.data_manipulator --bdIn=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Generate_mazes///maze6_32_32_1/bd --goalsOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze6_32_32_1_goals.npz --bdOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze6_32_32_1_bds.npz --scenIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//scens --mapIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//maps --mapOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/all_maps.npz --num_parallel=1
+------------ Finished Data Manipulator in :5.957 seconds
+[36m(checkIfRunNextAgents pid=48447)[0m Finished all scens for map: maze6_32_32_1[32m [repeated 3x across cluster] (Ray deduplicates logs by default. Set RAY_DEDUP_LOGS=0 to disable log deduplication, or see https://docs.ray.io/en/master/ray-observability/user-guides/configure-logging.html#log-deduplication for more options.)[0m
+Maze generated in 0.0356s
+Scen start goal pairs generated in 0.0464s
+Octile BFS skipped
+Maze generated in 0.0017s
+Scen start goal pairs generated in 0.0022s
+Octile BFS skipped
+Maze generated in 0.0017s
+Scen start goal pairs generated in 0.0022s
+Octile BFS skipped
+Maze generated in 0.0066s
+Scen start goal pairs generated in 0.0160s
+Octile BFS skipped
+Maze generated in 0.0066s
+Scen start goal pairs generated in 0.0158s
+Octile BFS skipped
+Maze generated in 0.0064s
+Scen start goal pairs generated in 0.0157s
+Octile BFS skipped
+Maps and scens in /ocean/projects/cis240049p/mliu13/data/maze_benchmark_data/
+Running constants_generator.py...
+Done.
+

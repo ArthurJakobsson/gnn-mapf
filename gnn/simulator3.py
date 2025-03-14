@@ -745,29 +745,6 @@ def main(args: argparse.ArgumentParser):
 
 ### Example command
 """
-python -m gnn.simulator3 --mapNpzFile=$PROJECT/data/maze_benchmark_data/constant_npzs/all_maps.npz \
-        --mapName=maze2_32_32_1 --scenFile=$PROJECT/data/maze_benchmark_data/scens/maze2_32_32_1-random-1.scen \
-        --agentNum=4 --bdPath=$PROJECT/data/maze_benchmark_data/constant_npzs/\
-        --k=5 --m=3 \
-        --outputCSVFile=$PROJECT/data/logs/EXP_mini/tests/results.csv \
-        --outputPathsFile=$PROJECT/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
-        --numScensToCreate=10 --outputScenPrefix=$PROJECT/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-        --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
-        --num_priority_copies=10 \
-        --useGPU=False --modelPath=$PROJECT/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt \
-        --num_multi_inputs=0 --num_multi_outputs=1 --shieldType=CS-PIBT 
-python -m gnn.simulator3 --mapNpzFile=$PROJECT/data/maze_benchmark_data/constant_npzs/all_maps.npz \
-        --mapName=maze1_16_16_1 --scenFile=$PROJECT/data/maze_benchmark_data/scens/maze1_16_16_1-random-1.scen \
-        --agentNum=10 --bdPath=$PROJECT/data/maze_benchmark_data/constant_npzs/\
-        --k=5 --m=3 \
-        --outputCSVFile=$PROJECT/data/logs/EXP_mini/tests/results.csv \
-        --outputPathsFile=$PROJECT/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
-        --numScensToCreate=10 --outputScenPrefix=$PROJECT/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-        --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
-        --num_priority_copies=10 \
-        --useGPU=False --modelPath=$PROJECT/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt \
-        --num_multi_inputs=3 --num_multi_outputs=1 --shieldType=CS-PIBT 
-
 python -m gnn.simulator3 --mapNpzFile=data_collection/data/maze_benchmark_data/constant_npzs/all_maps.npz \
         --mapName=maze2_32_32_1 --scenFile=data_collection/data/maze_benchmark_data/scens/maze2_32_32_1-random-1.scen \
         --agentNum=4 --bdPath=data_collection/data/maze_benchmark_data/constant_npzs/\

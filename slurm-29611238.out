@@ -1,0 +1,100 @@
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s]  0%|          | 0/400 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 838, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 672, in main
+    solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 540, in simulate
+    action_preferences = getActionPrefsFromLocs(cur_locs, multi_inputs) # (N,5)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 503, in getActionPrefsFromLocs
+    probs = runNNOnState(locs, multi_inputs, bd, grid_map, eecbs_priorities, k, m, 
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 450, in runNNOnState
+    data = create_data_object(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k, m, args.num_priority_copies,
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 289, in create_data_object
+    edge_indices, edge_features = calculate_edge_features(cur_locs, num_agents, range_num_agents, m, k, priorities, num_priority_copies)
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 179, in calculate_edge_features
+    neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
+  File "<__array_function__ internals>", line 5, in stack
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/numpy/core/shape_base.py", line 426, in stack
+    raise ValueError('all input arrays must have the same shape')
+ValueError: all input arrays must have the same shape
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_2_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s]  0%|          | 0/400 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 838, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 672, in main
+    solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 540, in simulate
+    action_preferences = getActionPrefsFromLocs(cur_locs, multi_inputs) # (N,5)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 503, in getActionPrefsFromLocs
+    probs = runNNOnState(locs, multi_inputs, bd, grid_map, eecbs_priorities, k, m, 
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 450, in runNNOnState
+    data = create_data_object(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k, m, args.num_priority_copies,
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 289, in create_data_object
+    edge_indices, edge_features = calculate_edge_features(cur_locs, num_agents, range_num_agents, m, k, priorities, num_priority_copies)
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 179, in calculate_edge_features
+    neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
+  File "<__array_function__ internals>", line 5, in stack
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/numpy/core/shape_base.py", line 426, in stack
+    raise ValueError('all input arrays must have the same shape')
+ValueError: all input arrays must have the same shape
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s]  0%|          | 0/400 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 838, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 672, in main
+    solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 540, in simulate
+    action_preferences = getActionPrefsFromLocs(cur_locs, multi_inputs) # (N,5)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 503, in getActionPrefsFromLocs
+    probs = runNNOnState(locs, multi_inputs, bd, grid_map, eecbs_priorities, k, m, 
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 450, in runNNOnState
+    data = create_data_object(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k, m, args.num_priority_copies,
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 289, in create_data_object
+    edge_indices, edge_features = calculate_edge_features(cur_locs, num_agents, range_num_agents, m, k, priorities, num_priority_copies)
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 179, in calculate_edge_features
+    neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
+  File "<__array_function__ internals>", line 5, in stack
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/numpy/core/shape_base.py", line 426, in stack
+    raise ValueError('all input arrays must have the same shape')
+ValueError: all input arrays must have the same shape
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_2_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s]  0%|          | 0/400 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 838, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 672, in main
+    solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 540, in simulate
+    action_preferences = getActionPrefsFromLocs(cur_locs, multi_inputs) # (N,5)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 503, in getActionPrefsFromLocs
+    probs = runNNOnState(locs, multi_inputs, bd, grid_map, eecbs_priorities, k, m, 
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 450, in runNNOnState
+    data = create_data_object(cur_locs, bd_list, grid_map, eecbs_priorities, multi_inputs, k, m, args.num_priority_copies,
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 289, in create_data_object
+    edge_indices, edge_features = calculate_edge_features(cur_locs, num_agents, range_num_agents, m, k, priorities, num_priority_copies)
+  File "/jet/home/mliu13/gnn-mapf/gnn/dataloader.py", line 179, in calculate_edge_features
+    neighbors_and_source_idx = np.stack([agent_indices, closest_neighbors]) # (2,N,m), 0 stores source agent, 1 stores neigbhor
+  File "<__array_function__ internals>", line 5, in stack
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/numpy/core/shape_base.py", line 426, in stack
+    raise ValueError('all input arrays must have the same shape')
+ValueError: all input arrays must have the same shape

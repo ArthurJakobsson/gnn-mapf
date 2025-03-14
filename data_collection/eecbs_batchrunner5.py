@@ -554,16 +554,6 @@ def generic_batch_runner(args):
 
 ## Example calls of BatchRunner5
 """
-python -m data_collection.eecbs_batchrunner5 --mapFolder=$PROJECT/data/mini_benchmark_data/maps \
-    --scenFolder=$PROJECT/data/mini_benchmark_data/scens \
-    --numAgents=50,100 \
-    --outputFolder=$PROJECT/data/logs/EXP_mini/iter0/eecbs_outputs \
-    --num_parallel_runs=1 \
-    "eecbs" \
-    --eecbsPath=./data_collection/eecbs/build_release5/eecbs \
-    --outputPathNpzFolder=$PROJECT/data/logs/EXP_mini/iter0/eecbs_npzs \
-    --firstIter=true --cutoffTime=5
-
 python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
     --scenFolder=data_collection/data/mini_benchmark_data/scens \
     --numAgents=50,100 \

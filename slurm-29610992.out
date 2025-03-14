@@ -1,0 +1,75 @@
+2025-03-14 03:34:41,682	INFO worker.py:1841 -- Started a local Ray instance.
+[36m(PoolActor pid=100636)[0m *** SIGSEGV received at time=1741938092 on cpu 34 ***
+[36m(PoolActor pid=100636)[0m PC: @     0x14f9ad2d8cfe  (unknown)  ray::gcs::TaskInfoAccessor::AsyncAddTaskEventData()
+[36m(PoolActor pid=100636)[0m     @     0x14f9bbf57d10       1792  (unknown)
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad1bba45       1392  ray::core::worker::TaskEventBufferImpl::FlushEvents()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad147a0c       1488  ray::core::CoreWorker::Disconnect()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad147dbd       1152  ray::core::CoreWorker::ForceExit()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad1481ef       1680  ray::core::CoreWorker::HandleKillActor()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad13f6f4        192  ray::rpc::ServerCallImpl<>::HandleRequestImpl()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad48e128       1168  EventTracker::RecordExecution()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad4890fe         48  std::_Function_handler<>::_M_invoke()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad489576        112  boost::asio::detail::completion_handler<>::do_complete()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ada5ecbb        128  boost::asio::detail::scheduler::do_run_one()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ada60639        288  boost::asio::detail::scheduler::run()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ada60d42         96  boost::asio::io_context::run()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad084b81       1280  ray::core::CoreWorker::RunIOService()
+[36m(PoolActor pid=100636)[0m     @     0x14f9ad53f890         64  thread_proxy
+[36m(PoolActor pid=100636)[0m     @     0x14f9bbf4d1ca  (unknown)  start_thread
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,466 E 100636 100670] logging.cc:460: *** SIGSEGV received at time=1741938092 on cpu 34 ***
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460: PC: @     0x14f9ad2d8cfe  (unknown)  ray::gcs::TaskInfoAccessor::AsyncAddTaskEventData()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9bbf57d10       1792  (unknown)
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad1bba45       1392  ray::core::worker::TaskEventBufferImpl::FlushEvents()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad147a0c       1488  ray::core::CoreWorker::Disconnect()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad147dbd       1152  ray::core::CoreWorker::ForceExit()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad1481ef       1680  ray::core::CoreWorker::HandleKillActor()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad13f6f4        192  ray::rpc::ServerCallImpl<>::HandleRequestImpl()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad48e128       1168  EventTracker::RecordExecution()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad4890fe         48  std::_Function_handler<>::_M_invoke()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad489576        112  boost::asio::detail::completion_handler<>::do_complete()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ada5ecbb        128  boost::asio::detail::scheduler::do_run_one()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ada60639        288  boost::asio::detail::scheduler::run()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ada60d42         96  boost::asio::io_context::run()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad084b81       1280  ray::core::CoreWorker::RunIOService()
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9ad53f890         64  thread_proxy
+[36m(PoolActor pid=100636)[0m [2025-03-14 03:41:32,467 E 100636 100670] logging.cc:460:     @     0x14f9bbf4d1ca  (unknown)  start_thread
+[36m(PoolActor pid=100636)[0m Fatal Python error: Segmentation fault
+[36m(PoolActor pid=100636)[0m 
+[36m(PoolActor pid=100636)[0m 
+[36m(PoolActor pid=100636)[0m Extension modules: msgpack._cmsgpack, google._upb._message, psutil._psutil_linux, psutil._psutil_posix, setproctitle, yaml._yaml, _cffi_backend, ray._raylet, pvectorc, mkl._mklinit, mkl._py_mkl_service, numpy.core._multiarray_umath, numpy.core._multiarray_tests, numpy.linalg.lapack_lite, numpy.linalg._umath_linalg, numpy.fft._pocketfft_internal, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._mt19937, numpy.random.mtrand, numpy.random._philox, numpy.random._pcg64, numpy.random._sfc64, numpy.random._generator (total: 25)
+Map: maze6_32_32_1 requires 25 runs
+Map: maze5_32_32_1 requires 25 runs
+Map: maze4_32_32_1 requires 25 runs
+Map: maze1_16_16_1 requires 25 runs
+Map: maze2_16_16_1 requires 25 runs
+Map: maze3_16_16_1 requires 25 runs
+[36m(checkIfRunNextAgents pid=90987)[0m Finished all scens for map: maze6_32_32_1
+[36m(checkIfRunNextAgents pid=90987)[0m Finished all scens for map: maze5_32_32_1
+[36m(checkIfRunNextAgents pid=97762)[0m Finished all scens for map: maze4_32_32_1
+[36m(checkIfRunNextAgents pid=98806)[0m Finished all scens for map: maze1_16_16_1
+[36m(checkIfRunNextAgents pid=99961)[0m Finished all scens for map: maze2_16_16_1
+------------ Finished eecbs Calls in :384.337 seconds
+[36m(checkIfRunNextAgents pid=100545)[0m Finished all scens for map: maze3_16_16_1
+------------ Finished Data Manipulator in :35.803 seconds
+Maze generated in 0.0254s
+Scen start goal pairs generated in 0.0745s
+Octile BFS skipped
+Maze generated in 0.0017s
+Scen start goal pairs generated in 0.0545s
+Octile BFS skipped
+Maze generated in 0.0016s
+Scen start goal pairs generated in 0.0557s
+Octile BFS skipped
+Maze generated in 0.0064s
+Scen start goal pairs generated in 0.4015s
+Octile BFS skipped
+Maze generated in 0.0064s
+Scen start goal pairs generated in 0.4020s
+Octile BFS skipped
+Maze generated in 0.0063s
+Scen start goal pairs generated in 0.4032s
+Octile BFS skipped
+Maps and scens in /ocean/projects/cis240049p/mliu13/data/maze_benchmark_data
+Running constants_generator.py...
+Done.
+

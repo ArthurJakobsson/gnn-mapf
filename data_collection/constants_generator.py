@@ -246,6 +246,7 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
                         f"--bdIn={mapOutputFolder}/bd", f"--goalsOutFile={goalsOutputNpz}", f"--bdOutFile={bdOutputNpz}", 
                         f"--scenIn={scensInputFolder}", f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
+        print("COMMAND: ", command)
         
         input_list.append((command,))
     
@@ -424,16 +425,6 @@ def generic_batch_runner(args):
 ## Example calls of constants_generator
 """
 Collecting initial bd and map data:
-
-python -m data_collection.constants_generator --mapFolder=$PROJECT/data/mini_benchmark_data/maps \
-        --scenFolder=$PROJECT/data/mini_benchmark_data/scens \
-        --constantMapAndBDFolder=$PROJECT/data/benchmark_data/constant_npzs \
-        --outputFolder=$PROJECT/data/logs/EXP_Collect_BD \
-        --num_parallel_runs=1 \
-        --deleteTextFiles=true \
-        "eecbs" \
-        --eecbsPath=./data_collection/eecbs/build_release5/eecbs \
-        --firstIter=true --cutoffTime=1
 
 python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
         --scenFolder=data_collection/data/mini_benchmark_data/scens \

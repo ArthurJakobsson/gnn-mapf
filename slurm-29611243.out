@@ -1,0 +1,16 @@
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s]  0%|          | 1/400 [00:03<21:46,  3.27s/it] 12%|█▏        | 49/400 [00:03<00:17, 20.35it/s] 23%|██▎       | 92/400 [00:03<00:07, 43.38it/s] 35%|███▌      | 141/400 [00:03<00:03, 76.55it/s] 44%|████▍     | 177/400 [00:03<00:04, 48.44it/s]
+(179, 6, 2)
+Success: True, Total cost true: 689, Total cost not at goal: 588, Num agents at goal: 6/6, Seconds spent: 3.6700966358184814
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_2_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s] 11%|█▏        | 45/400 [00:00<00:00, 444.86it/s] 23%|██▎       | 92/400 [00:00<00:00, 458.24it/s] 35%|███▍      | 139/400 [00:00<00:00, 463.40it/s] 47%|████▋     | 187/400 [00:00<00:00, 466.06it/s] 59%|█████▉    | 235/400 [00:00<00:00, 468.85it/s] 71%|███████   | 283/400 [00:00<00:00, 471.31it/s] 83%|████████▎ | 331/400 [00:00<00:00, 473.12it/s] 95%|█████████▍| 379/400 [00:00<00:00, 474.11it/s]100%|██████████| 400/400 [00:00<00:00, 469.68it/s]
+(401, 6, 2)
+Success: False, Total cost true: 2400, Total cost not at goal: 2400, Num agents at goal: 0/6, Seconds spent: 0.8530986309051514
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s] 11%|█▏        | 45/400 [00:00<00:00, 444.20it/s] 23%|██▎       | 93/400 [00:00<00:00, 459.57it/s] 35%|███▌      | 140/400 [00:00<00:00, 463.54it/s] 47%|████▋     | 188/400 [00:00<00:00, 466.73it/s] 52%|█████▏    | 209/400 [00:00<00:00, 464.00it/s]
+(211, 6, 2)
+Success: True, Total cost true: 822, Total cost not at goal: 702, Num agents at goal: 6/6, Seconds spent: 0.4517827033996582
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_2_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s] 11%|█▏        | 45/400 [00:00<00:00, 446.60it/s] 23%|██▎       | 93/400 [00:00<00:00, 461.64it/s] 35%|███▌      | 141/400 [00:00<00:00, 467.40it/s] 48%|████▊     | 193/400 [00:00<00:00, 484.35it/s] 61%|██████▏   | 245/400 [00:00<00:00, 494.84it/s] 74%|███████▍  | 296/400 [00:00<00:00, 499.07it/s] 87%|████████▋ | 348/400 [00:00<00:00, 504.25it/s]100%|█████████▉| 399/400 [00:00<00:00, 505.97it/s]100%|██████████| 400/400 [00:00<00:00, 493.50it/s]
+(401, 6, 2)
+Success: False, Total cost true: 2145, Total cost not at goal: 2145, Num agents at goal: 1/6, Seconds spent: 0.8119754791259766

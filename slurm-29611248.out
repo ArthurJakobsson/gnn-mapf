@@ -1,0 +1,110 @@
+2025-03-14 07:02:03,749	INFO worker.py:1841 -- Started a local Ray instance.
+Skipping random_32_32_10 as finished.txt already exists
+Skipping warehouse_10_20_10_2_2 as finished.txt already exists
+------------ Finished eecbs Calls in :9.204 seconds
+Skipping: random_32_32_10 as paths npz already exists
+Skipping: warehouse_10_20_10_2_2 as paths npz already exists
+No data manipulator runs as all paths npz files already exist
+------------ Finished Data Manipulator in :0.030 seconds
+2025-03-14 07:02:10,619	INFO worker.py:1841 -- Started a local Ray instance.
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/data_collection/constants_generator.py", line 476, in <module>
+    generic_batch_runner(args)
+  File "/jet/home/mliu13/gnn-mapf/data_collection/constants_generator.py", line 405, in generic_batch_runner
+    children = ray.get(finished_task)
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/ray/_private/auto_init_hook.py", line 21, in auto_init_wrapper
+    return fn(*args, **kwargs)
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/ray/_private/client_mode_hook.py", line 103, in wrapper
+    return func(*args, **kwargs)
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/ray/_private/worker.py", line 2772, in get
+    values, debugger_breakpoint = worker.get_objects(object_refs, timeout=timeout)
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/ray/_private/worker.py", line 919, in get_objects
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(CalledProcessError): [36mray::runSingleInstanceMT()[39m (pid=82822, ip=10.8.9.9)
+  File "/jet/home/mliu13/gnn-mapf/data_collection/constants_generator.py", line 151, in runSingleInstanceMT
+    helperRun(command)
+  File "/jet/home/mliu13/gnn-mapf/data_collection/constants_generator.py", line 207, in helperRun
+    subprocess.run(command, check=True, shell=True,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/subprocess.py", line 526, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command './data_collection/eecbs/build_release4/eecbs --suboptimality=2 --cutoffTime=1 --agentNum=461 --agents=/ocean/projects/cis240049p/mliu13/data/mini_benchmark_data/scens/random_32_32_10-random-2.scen --bd_file=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Collect_BD/random_32_32_10/bd/random_32_32_10-random-2.461.txt --output=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Collect_BD/random_32_32_10/csvs/worker_5d287c096921fbdc6d42efe56f94942d2844bed8b6377cd935b26b65.csv --map=/ocean/projects/cis240049p/mliu13/data/mini_benchmark_data/maps/random_32_32_10.map --sipp=1' returned non-zero exit status 127.
+Map: random_32_32_10 requires 2 runs
+Map: warehouse_10_20_10_2_2 requires 4 runs
+Num cores: 1
+Skipping: /ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/eecbs_npzs/warehouse_10_20_10_2_2_paths.npz
+Skipping: /ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/eecbs_npzs/random_32_32_10_paths.npz
+Loading dataset with length:  1813
+Num cores: 1
+Skipping: /ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/eecbs_npzs/warehouse_10_20_10_2_2_paths.npz
+Skipping: /ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/eecbs_npzs/random_32_32_10_paths.npz
+Loading dataset with length:  1813
+Num cores: 1
+Skipping: /ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/eecbs_npzs/warehouse_10_20_10_2_2_paths.npz
+Skipping: /ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/eecbs_npzs/random_32_32_10_paths.npz
+Loading dataset with length:  1813
+Num cores: 1
+Skipping: /ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/eecbs_npzs/warehouse_10_20_10_2_2_paths.npz
+Skipping: /ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/eecbs_npzs/random_32_32_10_paths.npz
+Loading dataset with length:  1813
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/trainer.py", line 432, in <module>
+    raise Exception(f"Folder {folder} does not exist!")
+Exception: Folder data_collection/data/logs/EXP_mini/iter0/processed_0_1 does not exist!
+cpu
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/trainer.py", line 432, in <module>
+    raise Exception(f"Folder {folder} does not exist!")
+Exception: Folder data_collection/data/logs/EXP_mini/iter0/processed_3_1 does not exist!
+cpu
+/ocean/projects/cis240049p/mliu13/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt
+  0%|          | 0/400 [00:00<?, ?it/s]  0%|          | 0/400 [00:02<?, ?it/s]
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 815, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 672, in main
+    solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 540, in simulate
+    action_preferences = getActionPrefsFromLocs(cur_locs, multi_inputs) # (N,5)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 503, in getActionPrefsFromLocs
+    probs = runNNOnState(locs, multi_inputs, bd, grid_map, eecbs_priorities, k, m, 
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 458, in runNNOnState
+    _, predictions = model(data)
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/jet/home/mliu13/gnn-mapf/gnn/trainer.py", line 120, in forward
+    x = self.convs[0](x, histories_preds, edge_index) 
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/jet/home/mliu13/gnn-mapf/gnn/trainer.py", line 174, in forward
+    self_x = self.lin_self(self_x)
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (4x167 and 103x128)
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 815, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 630, in main
+    raise FileNotFoundError(f'BD file: {bdNpzFile} not found.')
+FileNotFoundError: BD file: /ocean/projects/cis240049p/mliu13/data/maze_benchmark_data/constant_npzs//maze1_16_16_1_bds.npz not found.

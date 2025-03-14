@@ -5,6 +5,8 @@ import shutil
 import pdb
 import time
 from collections import deque
+import subprocess
+import csv
 
 # generate maps with DFS backtracking
 def generate_maze(height, width, corridor_size):
@@ -87,13 +89,16 @@ def octile_bfs(maze, start, goal):
 
 
 # permutation with elements in new positions
-def derange(lst):
-    for a in range(1, len(lst)):
+def derange(arr0):
+    assert(len(arr0) >= 2)
+    arr = np.copy(arr0)
+    for a in range(1, len(arr)):
         b = np.random.choice(range(0, a))
-        temp = np.copy(lst[a])
-        lst[a] = lst[b]
-        lst[b] = temp
-    return lst
+        temp = np.copy(arr[a])
+        arr[a] = arr[b]
+        arr[b] = temp
+    assert(all([a != b for a,b in zip(arr, arr0)]))
+    return arr
 
 
 def generate_scens(maze, args):
@@ -154,52 +159,7 @@ def save_scen_files(scen_data, args):
                 f.write(scen_row_str + '\n')
 
 
-""" 
-Example runs:
-
-python -m data_collection.maze_generator --data_path=$PROJECT/data/maze_benchmark_data/ \
-        --height=16 --width=16 --corridor_size=1 --num_agents=50 --num_scens=2 --mode=write
-
-python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
-        --maze_name='maze1' --height=16 --width=16 --corridor_size=1 --num_agents=50 --num_scens=2 --mode=write      
-python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
-        --maze_name='maze2' --height=32 --width=32 --corridor_size=1 --num_agents=50 --num_scens=2      
-python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
-        --maze_name='maze3' --height=64 --width=128 --corridor_size=2 --num_agents=50 --num_scens=2
-python -m data_collection.constants_generator --mapFolder=data_collection/data/maze_benchmark_data/maps \
-        --scenFolder=data_collection/data/maze_benchmark_data/scens \
-        --constantMapAndBDFolder=data_collection/data/maze_benchmark_data/constant_npzs \
-        --outputFolder=data_collection/data/logs/EXP_Collect_BD \
-        --num_parallel_runs=1 \
-        --deleteTextFiles=true \
-        "eecbs" \
-        --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
-        --firstIter=true --cutoffTime=1
-"""
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, help='name of folder with data', required=True)
-    parser.add_argument('--maze_name', type=str, default='maze')
-    parser.add_argument('--mode', type=str, help='[append, write]', default='append')
-    parser.add_argument('--height', type=int, default=50)
-    parser.add_argument('--width', type=int, default=50)
-    parser.add_argument('--corridor_size', type=int, default=1)
-
-    parser.add_argument('--num_agents', type=int, default=100)
-    parser.add_argument('--num_scens', type=int, default=25)
-    parser.add_argument('--skip_octile_bfs', action='store_true')
-
-    args = args = parser.parse_args()
-
-    np.random.seed(0)
-    
-    # make data directories
-    if args.mode == 'write':
-        shutil.rmtree(args.data_path)
-    os.makedirs(args.data_path, exist_ok=True)
-    os.makedirs(args.data_path+'/maps', exist_ok=True)
-    os.makedirs(args.data_path+'/scens', exist_ok=True)
-    
+def generate_map_scens(args):
     # generate map
     maze = generate_maze(args.height, args.width, args.corridor_size)
     num_open_locs = int(args.width*args.height-np.sum(maze))
@@ -212,6 +172,74 @@ if __name__ == "__main__":
     # output files
     save_map_file(maze, args)
     save_scen_files(scen_data, args)
+
+
+def generate_constants(args):
+    constants_generator_cmd = f'''python -m data_collection.constants_generator --mapFolder={args.data_path}/maps \
+        --scenFolder={args.data_path}/scens \
+        --constantMapAndBDFolder={args.data_path}/constant_npzs \
+        --outputFolder={args.temp_bd_path}/ \
+        --num_parallel_runs=1 \
+        "eecbs" \
+        --eecbsPath={args.eecbs_path} \
+        --firstIter=true --cutoffTime=1'''# \
+        # --deleteTextFiles=true '''s
+    subprocess.run(constants_generator_cmd, shell=True, check=True)
+    
+
+'''
+maze_config_csv: 
+maze_name,height,width,corridor_size,num_agents,num_scens
+maze1,16,16,1,1000,25
+
+Example runs:
+python -m data_collection.maze_generator --data_path=$PROJECT/data/maze_benchmark_data/ \
+        --temp_bd_path=$PROJECT/data/logs/EXP_Generate_mazes/ \
+        --maze_config_csv=$PROJECT/data/mazes_test.csv \
+        --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs
+
+python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
+        --temp_bd_path=data_collection/data/logs/EXP_Generate_mazes/ \
+        --maze_config_csv=data_collection/data/mazes_test.csv \
+        --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs
+'''
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--maze_config_csv', type=str, help='mazes to generate', required=True)
+    parser.add_argument('--data_path', type=str, help='name of folder with data', required=True)
+    parser.add_argument('--temp_bd_path', type=str, help='temp paths/ and csvs/ path for constants_generator.py if generating constants', default='')
+    parser.add_argument('--eecbs_path', type=str, help='eecbs path for constants_generator.py if generating constants', default='')
+    parser.add_argument('--skip_octile_bfs', action='store_true')
+
+    args = args = parser.parse_args()
+
+    np.random.seed(0)
+    
+    # make data directories
+    try:
+        shutil.rmtree(args.data_path)
+    except: pass
+    
+    os.makedirs(args.data_path, exist_ok=True)
+    os.makedirs(args.data_path+'/maps', exist_ok=True)
+    os.makedirs(args.data_path+'/scens', exist_ok=True)
+
+    with open(args.maze_config_csv, mode='r') as file:
+        csv_reader = csv.reader(file)
+        header = next(csv_reader)
+        for row in csv_reader:
+            values = [row[0]] + [*map(int, row[1:])]
+            map_args = argparse.Namespace(**dict(zip(header, values)))
+            map_args.data_path = args.data_path
+            map_args.skip_octile_bfs = args.skip_octile_bfs
+            generate_map_scens(map_args)
+    print(f'Maps and scens in {args.data_path}')
+
+    if args.eecbs_path and args.temp_bd_path:
+        print('Running constants_generator.py...')
+        generate_constants(args)
+    
     print(f'Done.\n')
 
 
