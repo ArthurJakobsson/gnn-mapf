@@ -455,9 +455,23 @@ def generic_batch_runner(args):
         agent_json_dict = None
         ### Get the number of agents to run for each scen
         if "benchmark" in scenInputFolder: # pre-loop run
+
+            if mapFile in mapsToMaxNumAgents:
+                maximumAgents = mapsToMaxNumAgents[mapFile]
+            elif mapFile.replace("-", "_") in mapsToMaxNumAgents:
+                maximumAgents = mapsToMaxNumAgents[mapFile.replace("-", "_")]
+            else:
+                for scen in all_scen_files:
+                    if mapFile not in scen or not scen.endswith(".scen"):
+                        continue
+                    # open the file
+                    with open(f'{scenInputFolder}/{scen}', 'r') as fh:
+                        maximumAgents = [sum(1 for line in fh if line.strip()) - 1]
+                    break
+
             if args.numAgents == "increment":
-                increment = min(100,  mapsToMaxNumAgents[mapFile])
-                maximumAgents = mapsToMaxNumAgents[mapFile] + 1
+                increment = min(100,  maximumAgents)
+                maximumAgents = maximumAgents + 1
                 agentNumbers = list(range(increment, maximumAgents, increment))
             elif ".json" in args.numAgents:
                 if agent_json_dict is None:
@@ -465,10 +479,8 @@ def generic_batch_runner(args):
                     agent_json_dict = json.load(f)['map_agent_counts']
                 agentNumbers = agent_json_dict[mapFile]
             elif args.numAgents=="max":
-                maximumAgents = mapsToMaxNumAgents[mapFile]
                 agentNumbers = [maximumAgents]
             else:
-                maximumAgents = mapsToMaxNumAgents[mapFile]
                 agentNumbers = [int(x) for x in args.numAgents.split(",") if int(x) <= maximumAgents]
                 if len(agentNumbers) == 0:
                     print(f"Warning: No valid agent numbers for {mapFile}, using maximum number of agents {maximumAgents}")

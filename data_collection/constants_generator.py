@@ -73,10 +73,6 @@ mapsToMaxNumAgents = {
     "warehouse_10_20_10_2_2": 1000,
     "warehouse_20_40_10_2_1": 1000,
     "warehouse_20_40_10_2_2": 1000,
-
-    "tiny_1": 2,
-    "tiny_2": 2,
-    "tiny_3": 2,
 }
 
 
@@ -352,8 +348,16 @@ def generic_batch_runner(args):
              # collecting bds
             if mapFile in mapsToMaxNumAgents:
                 agentNumbers = [mapsToMaxNumAgents[mapFile]]
-            else:
+            elif mapFile.replace("-", "_") in mapsToMaxNumAgents:
                 agentNumbers = [mapsToMaxNumAgents[mapFile.replace("-", "_")]]
+            else:
+                for scen in all_scen_files:
+                    if mapFile not in scen or not scen.endswith(".scen"):
+                        continue
+                    # open the file
+                    with open(f'{scenInputFolder}/{scen}', 'r') as fh:
+                        agentNumbers = [sum(1 for line in fh if line.strip()) - 1]
+                    break
             static_dict[mapFile]["agentRange"] = agentNumbers
             static_dict[mapFile]["agentsPerScen"] = [agentNumbers[0]] * len(static_dict[mapFile]["scens"])
         else: # we are somewhere in the training loop

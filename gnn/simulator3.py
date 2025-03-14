@@ -745,17 +745,17 @@ def main(args: argparse.ArgumentParser):
 
 ### Example command
 """
-python -m gnn.simulator3 --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
-        --mapName=random_32_32_10 --scenFile=data_collection/data/mini_benchmark_data/scens/random_32_32_10-random-1.scen \
-        --agentNum=50 --bdPath=data_collection/data/mini_benchmark_data/constant_npzs/\
+python -m gnn.simulator3 --mapNpzFile=$PROJECT/data/mini_benchmark_data/constant_npzs/all_maps.npz \
+        --mapName=random_32_32_10 --scenFile=$PROJECT/data/mini_benchmark_data/scens/random_32_32_10-random-1.scen \
+        --agentNum=50 --bdPath=$PROJECT/data/mini_benchmark_data/constant_npzs/\
         --k=5 --m=3 \
-        --outputCSVFile=data_collection/data/logs/EXP_mini/tests/results.csv \
-        --outputPathsFile=data_collection/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
-        --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
+        --outputCSVFile=$PROJECT/data/logs/EXP_mini/tests/results.csv \
+        --outputPathsFile=$PROJECT/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
+        --numScensToCreate=10 --outputScenPrefix=$PROJECT/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
         --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
         --num_priority_copies=10 \
-        --useGPU=False --modelPath=data_collection/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_priorities/max_test_acc.pt \
-        --num_multi_inputs=0 --num_multi_outputs=1 --shieldType=LaCAM 
+        --useGPU=False --modelPath=$PROJECT/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt \
+        --num_multi_inputs=3 --num_multi_outputs=1 --shieldType=LaCAM 
 
 # --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
 python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \

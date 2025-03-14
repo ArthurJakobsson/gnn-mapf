@@ -30,8 +30,10 @@ def run_maze_generator(maze_h, maze_w, maze_cs, args):
 def run_eecbs_batchrunner(args):
     if args.clean:
         try:
-            clean_batchrunner_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/'
-            subprocess.run(clean_batchrunner_cmd, shell=True, check=True)
+            clean_batchrunner_npzs_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/eecbs_npzs'
+            clean_batchrunner_outputs_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/eecbs_outputs'
+            subprocess.run(clean_batchrunner_npzs_cmd, shell=True, check=True)
+            subprocess.run(clean_batchrunner_outputs_cmd, shell=True, check=True)
         except: pass
 
     batchrunner_cmd = f'''python -m data_collection.eecbs_batchrunner5 --mapFolder={args.data_path}/maps \\
@@ -70,11 +72,11 @@ def run_constants_generator(args):
     return constants_cmd
     
 
-def run_dataloader(args):
+def run_dataloader(num_multi_inputs, num_multi_outputs, args):
     if args.clean:
-        try: 
-            clean_pts_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs}'
-            clean_pts_csv_cmd = f'rm {args.exp_path}/iter{args.iternum}/status_data_processed_{args.num_multi_inputs}_{args.num_multi_outputs}.csv'
+        try:
+            clean_pts_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/processed_{num_multi_inputs}_{num_multi_outputs}'
+            clean_pts_csv_cmd = f'rm {args.exp_path}/iter{args.iternum}/status_data_processed_{num_multi_inputs}_{num_multi_outputs}.csv'
             subprocess.run(clean_pts_cmd, shell=True, check=True)
             subprocess.run(clean_pts_csv_cmd, shell=True, check=True)
         except: pass
@@ -82,35 +84,35 @@ def run_dataloader(args):
     dataloader_cmd = f'''python -m gnn.dataloader --mapNpzFile={args.data_path}/constant_npzs/all_maps.npz \\
         --bdNpzFolder={args.data_path}/constant_npzs \\
         --pathNpzFolder={args.exp_path}/iter{args.iternum}/eecbs_npzs \\
-        --processedFolder={args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs} \\
+        --processedFolder={args.exp_path}/iter{args.iternum}/processed_{num_multi_inputs}_{num_multi_outputs} \\
         --k={args.k} \\
         --m={args.m} \\
         --num_priority_copies={args.num_priority_copies} \\
-        --num_multi_inputs={args.num_multi_inputs} \\
-        --num_multi_outputs={args.num_multi_outputs} {args.bd_pred * '--bd_pred'}'''
+        --num_multi_inputs={num_multi_inputs} \\
+        --num_multi_outputs={num_multi_outputs} {args.bd_pred * '--bd_pred'}'''
     
     return dataloader_cmd
 
 
-def run_trainer(args):
+def run_trainer(num_multi_inputs, num_multi_outputs, args):
     if args.clean:
         try:
-            clean_models_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/models_{model}'
+            clean_models_cmd = f'rm -rf {args.exp_path}/iter{args.iternum}/models_{args.model}_{num_multi_inputs}_{num_multi_outputs}'
             subprocess.run(clean_models_cmd, shell=True, check=True)
         except: pass
 
     trainer_cmd = f'''python -m gnn.trainer --exp_folder={args.exp_path} --experiment=exp0 --iternum={args.iternum} --num_cores=4 \\
-        --processedFolders={args.exp_path}/iter{args.iternum}/processed_{args.num_multi_inputs}_{args.num_multi_outputs} \\
+        --processedFolders={args.exp_path}/iter{args.iternum}/processed_{num_multi_inputs}_{num_multi_outputs} \\
         --k={args.k} --m={args.m} --lr={args.lr} \\
         --num_priority_copies={args.num_priority_copies} \\
-        --num_multi_inputs={args.num_multi_inputs} \\
-        --num_multi_outputs={args.num_multi_outputs} \\
-        --gnn_name="{args.model} {args.logging * '--logging'} {args.use_edge_attr * '--use_edge_attr'}"'''
+        --num_multi_inputs={num_multi_inputs} \\
+        --num_multi_outputs={num_multi_outputs} \\
+        --gnn_name="{args.model}" {args.logging * '--logging'} {args.use_edge_attr * '--use_edge_attr'}'''
     
     return trainer_cmd
 
 
-def run_simulator(args):
+def run_simulator(num_multi_inputs, num_multi_outputs, sim_num_agents, args):
     if args.clean:
         try:
             clean_tests_cmd = f'rm -rf {args.exp_path}/tests'
@@ -119,15 +121,15 @@ def run_simulator(args):
 
     simulator_cmd = f'''python -m gnn.simulator3 --mapNpzFile={args.data_path}/constant_npzs/all_maps.npz \\
         --mapName=random_32_32_10 --scenFile={args.data_path}/scens/random_32_32_10-random-1.scen \\
-        --agentNum={args.sim_num_agents} --bdPath={args.data_path}/constant_npzs/ \\
+        --agentNum={sim_num_agents} --bdPath={args.data_path}/constant_npzs/ \\
         --k={args.k} --m={args.m} \\
         --outputCSVFile={args.exp_path}/tests/results.csv \\
         --outputPathsFile={args.exp_path}/tests/encountered_scens/paths.npy \\
         --numScensToCreate=10 --outputScenPrefix={args.exp_path}/iter0/encountered_scens/den520d/den520d-random-1.scen100 \\
         --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 {args.bd_pred * '--bd_pred'} \\
         --num_priority_copies=10 \\
-        --useGPU=False --modelPath={args.exp_path}/iter0/models_{args.model}_{args.num_multi_inputs}_{args.num_multi_outputs}{'_p'*args.use_edge_attr}/max_test_acc.pt \\
-        --num_multi_inputs={args.num_multi_inputs} --num_multi_outputs={args.num_multi_outputs} --shieldType={args.shield_type}'''
+        --useGPU=False --modelPath={args.exp_path}/iter0/models_{args.model}_{num_multi_inputs}_{num_multi_outputs}{'_p'*args.use_edge_attr}/max_test_acc.pt \\
+        --num_multi_inputs={num_multi_inputs} --num_multi_outputs={num_multi_outputs} --shieldType={args.shield_type}'''
     
     return simulator_cmd
 
@@ -171,13 +173,29 @@ Small run:
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=mini_benchmark_data \
     --num_agents=50,100 \
-    --model=ResGatedGraphConv \
+    --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=eecbs
+    --clean --which_sections=eecbs
+
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=mini_benchmark_data \
+    --num_agents=50,100 \
+    --model=ResGatedGraphConv --use_edge_attr \
+    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
+    --clean --which_sections=load,train,simulate
+
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=maze_benchmark_data \
+    --maze_dir=EXP_maze \
+    --num_agents=50,100 \
+    --model=ResGatedGraphConv --use_edge_attr \
+    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
+    --clean --which_sections=eecbs,load,train
 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --maze_dir=maze_benchmark_data \
-    --clean --which_section=maze \
+    --maze_dir=EXP_maze \
+    --clean --which_sections=maze \
     --maze_num_scens=4 --skip_octile_bfs
 """
 if __name__ == "__main__":
@@ -216,10 +234,11 @@ if __name__ == "__main__":
     parser.add_argument('--num_priority_copies', type=int, default=10)
     parser.add_argument('--num_multi_inputs_list', type=str, help="comma separated numbers of model inputs", default='0')
     parser.add_argument('--num_multi_outputs_list', type=str, help="comma separated numbers of model outputs", default='1')
+    parser.add_argument('--sim_num_agents', type=str, help="number of agents for simulator.py", default='50')
 
     parser.add_argument('--logging', action='store_true')
     parser.add_argument('--clean', action='store_true')
-    parser.add_argument('--which_section', help="[eecbs, load, train, simulate, mazes]", required=True)
+    parser.add_argument('--which_sections', help="[eecbs, load, train, simulate, mazes]", required=True)
 
     # maze_generator
     parser.add_argument('--maze_heights', type=str, help="comma separated heights for maze_generator.py", default='16')
@@ -265,48 +284,47 @@ if __name__ == "__main__":
     # if ".json" in args.numAgents and "map_configs" not in args.numAgents:
     #     args.numAgents = "map_configs/"+args.numAgents 
 
-    job_name = f'{args.exp_dir}_{args.which_section}'
-
     if args.data_dir == 'mini_benchmark_data':
         args.num_parallel = 1
     
-    if args.which_section == 'maze':
-        python_commands = []
+    # get commands for sh script
+    sections = args.which_sections.strip().split(',')
+    python_commands = []
+    if 'maze' in sections:
         for maze_w in args.maze_widths.strip().split(','):
             for maze_h in args.maze_widths.strip().split(','):
                 for maze_cs in args.maze_corridor_sizes.strip().split(','):
                     python_commands.append(run_maze_generator(maze_w, maze_h, maze_cs, args))
-    elif args.which_section == 'eecbs':
-        python_commands = [run_eecbs_batchrunner(args), run_constants_generator(args)]
-    else:
-        job_name += f'_{args.num_multi_inputs_list}_{args.num_multi_outputs_list}{"_p"*args.use_edge_attr}'
-        for j in args.num_multi_outputs_list.strip().split(','):
-            for i in args.num_multi_inputs_list.strip().split(','):
-                args.num_multi_inputs = i
-                args.num_multi_outputs = j
-                print(f'in: {i}, out: {j}')
+    if 'eecbs' in sections:
+        python_commands.append(run_eecbs_batchrunner(args))
+        python_commands.append(run_constants_generator(args))
 
-                if args.which_section == 'load':
-                    python_commands = [run_dataloader(args)]
-                elif args.which_section == 'train':
-                    EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
-                    NO_EDGE_ATTR_GNNS = ["SAGEConv"]
-                    assert(model in EDGE_ATTR_GNNS or model in NO_EDGE_ATTR_GNNS)
-                    if args.use_edge_attr: assert(model in EDGE_ATTR_GNNS)
-                    python_commands = run_trainer(args)
-                elif args.which_section == 'simulate':
-                    python_commands = run_simulator(args)
-                else:
-                    raise ValueError(f"Invalid section: {args.which_section}")  
+    inputs_outputs = [(num_in, num_out) for num_in in args.num_multi_inputs_list.strip().split(',')
+                                        for num_out in args.num_multi_outputs_list.strip().split(',')]
+    if 'load' in sections:
+        for num_in, num_out in inputs_outputs:
+            python_commands.append(run_dataloader(num_in, num_out, args))
+    if 'train' in sections:
+        EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
+        NO_EDGE_ATTR_GNNS = ["SAGEConv"]
+        assert(args.model in EDGE_ATTR_GNNS or args.model in NO_EDGE_ATTR_GNNS)
+        if args.use_edge_attr: assert(args.model in EDGE_ATTR_GNNS)
+        for num_in, num_out in inputs_outputs:
+            python_commands.append(run_trainer(num_in, num_out, args))
+    if 'simulate' in sections:
+        for num_in, num_out in inputs_outputs:
+            for sim_num_agents in args.sim_num_agents.strip().split(','):
+                python_commands.append(run_simulator(num_in, num_out, sim_num_agents, args))
 
-    generate_sh_script(args.exp_path, args.which_section, conda_env, python_commands)
+    job_name = f'{args.exp_dir}_{args.which_sections}'
+    generate_sh_script(args.exp_path, args.which_sections, conda_env, python_commands)
 
     if args.data_dir == 'mini_benchmark_data':
-        command = f'sbatch --job-name {job_name} {args.exp_path}/{args.which_section}.sh'
+        command = f'sbatch --job-name {job_name} {args.exp_path}/{args.which_sections}.sh'
     else:
         sbatch_timeout = 16
         command = f'sbatch -p RM-shared -N 1 --ntasks-per-node=10 -t {sbatch_timeout}:00:00 ' + \
-        f'--job-name {job_name} {args.exp_path}/{args.which_section}.sh'
+        f'--job-name {job_name} {args.exp_path}/{args.which_sections}.sh'
     
     print('sbatch command:', command, '\n')
     run_command(command.split())

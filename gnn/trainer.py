@@ -360,8 +360,8 @@ def visualize():
 
 ### Example run
 '''
-python -m gnn.trainer --exp_folder=data_collection/data/logs/EXP_mini --experiment=exp0 --iternum=0 --num_cores=4 \
-  --processedFolders=data_collection/data/logs/EXP_mini/iter0/processed_0_1 \
+python -m gnn.trainer --exp_folder=$PROJECT/data/logs/EXP_mini --experiment=exp0 --iternum=0 --num_cores=4 \
+  --processedFolders=$PROJECT/data/logs/EXP_mini/iter0/processed_0_1 \
   --k=5 --m=3 --lr=0.01 \
   --num_priority_copies=10 \
   --num_multi_inputs=0 \
