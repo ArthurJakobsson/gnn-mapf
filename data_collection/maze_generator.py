@@ -99,8 +99,8 @@ def derange(lst):
 def generate_scens(maze, args):
     open_locs = np.column_stack(np.where(maze == 0)) # (num_open_locs, 2)
 
-    scen_starts = np.zeros((args.num_scens, args.num_agents, 2))
-    scen_goals = np.zeros((args.num_scens, args.num_agents, 2))
+    scen_starts = np.zeros((args.num_scens, args.num_agents, 2), dtype=int)
+    scen_goals = np.zeros((args.num_scens, args.num_agents, 2), dtype=int)
     scen_costs = np.zeros((args.num_scens, args.num_agents))
 
     t0 = time.time()
@@ -118,18 +118,18 @@ def generate_scens(maze, args):
     else:
         for scen_idx in range(args.num_scens):
             for agent_idx in range(args.num_agents): 
-                scen_costs[scen_idx, agent_idx] = octile_bfs(maze, start_locs[agent_idx], goal_locs[agent_idx])
+                scen_costs[scen_idx, agent_idx] = octile_bfs(maze, scen_starts[scen_idx, agent_idx], scen_goals[scen_idx, agent_idx])
         print(f'Octile BFS completed in {time.time() - t0:.4f}s')
     
     return (scen_starts, scen_goals, scen_costs)
 
 
 def save_map_file(maze, args):
-    with open(f'{args.data_path}/maps/maze_{args.width}_{args.height}_{args.corridor_size}.map', 'w') as f:
+    with open(f'{args.data_path}/maps/{args.maze_name}_{args.width}_{args.height}_{args.corridor_size}.map', 'w') as f:
         f.write('type octile\n')
         f.write(f'height {args.height}\n')
         f.write(f'width {args.width}\n')
-        f.write('map\n\n')
+        f.write('map\n')
 
         maze_str = '\n'.join([''.join(['@' if cell else '.' for cell in row]) for row in maze])
         f.write(maze_str)
@@ -137,10 +137,10 @@ def save_map_file(maze, args):
 
 def save_scen_files(scen_data, args):
     scen_starts, scen_goals, scen_costs = scen_data
-    map_filename = f'maze_{args.width}_{args.height}_{args.corridor_size}'
+    map_filename = f'{args.maze_name}_{args.width}_{args.height}_{args.corridor_size}'
 
     for scen_idx in range(args.num_scens):
-        with open(f'{args.data_path}/scens/{map_filename}-random-{scen_idx}.scen', 'w') as f:
+        with open(f'{args.data_path}/scens/{map_filename}-random-{scen_idx+1}.scen', 'w') as f:
             f.write('version 1\n')
             # Bucket, map, map width, map height, start x-coordinate, start y-coordinate, goal x-coordinate, goal y-coordinate, optimal length
             # (0, 0) is in the upper left corner of the maps 
@@ -158,14 +158,28 @@ def save_scen_files(scen_data, args):
 Example runs:
 
 python -m data_collection.maze_generator --data_path=$PROJECT/data/maze_benchmark_data/ \
-        --height=16 --width=16 --corridor_size=1 --num_agents=1 --num_scens=1 --mode=write
-        
-python -m data_collection.maze_generator --data_path=$PROJECT/data/maze_benchmark_data/ \
-        --height=128 --width=128 --corridor_size=5 --num_agents=1 --num_scens=1
+        --height=16 --width=16 --corridor_size=1 --num_agents=50 --num_scens=2 --mode=write
+
+python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
+        --maze_name='maze1' --height=16 --width=16 --corridor_size=1 --num_agents=50 --num_scens=2 --mode=write      
+python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
+        --maze_name='maze2' --height=32 --width=32 --corridor_size=1 --num_agents=50 --num_scens=2      
+python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
+        --maze_name='maze3' --height=64 --width=128 --corridor_size=2 --num_agents=50 --num_scens=2
+python -m data_collection.constants_generator --mapFolder=data_collection/data/maze_benchmark_data/maps \
+        --scenFolder=data_collection/data/maze_benchmark_data/scens \
+        --constantMapAndBDFolder=data_collection/data/maze_benchmark_data/constant_npzs \
+        --outputFolder=data_collection/data/logs/EXP_Collect_BD \
+        --num_parallel_runs=1 \
+        --deleteTextFiles=true \
+        "eecbs" \
+        --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
+        --firstIter=true --cutoffTime=1
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str, help='name of folder with data', required=True)
+    parser.add_argument('--maze_name', type=str, default='maze')
     parser.add_argument('--mode', type=str, help='[append, write]', default='append')
     parser.add_argument('--height', type=int, default=50)
     parser.add_argument('--width', type=int, default=50)

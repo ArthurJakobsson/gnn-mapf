@@ -745,9 +745,20 @@ def main(args: argparse.ArgumentParser):
 
 ### Example command
 """
-python -m gnn.simulator3 --mapNpzFile=$PROJECT/data/mini_benchmark_data/constant_npzs/all_maps.npz \
-        --mapName=random_32_32_10 --scenFile=$PROJECT/data/mini_benchmark_data/scens/random_32_32_10-random-1.scen \
-        --agentNum=50 --bdPath=$PROJECT/data/mini_benchmark_data/constant_npzs/\
+python -m gnn.simulator3 --mapNpzFile=$PROJECT/data/maze_benchmark_data/constant_npzs/all_maps.npz \
+        --mapName=maze2_32_32_1 --scenFile=$PROJECT/data/maze_benchmark_data/scens/maze2_32_32_1-random-1.scen \
+        --agentNum=4 --bdPath=$PROJECT/data/maze_benchmark_data/constant_npzs/\
+        --k=5 --m=3 \
+        --outputCSVFile=$PROJECT/data/logs/EXP_mini/tests/results.csv \
+        --outputPathsFile=$PROJECT/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
+        --numScensToCreate=10 --outputScenPrefix=$PROJECT/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
+        --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
+        --num_priority_copies=10 \
+        --useGPU=False --modelPath=$PROJECT/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt \
+        --num_multi_inputs=0 --num_multi_outputs=1 --shieldType=CS-PIBT 
+python -m gnn.simulator3 --mapNpzFile=$PROJECT/data/maze_benchmark_data/constant_npzs/all_maps.npz \
+        --mapName=maze1_16_16_1 --scenFile=$PROJECT/data/maze_benchmark_data/scens/maze1_16_16_1-random-1.scen \
+        --agentNum=10 --bdPath=$PROJECT/data/maze_benchmark_data/constant_npzs/\
         --k=5 --m=3 \
         --outputCSVFile=$PROJECT/data/logs/EXP_mini/tests/results.csv \
         --outputPathsFile=$PROJECT/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
@@ -755,18 +766,30 @@ python -m gnn.simulator3 --mapNpzFile=$PROJECT/data/mini_benchmark_data/constant
         --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
         --num_priority_copies=10 \
         --useGPU=False --modelPath=$PROJECT/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt \
-        --num_multi_inputs=3 --num_multi_outputs=1 --shieldType=LaCAM 
+        --num_multi_inputs=3 --num_multi_outputs=1 --shieldType=CS-PIBT 
 
-# --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
-python -m gnn.simulator2 --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
-      --mapName=den312d --scenFile=data_collection/data/benchmark_data/scens/den312d-random-1.scen \
-      --bdPath=data_collection/data/mini_benchmark_data/constant_npzs/ \
-      --modelPath=data_collection/data/logs/EXP_den312d_lacam2/iter0/models/max_test_acc.pt --useGPU=False \
-      --k=4 --m=5 \
-      --outputCSVFile=data_collection/data/logs/EXP_Test4/iter0/results.csv \
-      --outputPathsFile=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
-      --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-      --maxSteps=500 --agentNum=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5 --debug=true
+python -m gnn.simulator3 --mapNpzFile=data_collection/data/maze_benchmark_data/constant_npzs/all_maps.npz \
+        --mapName=maze2_32_32_1 --scenFile=data_collection/data/maze_benchmark_data/scens/maze2_32_32_1-random-1.scen \
+        --agentNum=4 --bdPath=data_collection/data/maze_benchmark_data/constant_npzs/\
+        --k=5 --m=3 \
+        --outputCSVFile=data_collection/data/logs/EXP_mini/tests/results.csv \
+        --outputPathsFile=data_collection/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
+        --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
+        --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
+        --num_priority_copies=10 \
+        --useGPU=False --modelPath=data_collection/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt \
+        --num_multi_inputs=0 --num_multi_outputs=1 --shieldType=CS-PIBT 
+python -m gnn.simulator3 --mapNpzFile=data_collection/data/maze_benchmark_data/constant_npzs/all_maps.npz \
+        --mapName=maze1_16_16_1 --scenFile=data_collection/data/maze_benchmark_data/scens/maze1_16_16_1-random-1.scen \
+        --agentNum=10 --bdPath=data_collection/data/maze_benchmark_data/constant_npzs/\
+        --k=5 --m=3 \
+        --outputCSVFile=data_collection/data/logs/EXP_mini/tests/results.csv \
+        --outputPathsFile=data_collection/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
+        --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
+        --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
+        --num_priority_copies=10 \
+        --useGPU=False --modelPath=data_collection/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt \
+        --num_multi_inputs=3 --num_multi_outputs=1 --shieldType=CS-PIBT 
 """
 if __name__ == '__main__':
     # testGetCosts()

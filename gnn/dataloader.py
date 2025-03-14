@@ -524,6 +524,16 @@ class MyOwnDataset(Dataset):
 
 ### Example run
 """
+python -m gnn.dataloader --mapNpzFile=$PROJECT/data/mini_benchmark_data/constant_npzs/all_maps.npz \
+      --bdNpzFolder=$PROJECT/data/mini_benchmark_data/constant_npzs \
+      --pathNpzFolder=$PROJECT/data/logs/EXP_mini/iter0/eecbs_npzs \
+      --processedFolder=$PROJECT/data/logs/EXP_mini/iter0/processed_0_1 \
+      --k=5 \
+      --m=3 \
+      --num_priority_copies=10 \
+      --num_multi_inputs=0 \
+      --num_multi_outputs=1 --bd_pred
+
 python -m gnn.dataloader --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
       --bdNpzFolder=data_collection/data/mini_benchmark_data/constant_npzs \
       --pathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
