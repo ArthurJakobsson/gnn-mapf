@@ -48,6 +48,8 @@ To run data collection OR simulation use the eecbs_batchrunner. Below is an exam
 python -m data_collection.eecbs_batchrunner --mapFolder=./data_collection/data/benchmark_new_maps/maps --scenFolder=./data_collection/data/benchmark_new_maps/scens --numAgents=50 --constantMapAndBDFolder=data_collection/data/benchmark_new_maps/constant_npzs --outputFolder=data_collection/data/logs/EXP_test_agents/iter0/eecbs_outputs --num_parallel_runs=1 "eecbs" --outputPathNpzFolder=data_collection/data/logs/EXP_test_agents/iter0/eecbs_npzs --firstIter=true --cutoffTime=60 --suboptimality=2
 ```
 
+To run the pymodel (simulation) instead of eecbs you should replace "eecbs" with "pymodel" and provide the information required by the argparse under the pymodel section in eecbs_batchrunner such as model path. Your model can be stored anywhere as long as a correct file path is provided.
+
 ### Slurm Implementation
 - Facilitates large-scale testing on a cluster.
 - Runs batch jobs using `.sh` scripts to execute the next steps automatically.
