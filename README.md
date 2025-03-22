@@ -40,7 +40,13 @@ Please note that this folder is about 40 GB.
 ## Repository Structure
 ### Data Collection
 - Manages the data collection process by calling the simulator and eecbs in parallel.
-- Stores collected data.
+- Stores collected data.`
+
+To run data collection OR simulation use the eecbs_batchrunner. Below is an example command where the inputs can be varied depending on file paths and whether simulation, eecbs or some other subprocess is required.
+
+```sh
+python -m data_collection.eecbs_batchrunner --mapFolder=./data_collection/data/benchmark_new_maps/maps --scenFolder=./data_collection/data/benchmark_new_maps/scens --numAgents=50 --constantMapAndBDFolder=data_collection/data/benchmark_new_maps/constant_npzs --outputFolder=data_collection/data/logs/EXP_test_agents/iter0/eecbs_outputs --num_parallel_runs=1 "eecbs" --outputPathNpzFolder=data_collection/data/logs/EXP_test_agents/iter0/eecbs_npzs --firstIter=true --cutoffTime=60 --suboptimality=2
+```
 
 ### Slurm Implementation
 - Facilitates large-scale testing on a cluster.
