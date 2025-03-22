@@ -20,6 +20,23 @@ To install dependencies, run:
 pip install -r requirements.txt
 ```
 
+To install the data and our largest model, run:
+
+install via pip:
+```sh
+pip install gdown
+```
+
+use it in python:
+```py
+import gdown
+gdown.download_folder(url, quiet=True)
+```
+
+where the url is [https://drive.google.com/drive/folders/15G5mmBh5FDEpGlNKAE_gA5je8xV_NYKf?usp=drive_link](https://drive.google.com/drive/folders/15G5mmBh5FDEpGlNKAE_gA5je8xV_NYKf?usp=drive_link)
+
+Please note that this folder is about 40 GB.
+
 ## Repository Structure
 ### Data Collection
 - Manages the data collection process by calling the simulator and eecbs in parallel.
