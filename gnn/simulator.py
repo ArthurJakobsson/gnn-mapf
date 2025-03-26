@@ -308,22 +308,6 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs,
                 self.depth = parent.depth + 1
                 at_goal = np.all(np.equal(state, goal_locations), axis=1) # (N)
                 self.agent_priorities = updatePriorities(self.parent.agent_priorities, at_goal)
-                # self.agent_priorities = self.parent.agent_priorities.copy()
-
-                # # agents previously at goal (parent_priority <= 0) and still at goal (dist == 0) should have priority decreased
-                # # pdb.set_trace()
-                # self.agent_priorities[(self.parent.agent_priorities <= 0) & (distance_to_goal == 0)] -= 1
-                # # agents that just got to goal (parent_priority > 0 & dist == 0) should have priority set to 0
-                # self.agent_priorities[(self.parent.agent_priorities > 0) & (distance_to_goal == 0)] = 0 # Agents that are at goal should have priority decreased
-                # # agents that are not at goal (dist > 0) should have priority increased
-                # self.agent_priorities[distance_to_goal > 0] = np.maximum(self.parent.agent_priorities[distance_to_goal > 0], 0) + 1
-                # self.agent_priorities[self.parent.agent_priorities <= 0] -= 1 # Agents that are at goal should have priority decreased
-                # self.agent_priorities[distance_to_goal == 0] = 0 # Set priority to 0 if reached goal
-                # if np.any(distance_to_goal == 0):
-                #     print(self.parent.agent_priorities)
-                #     print(self.agent_priorities)
-                #     pdb.set_trace()
-
 
         def getNextState(self):
             """Outputs:
@@ -387,6 +371,7 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs,
         key = new_locs.tobytes()
         if key in stateToHLNodes.keys(): # Already visited/created this state
             curNode = stateToHLNodes[key] # Get the existing HLNode
+            mainStack.appendleft(curNode) # Add to stack
         else:
             # Create a new HLNode
             # probs = runNNOnState(new_locs, bd, grid_map, k, m, model, device)
@@ -721,6 +706,20 @@ python -m gnn.simulator --mapNpzFile=data_collection/data/benchmark_data/constan
       --outputPathsFile=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
       --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
       --maxSteps=500 --agentNum=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5 --debug=true
+      
+      
+python -m gnn.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
+      --mapName=random_32_32_20 --scenFile=data/mapf-scen-random/random-32-32-20-random-1.scen \
+      --bdNpzFile=data/constant_npzs/completed_splitting/random_32_32_20_bds.npz \
+      --modelPath=data/model/max_test_acc.pt \
+      --k=4 --m=5 \
+      --outputCSVFile=logs/results.csv \
+      --outputPathsFile=logs/paths.npy \
+      --numScensToCreate=0 --outputScenPrefix=logs/outputscene.txt \
+      --maxSteps=400 --seed=0 --useGPU=True --bd_pred=t --extra_layers=agent_locations \
+      --shieldType=CS-PIBT --agentNum=200
+      
+      --shieldType=LaCAM --lacamLookahead=5 --agentNum=200
 """
 if __name__ == '__main__':
     # testGetCosts()
@@ -742,7 +741,7 @@ if __name__ == '__main__':
     parser.add_argument('--percentSuccessGenerationReduction', type=float, default=0.7)
     parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'CS-Freeze', 'LaCAM'])
     parser.add_argument('--lacamLookahead', type=int, help="LaCAM node expansion limit", default=0)
-    parser.add_argument('--timeLimit', type=int, required=True, help="optional time limit for cs-pibt/lacam -1 for no time limit")
+    parser.add_argument('--timeLimit', type=int, required=False, help="Time limit (s)", default=60)
     # Output parameters
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
     parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", required=True)
