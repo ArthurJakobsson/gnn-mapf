@@ -280,16 +280,10 @@ def updatePriorities(prev_priorities, at_goal):
     # agent_priorities[at_goal] = 0 # Set priority to 0 if reached goal
     return agent_priorities
 
-def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs, lacamLimit, start_time, timeLimit):
-    """Inputs:
-        bd: (N,H,W)
-        grid_map: (H,W)
-        getActionPrefsFromLocs: function that takes in (N,2) and outputs (N,5) action preferences
-            This would call the NN model, or could use bds (to replicate original LaCAM)
-    """
-
+class LaCAMRunner:
     class HLNode:
-        def __init__(self, state, action_preferences, parent) -> None:
+        def __init__(self, state: np.ndarray, action_preferences: np.ndarray, 
+                     parent: 'LaCAMRunner.HLNode', bd: np.ndarray, goal_locations: np.ndarray) -> None:
             self.state = state
             self.action_preferences = action_preferences
             self.parent = parent
@@ -309,7 +303,7 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs,
                 at_goal = np.all(np.equal(state, goal_locations), axis=1) # (N)
                 self.agent_priorities = updatePriorities(self.parent.agent_priorities, at_goal)
 
-        def getNextState(self):
+        def getNextState(self, grid_map: np.ndarray, start_time, timeLimit):
             """Outputs:
                 new_state: None or (N,2)
             """
@@ -335,64 +329,86 @@ def lacam(start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs,
                 return None
             new_state = self.state + new_move
             return new_state
-
-
-    mainStack = deque() # Stack of HLNodes
-    stateToHLNodes = dict() # Maps str(state) to HLNode
-
-    ### Initialize the HLNode
-    curNode = HLNode(start_locations, getActionPrefsFromLocs(start_locations), None)
-    mainStack.appendleft(curNode) # Start with the initial state
-    stateToHLNodes[start_locations.tobytes()] = curNode
-
-    success = False
-    MAXGENERATED = lacamLimit
-    numNodesExpanded = 0
-    numGenerated = 1 # Start with 1 as we have already added the initial state
-    while len(mainStack) > 0:
-        curNode : HLNode = mainStack.popleft()
-        if len(curNode.queue_of_constraints) != 0: # Always add in the original HLNode if not exhausted
-            mainStack.appendleft(curNode)
-        new_locs = curNode.getNextState()
-        if new_locs is None:
-            continue
-        numNodesExpanded += 1
-
-        # Check if all agents have reached their goals
-        if np.all(np.equal(new_locs, goal_locations)):
-            print("Stopping as found goal in LaCAM, depth: {}".format(curNode.depth))
-            success = True
-            break
-
-        if numGenerated >= MAXGENERATED: # Limit the number of nodes generated
-            # print("Stopping due to max NN calls")
-            break
-
-        key = new_locs.tobytes()
-        if key in stateToHLNodes.keys(): # Already visited/created this state
-            curNode = stateToHLNodes[key] # Get the existing HLNode
-            mainStack.appendleft(curNode) # Add to stack
+            
+    def __init__(self, real_time=False) -> None:
+        self.mainStack = deque() # Stack of HLNodes
+        self.stateToHLNodes = dict() # Maps str(state) to HLNode
+        self.real_time = real_time
+        if self.real_time:
+            print("Real-Time LaCAM enabled")
         else:
-            # Create a new HLNode
-            # probs = runNNOnState(new_locs, bd, grid_map, k, m, model, device)
-            # action_preferences = convertProbsToPreferences(probs, conversion_type) # (N,5)
-            newHLNode = HLNode(new_locs, getActionPrefsFromLocs(new_locs), curNode)
-            numGenerated += 1
-
-            # Add to collections
-            stateToHLNodes[key] = newHLNode
-            mainStack.appendleft(newHLNode)
+            print("LaCAM enabled")
     
-    # Get path via backtracking. If not a success, this returns the path to the last state found
-    entirePath = [new_locs]
-    while curNode is not None:
-        entirePath.append(curNode.state)
-        curNode = curNode.parent
-    entirePath.reverse() # Reverse to get path from start to goal
-    return entirePath, success, numNodesExpanded, numGenerated
+    def lacam(self, start_locations, goal_locations, bd, grid_map, getActionPrefsFromLocs, lacamLimit, start_time, timeLimit):
+        """Inputs:
+            bd: (N,H,W)
+            grid_map: (H,W)
+            getActionPrefsFromLocs: function that takes in (N,2) and outputs (N,5) action preferences
+                This would call the NN model, or could use bds (to replicate original LaCAM)
+        """
+
+        # mainStack = deque() # Stack of HLNodes
+        # stateToHLNodes = dict() # Maps str(state) to HLNode
+        if not self.real_time:
+            self.mainStack.clear() # Clear the stack if not real-time
+            self.stateToHLNodes = dict() # Clear the cache if not real-time
+
+        if len(self.mainStack) == 0: # First time running
+            ### Initialize the HLNode
+            curNode = LaCAMRunner.HLNode(start_locations, getActionPrefsFromLocs(start_locations), None, bd, goal_locations)
+            self.mainStack.appendleft(curNode) # Start with the initial state
+            self.stateToHLNodes[start_locations.tobytes()] = curNode
+
+        success = False
+        MAXGENERATED = lacamLimit
+        numNodesExpanded = 0
+        numGenerated = 1 # Start with 1 as we have already added the initial state
+        while len(self.mainStack) > 0:
+            curNode : LaCAMRunner.HLNode = self.mainStack.popleft()
+            if len(curNode.queue_of_constraints) != 0: # Always add in the original HLNode if not exhausted
+                self.mainStack.appendleft(curNode)
+            new_locs = curNode.getNextState(grid_map, start_time, timeLimit)
+            if new_locs is None:
+                continue
+            numNodesExpanded += 1
+
+            # Check if all agents have reached their goals
+            if np.all(np.equal(new_locs, goal_locations)):
+                print("Stopping as found goal in LaCAM, depth: {}, nodes expanded: {}".format(curNode.depth, numNodesExpanded))
+                success = True
+                break
+
+            key = new_locs.tobytes()
+            if key in self.stateToHLNodes.keys(): # Already visited/created this state
+                curNode = self.stateToHLNodes[key] # Get the existing HLNode
+                self.mainStack.appendleft(curNode) # Add to stack
+            else:
+                # Create a new HLNode
+                # probs = runNNOnState(new_locs, bd, grid_map, k, m, model, device)
+                # action_preferences = convertProbsToPreferences(probs, conversion_type) # (N,5)
+                newHLNode = LaCAMRunner.HLNode(new_locs, getActionPrefsFromLocs(new_locs), curNode, bd, goal_locations)
+                numGenerated += 1
+
+                # Add to collections
+                self.stateToHLNodes[key] = newHLNode
+                self.mainStack.appendleft(newHLNode)
+                
+            if numGenerated >= MAXGENERATED or (time.time() - start_time > timeLimit): # Limit the number of nodes generated or check time limit
+                break
+            
+        if self.real_time:
+            entirePath = [start_locations, new_locs]
+        else:    
+            # Get path via backtracking. If not a success, this returns the path to the last state found
+            entirePath = [new_locs]
+            while curNode is not None:
+                entirePath.append(curNode.state)
+                curNode = curNode.parent
+            entirePath.reverse() # Reverse to get path from start to goal
+        return entirePath, success, numNodesExpanded, numGenerated
 
 class WrapperNNWithCache:
-    def __init__(self, bd, grid_map, model, device, k, m, goal_locations, args) -> None:
+    def __init__(self, bd, grid_map, model, device, k, m, goal_locations, args, timer) -> None:
         self.bd = bd
         self.grid_map = grid_map
         self.model = model
@@ -403,14 +419,15 @@ class WrapperNNWithCache:
         self.hits = 0
         self.goal_locations = goal_locations
         self.args = args
+        self.timer = timer
 
-    def __call__(self, locs):
-        key = str(locs)
+    def __call__(self, locs: np.ndarray):
+        key = locs.tobytes()
         if key in self.saved_calls.keys():
             self.hits += 1
             return self.saved_calls[key]
         else:
-            probs = runNNOnState(locs, self.bd, self.grid_map, self.k, self.m, self.model, self.device, self.goal_locations, self.args)
+            probs = runNNOnState(locs, self.bd, self.grid_map, self.k, self.m, self.model, self.device, self.goal_locations, self.args, self.timer)
             self.saved_calls[key] = probs
             return probs
 
@@ -462,10 +479,11 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         start_locations: (N,2)
         goal_locations: (N,2)
     """
-    if shield_type not in ["CS-PIBT", "CS-Freeze", "LaCAM"]:
+    if shield_type not in ["CS-PIBT", "CS-Freeze", "LaCAM", "Real-Time-LaCAM"]:
         raise KeyError('Invalid shield type: {}'.format(shield_type))
     
-    wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, args)
+    wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, args, timer)
+    wrapper_bd_prefs = WrapperBDGetActionPrefs(bd, grid_map, k, m, len(start_locations)) # This returns PIBT action preferences
     def getActionPrefsFromLocs(locs):
         # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
         probs = runNNOnState(locs, bd, grid_map, k, m, model, device, goal_locations, args, timer)
@@ -476,7 +494,8 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         probs[action_mask] = 1e-8  # Mask out probabilities for invalid actions, cannot set to 0 as it messes up sampling later
         probs = probs / probs.sum(axis=1, keepdims=True)  # Normalize to sum to 1
         return convertProbsToPreferences(probs, "sampled")
-    wrapper_bd_prefs = WrapperBDGetActionPrefs(bd, grid_map, k, m, len(start_locations)) # This returns PIBT action preferences
+    # getActionPrefsFromLocs = wrapper_bd_prefs
+    
     cur_locs = start_locations # (N,2)
     # Ensure no start/goal locations are on obstacles
     assert(grid_map[start_locations[:,0], start_locations[:,1]].sum() == 0)
@@ -484,7 +503,11 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
 
     agent_priorities = bd[range(len(start_locations)), start_locations[:,0], start_locations[:,1]] # (N)
     agent_priorities = agent_priorities / agent_priorities.max() # Normalize to [0,1]
+    
+    if shield_type in ["LaCAM", "Real-Time-LaCAM"]:
+        lacamRunner = LaCAMRunner(real_time=(shield_type=="Real-Time-LaCAM"))
 
+    print(args.timeLimit)
     solution_path = [cur_locs.copy()]
     success = False
     MAX_USE_LACAM = 100  # Hardcoded limit on how many times to use LaCAM since it is slow
@@ -497,12 +520,13 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         if cur_time-start_time > args.timeLimit and args.timeLimit > 0:
             print("time limit hit")
             break
+        
+        
         if shield_type in ["CS-PIBT", "CS-Freeze"]:
             action_preferences = getActionPrefsFromLocs(cur_locs) # (N,5)
             if shield_type == "CS-Freeze":
                 action_preferences = action_preferences[:,:2] # (N,2)
                 action_preferences[:,1] = 0  # 0 action index corresponds to stop
-            # action_preferences = wrapper_bd_prefs(cur_locs)
             timer.start("cs-time")
             new_move, cspibt_worked = pibt(grid_map, action_preferences, cur_locs, agent_priorities, [], start_time, args.timeLimit)
             timer.stop("cs-time")
@@ -514,14 +538,13 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
             #     raise RuntimeError('CS-PIBT failed; should never fail when not using LaCAM constraints!')
         else:
             # Run LaCAM
-            at_goal_ratio = np.mean(agents_at_goal)
-            scaled_lookahead = 1 # Use lookahead of 1 in the beginning
-            # usedAP = getActionPrefsFromLocs
-            # usedAP = wrapper_bd_prefs # Use this to test LaCAM with PIBT action preferences
-            if at_goal_ratio > 0.90 and MAX_USE_LACAM >= 0: # Only use larger lookahead when at least 90% agents are at goal and have budget
-                scaled_lookahead = int(np.ceil(lacam_lookahead * at_goal_ratio)) # Scale lookahead based on how many agents are at goal
-                MAX_USE_LACAM -= 1
-            next_locs, lacamFoundSolution, numNodesExpanded, numGenerated = lacam(cur_locs, goal_locations, 
+            # at_goal_ratio = np.mean(agents_at_goal)
+            # scaled_lookahead = 1 # Use lookahead of 1 in the beginning
+            # if at_goal_ratio > 0.90 and MAX_USE_LACAM >= 0: # Only use larger lookahead when at least 90% agents are at goal and have budget
+            #     scaled_lookahead = int(np.ceil(lacam_lookahead * at_goal_ratio)) # Scale lookahead based on how many agents are at goal
+            #     MAX_USE_LACAM -= 1
+            scaled_lookahead = lacam_lookahead
+            next_locs, lacamFoundSolution, numNodesExpanded, numGenerated = lacamRunner.lacam(cur_locs, goal_locations, 
                                                     bd, grid_map, getActionPrefsFromLocs, scaled_lookahead, start_time, args.timeLimit)
             # Note: next_locs is (T1,N,2) where T1 is the lookahead depth
 
@@ -720,6 +743,17 @@ python -m gnn.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
       --shieldType=CS-PIBT --agentNum=200
       
       --shieldType=LaCAM --lacamLookahead=5 --agentNum=200
+      
+python -m gnn.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
+      --mapName=random_32_32_20 --scenFile=data/mapf-scen-random/random-32-32-20-random-1.scen \
+      --bdNpzFile=data/constant_npzs/completed_splitting/random_32_32_20_bds.npz \
+      --modelPath=data/model/max_test_acc.pt \
+      --k=4 --m=5 \
+      --outputCSVFile=logs/results.csv \
+      --outputPathsFile=logs/paths.npy \
+      --numScensToCreate=0 --outputScenPrefix=logs/outputscene.txt \
+      --maxSteps=1000 --seed=0 --useGPU=True --bd_pred=t --extra_layers=agent_locations \
+      --agentNum=50 --shieldType=LaCAM --lacamLookahead=100
 """
 if __name__ == '__main__':
     # testGetCosts()
@@ -739,7 +773,7 @@ if __name__ == '__main__':
     parser.add_argument('--maxSteps', type=str, help="int or [int]x, e.g. 100 or 2x to denote multiplicative factor", required=True)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--percentSuccessGenerationReduction', type=float, default=0.7)
-    parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'CS-Freeze', 'LaCAM'])
+    parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'CS-Freeze', 'LaCAM', 'Real-Time-LaCAM'])
     parser.add_argument('--lacamLookahead', type=int, help="LaCAM node expansion limit", default=0)
     parser.add_argument('--timeLimit', type=int, required=False, help="Time limit (s)", default=60)
     # Output parameters
