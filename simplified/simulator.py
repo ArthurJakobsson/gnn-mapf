@@ -13,12 +13,19 @@ from tqdm import tqdm # For progress bar
 import time
 import datetime
 
-import torch_geometric.inspector
-import torch_geometric.nn as pyg_nn
-from gnn.dataloader import create_data_object, get_bd_prefs, normalize_graph_data
-from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
-from custom_utils.common_helper import str2bool, getMapBDScenAgents
-from custom_utils.custom_timer import CustomTimer
+# import torch_geometric.inspector
+# import torch_geometric.nn as pyg_nn
+# from gnn.dataloader import create_data_object, get_bd_prefs, normalize_graph_data
+# from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
+from simplified.model import GNNStack, CustomConv # Required for using the model even if not explictly called
+from simplified.model_inputs import create_data_object, normalize_graph_data
+# from custom_utils.common_helper import str2bool, getMapBDScenAgents
+# from custom_utils.custom_timer import CustomTimer
+from simplified.custom_timer import CustomTimer
+
+def str2bool(v: str) -> bool:
+    """Converts a string to a boolean value. Used for argparse."""
+    return v.lower() in ("yes", "true", "t", "1")
 
 ####################################################
 #### Helper functions
@@ -408,7 +415,7 @@ class LaCAMRunner:
         return entirePath, success, numNodesExpanded, numGenerated
 
 class WrapperNNWithCache:
-    def __init__(self, bd, grid_map, model, device, k, m, goal_locations, args, timer) -> None:
+    def __init__(self, bd, grid_map, model, device, k, m, goal_locations, timer) -> None:
         self.bd = bd
         self.grid_map = grid_map
         self.model = model
@@ -418,7 +425,6 @@ class WrapperNNWithCache:
         self.saved_calls = dict()
         self.hits = 0
         self.goal_locations = goal_locations
-        self.args = args
         self.timer = timer
 
     def __call__(self, locs: np.ndarray):
@@ -427,11 +433,11 @@ class WrapperNNWithCache:
             self.hits += 1
             return self.saved_calls[key]
         else:
-            probs = runNNOnState(locs, self.bd, self.grid_map, self.k, self.m, self.model, self.device, self.goal_locations, self.args, self.timer)
+            probs = runNNOnState(locs, self.bd, self.grid_map, self.k, self.m, self.model, self.device, self.goal_locations, self.timer)
             self.saved_calls[key] = probs
             return probs
 
-def runNNOnState(cur_locs, bd, grid_map, k, m, model, device, goal_locations, args, timer: CustomTimer):
+def runNNOnState(cur_locs, bd, grid_map, k, m, model, device, goal_locations, timer: CustomTimer):
     """Inputs:
         cur_locs: (N,2)
     Outputs:
@@ -441,7 +447,7 @@ def runNNOnState(cur_locs, bd, grid_map, k, m, model, device, goal_locations, ar
     with torch.no_grad():
         # Create the data object
         timer.start("create_nn_data")
-        data = create_data_object(cur_locs, bd, grid_map, k, m, goal_locations, args.extra_layers, args.bd_pred)
+        data = create_data_object(cur_locs, bd, grid_map, k, m, goal_locations)
         data = normalize_graph_data(data, k)
         data = data.to(device)
         timer.stop("create_nn_data")
@@ -482,11 +488,11 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
     if shield_type not in ["CS-PIBT", "CS-Freeze", "LaCAM", "Real-Time-LaCAM"]:
         raise KeyError('Invalid shield type: {}'.format(shield_type))
     
-    wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, args, timer)
+    wrapper_nn = WrapperNNWithCache(bd, grid_map, model, device, k, m, goal_locations, timer)
     wrapper_bd_prefs = WrapperBDGetActionPrefs(bd, grid_map, k, m, len(start_locations)) # This returns PIBT action preferences
     def getActionPrefsFromLocs(locs):
         # probs = wrapper_nn(locs) # Using wrapper_nn is not effective with "sampled" as we almost never revisit states
-        probs = runNNOnState(locs, bd, grid_map, k, m, model, device, goal_locations, args, timer)
+        probs = runNNOnState(locs, bd, grid_map, k, m, model, device, goal_locations, timer)
 
         ### Mask out invalid actions
         action_mask = grid_map[cur_locs[:, 0, None] + LABEL_TO_MOVES[:, 0], cur_locs[:, 1, None] + LABEL_TO_MOVES[:, 1]] == 1  # (N,5)
@@ -671,40 +677,6 @@ def main(args: argparse.ArgumentParser):
     assert(args.outputPathsFile.endswith('.npy'))
     np.save(args.outputPathsFile, solution_path)
 
-    # Create the scen files
-    numToCreate = args.numScensToCreate
-    chanceDecreasedForSuccess = args.percentSuccessGenerationReduction
-    if numToCreate<1:
-        return
-    # subsample fewer scens if failure instance
-    if success:
-        numToCreate *= chanceDecreasedForSuccess 
-        numToCreate = int(numToCreate)
-        sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False)
-        # pdb.set_trace()
-    # if failure also sample more towards the end
-    else:
-        weights = np.arange(solution_path.shape[0], dtype=np.float64) + 1
-        weights /= np.sum(weights)
-        sampled_timesteps = np.random.choice(solution_path.shape[0], numToCreate, replace=False, p=weights)        # Always include the first timestep + last 5 timesteps, then sample the rest
-    # pdb.set_trace()
-
-    # Always include the first timestep + last 5 timesteps, then sample the rest
-    # sampled_timesteps = np.concatenate([[0], sampled_timesteps, np.arange(solution_path.shape[0]-5, solution_path.shape[0])])    
-    # sampled_timesteps = np.unique(sampled_timesteps)
-    
-    
-    for t in sampled_timesteps:
-        # scenFilepath = args.outputScenPrefix + f".{t}.scen"
-        mapname, bdname, scenname, _ = getMapBDScenAgents(args.scenFile)
-        custom_scenname = f"{scenname}_t{t}"
-        prefix = os.path.dirname(args.outputPathsFile)
-        scenFilepath = f"{prefix}/{bdname}.{custom_scenname}.{num_agents}.scen"
-        # pdb.set_trace()
-
-        createScenFile(solution_path[t], goal_locations, args.mapName, scenFilepath)
-
-    # print(runNNOnState.cache_info())
 
 ### Example command
 """
@@ -751,8 +723,8 @@ python -m gnn.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
       --outputCSVFile=logs/results.csv \
       --outputPathsFile=logs/paths.npy \
       --numScensToCreate=0 --outputScenPrefix=logs/outputscene.txt \
-      --maxSteps=1000 --seed=0 --useGPU=True --bd_pred=t --extra_layers=agent_locations \
-      --agentNum=50 --shieldType=LaCAM --lacamLookahead=100
+      --maxSteps=1000 --seed=0 --useGPU=True \
+      --agentNum=50 --shieldType=Real-Time-LaCAM --lacamLookahead=1
 """
 
 if __name__ == '__main__':
@@ -772,7 +744,6 @@ if __name__ == '__main__':
     parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
     parser.add_argument('--maxSteps', type=str, help="int or [int]x, e.g. 100 or 2x to denote multiplicative factor", required=True)
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--percentSuccessGenerationReduction', type=float, default=0.7)
     parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'CS-Freeze', 'LaCAM', 'Real-Time-LaCAM'])
     parser.add_argument('--lacamLookahead', type=int, help="LaCAM node expansion limit", default=0)
     parser.add_argument('--timeLimit', type=int, help="Time limit (s)", default=60)
@@ -780,10 +751,7 @@ if __name__ == '__main__':
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
     parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", required=True)
     parser.add_argument('--numScensToCreate', type=int, default=0, help="how many scens to create", required=False)
-    parser.add_argument('--outputScenPrefix', type=str, help="output prefix to create scens", required=False)    
-    extraLayersHelp = "Types of additional layers for training, comma separated. Options are: agent_locations, agent_goal, at_goal_grid"
-    parser.add_argument('--extra_layers', help=extraLayersHelp, type=str, default="agent_locations")
-    parser.add_argument('--bd_pred', type=str, default="t", help="bd_predictions added to NN, type anything if adding")
+    parser.add_argument('--outputScenPrefix', type=str, help="output prefix to create scens", required=False)
 
     args = parser.parse_args()
 
