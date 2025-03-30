@@ -582,7 +582,8 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
 def main(args: argparse.ArgumentParser):
     # Setting constants
     torch.set_num_threads(1) # Make pytorch use only 1 thread, otherwise by default will try using all threads    
-    k = args.k
+    k = 4 # Model has a local window radius of 4
+    m = 5 # 5 closest neighbors
     # Load the map
     if not os.path.exists(args.mapNpzFile):
         raise FileNotFoundError('Map file: {} not found.'.format(args.mapNpzFile))
@@ -642,7 +643,7 @@ def main(args: argparse.ArgumentParser):
     timer = CustomTimer()
     timer.start("total_simulate")
     solution_path, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, success = simulate(device,
-            model, k, args.m, map_grid, bd, start_locations, goal_locations, 
+            model, k, m, map_grid, bd, start_locations, goal_locations, 
             max_steps, args.shieldType, args.lacamLookahead, args, timer)
     timer.stop("total_simulate")
     total_simulate_time = timer.getTimes("total_simulate")
@@ -662,20 +663,21 @@ def main(args: argparse.ArgumentParser):
         with open(args.outputCSVFile, 'w') as f:
             writer = csv.writer(f, delimiter=',')
             writer.writerow(['mapName', 'scenFile', 'agentNum', 'seed', 'shieldType', 'lacamLookahead',
-                             'modelPath', 'useGPU', 'k', 'm', 'maxSteps', 
+                             'modelPath', 'useGPU', 'maxSteps', 
                              'success', 'total_cost_true', 'total_cost_not_resting_at_goal',
                              'num_agents_at_goal', 'runtime', 'create_nn_data', 'forward_pass', 'cs-time'])
             
     with open(args.outputCSVFile, 'a') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow([args.mapName, args.scenFile, args.agentNum, args.seed, args.shieldType, args.lacamLookahead,
-                         args.modelPath, args.useGPU, args.k, args.m, args.maxSteps,
+                         args.modelPath, args.useGPU, args.maxSteps,
                          success, total_cost_true, total_cost_not_resting_at_goal, num_agents_at_goal, total_simulate_time,
                          timer.getTimes("create_nn_data"), timer.getTimes("forward_pass"), timer.getTimes("cs-time")])
 
     # Save the paths
-    assert(args.outputPathsFile.endswith('.npy'))
-    np.save(args.outputPathsFile, solution_path)
+    if args.outputPathsFile is not None:
+        assert(args.outputPathsFile.endswith('.npy'))
+        np.save(args.outputPathsFile, solution_path)
 
 
 ### Example command
@@ -715,14 +717,12 @@ python -m gnn.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
       
       --shieldType=LaCAM --lacamLookahead=5 --agentNum=200
       
-python -m gnn.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
-      --mapName=random_32_32_20 --scenFile=data/mapf-scen-random/random-32-32-20-random-1.scen \
-      --bdNpzFile=data/constant_npzs/completed_splitting/random_32_32_20_bds.npz \
+python -m simplified.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
+      --mapName=den312d --scenFile=data/mapf-scen-random/den312d-random-1.scen \
+      --bdNpzFile=data/constant_npzs/completed_splitting/den312d_bds.npz \
       --modelPath=data/model/max_test_acc.pt \
-      --k=4 --m=5 \
       --outputCSVFile=logs/results.csv \
       --outputPathsFile=logs/paths.npy \
-      --numScensToCreate=0 --outputScenPrefix=logs/outputscene.txt \
       --maxSteps=1000 --seed=0 --useGPU=True \
       --agentNum=50 --shieldType=Real-Time-LaCAM --lacamLookahead=1
 """
@@ -740,8 +740,6 @@ if __name__ == '__main__':
     # Simulator parameters
     parser.add_argument('--modelPath', type=str, required=True)
     parser.add_argument('--useGPU', type=lambda x: bool(str2bool(x)), required=True)
-    parser.add_argument('--k', type=int, help="local window size", required=True)
-    parser.add_argument('--m', type=int, help="number of closest neighbors", required=True)
     parser.add_argument('--maxSteps', type=str, help="int or [int]x, e.g. 100 or 2x to denote multiplicative factor", required=True)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--shieldType', type=str, default='CS-PIBT', choices=['CS-PIBT', 'CS-Freeze', 'LaCAM', 'Real-Time-LaCAM'])
@@ -749,16 +747,12 @@ if __name__ == '__main__':
     parser.add_argument('--timeLimit', type=int, help="Time limit (s)", default=60)
     # Output parameters
     parser.add_argument('--outputCSVFile', type=str, help="where to output statistics", required=True)
-    parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", required=True)
-    parser.add_argument('--numScensToCreate', type=int, default=0, help="how many scens to create", required=False)
-    parser.add_argument('--outputScenPrefix', type=str, help="output prefix to create scens", required=False)
+    parser.add_argument('--outputPathsFile', type=str, help="where to output path, ends with .npy", default=None)
 
     args = parser.parse_args()
 
     if args.mapName.endswith('.map'): # Remove ending .map
         args.mapName = args.mapName.removesuffix('.map')
-    if args.outputScenPrefix is None:
-        tmp = args.outputPathsFile.removesuffix('.npy')
     if args.shieldType == "LaCAM" and args.lacamLookahead == 0:
         raise ValueError('LaCAM lookahead must be set when using LaCAM shield type.')
     if args.shieldType == "Real-Time-LaCAM":
