@@ -12,14 +12,17 @@ fi
 # Download random scens; note other scens are available to try too
 if [ ! -d "mapf-scen-random" ]; then
     wget https://movingai.com/benchmarks/mapf/mapf-scen-random.zip
-    unzip mapf-scen-random.zip -d mapf-scen-random # Rename unzipped folder for consistency
+    unzip mapf-scen-random.zip
+    mv scen-random mapf-scen-random # rename for consistency
 fi
 
 # Download backward dijkstras npzs
-gdown https://drive.google.com/drive/folders/1X79K-GRcZn9YvdwLmI3yCdcmRSeYIm_K?usp=drive_link -O constant_npzs/ --folder --continue
+# gdown https://drive.google.com/drive/folders/1X79K-GRcZn9YvdwLmI3yCdcmRSeYIm_K?usp=drive_link -O constant_npzs/ --folder --continue
+gdown https://drive.google.com/drive/folders/1S3md2fHR2cahc_yoeJxNeKl_gti-JU0h?usp=drive_link -O constant_npzs/ --folder --continue
 
 # Download all_maps npzs
-gdown https://drive.google.com/uc?id=1HIB7FvJUjxVzQyByHlWrJCdUiI7GrCbj -O constant_npzs/ --continue
+# gdown https://drive.google.com/uc?id=1HIB7FvJUjxVzQyByHlWrJCdUiI7GrCbj -O constant_npzs/ --continue
+gdown https://drive.google.com/uc?id=1vky4vcVkXvLbyKAM7WGJ96U698OvywwM -O constant_npzs/ --continue
 
 # Download model
 if [ ! -d "model" ]; then

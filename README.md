@@ -28,7 +28,14 @@ Note: gdown in the above command might complain at some point due to data limits
 
 To run our pre-trained model on a map, look at the `simulator.py` file. Here is an example command:
 ```sh
-python -m simulator.py ...
+python -m main_pys.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
+      --mapName=random-32-32-10 --scenFile=data/mapf-scen-random/random-32-32-10-random-1.scen \
+      --bdNpzFile=data/constant_npzs/bd_npzs/random-32-32-10_bds.npz \
+      --modelPath=data/model/max_test_acc.pt \
+      --outputCSVFile=logs/results.csv \
+      --outputPathsFile=logs/paths.npy \
+      --maxSteps=1000 --seed=0 --useGPU=True \
+      --agentNum=50 --shieldType=CS-PIBT
 ```
 
 To visualize outputs, use:

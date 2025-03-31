@@ -125,7 +125,7 @@ def createAnimation(args):
 
 """
 Example usage:
-python -m simplified.visualize_path den312d logs/paths.npy --scenName=den312d-random-1.scen 
+python -m main_pys.visualize_path den312d logs/paths.npy --scenName=den312d-random-1.scen 
 """
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Visualize agent paths from log file')

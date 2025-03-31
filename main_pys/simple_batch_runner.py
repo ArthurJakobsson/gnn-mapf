@@ -25,22 +25,14 @@ mapsToMaxNumAgents = {
     
 def runOnSingleInstance(runnerArgs, mapname, numAgents, seed, scenfile):
     """Command for running Python model"""
-    # scenname = (scenfile.split("/")[-1])
-    # mapname = mapfile.split("/")[-1].split(".")[0]
-    # mapname, bdname, scenname, _ = getMapBDScenAgents(scenfile)
-    # command = ""
-    # if runnerArgs["condaEnv"] is not None:
-    #     command += "conda activate {} && ".format(runnerArgs["condaEnv"]) # e.g. conda activate pytorchfun && python -m gnn.simulator
-    # command += "python -m gnn.simulator"
-
     # Simulator parameters
-    command = "python -m simplified.simulator"
+    command = "python -m main_pys.simulator"
     for aKey in runnerArgs:
         command += " --{}={}".format(aKey, runnerArgs[aKey])
     
     command += f" --mapNpzFile=data/constant_npzs/all_maps.npz"
     command += f" --mapName={mapname} --scenFile={scenfile} --agentNum={numAgents}"
-    command += f" --bdNpzFile=data/constant_npzs/completed_splitting/{mapname}_bds.npz"
+    command += f" --bdNpzFile=data/constant_npzs/bd_npzs/{mapname}_bds.npz"
     command += f" --seed={seed}"
     print(command)
     subprocess.run(command.split(" "), check=True) # True if want failure error
@@ -63,20 +55,12 @@ def detectExistingStatus(runnerArgs, mapfile, scenfile, aNum, seed, df): # TODO 
     for aKey, aValue in runnerArgs.items():
         if aKey in ["outputCSVFile", "mapNpzFile", "timeLimit"]:
             continue
-        # print(aKey, aValue, "df[aKey]:", df[aKey], "Next: ", df[aKey] == aValue)
-        # if aKey == "maxSteps":
-        #     pdb.set_trace()
-        # if aKey not in df.columns:
-            # raise KeyError("Error: {} not in the columns of the dataframe".format(aKey))
         df = df[df[aKey] == aValue]  # Filter the dataframe to only include the runs with the same parameters
-        # print(len(df))
-    # print("Filtered df")
-    # print(df)
-    # pymodel have different commands for inputting map, agents, and agentNum
+        
     pymodel_map_name = mapfile.split("/")[-1].removesuffix(".map")
     assert(pymodel_map_name in mapsToMaxNumAgents.keys())
     df = df[(df["mapName"] == pymodel_map_name) & (df["scenFile"] == scenfile) & (df["agentNum"] == aNum) & (df["seed"] == seed)]
-    # pdb.set_trace()
+    
     ### Checks if the corresponding runs in the df have been completed already
     if len(df) > 0:
         if len(df) > 1:
@@ -119,8 +103,8 @@ def helperCreateScens(numScens, mapName, dataPath):
 
 
 """
-python -m simplified.simple_batch_runner \
-      random_32_32_20 \
+python -m main_pys.simple_batch_runner \
+      den312d \
       --modelPath=data/model/max_test_acc.pt \
       --maxSteps=100x --seed=0 --useGPU=True \
       --shieldType=Real-Time-LaCAM --lacamLookahead=1
@@ -141,7 +125,7 @@ if __name__ == "__main__":
     parser.add_argument('--timeLimit', type=int, help="Time limit (s)", default=60)
     # Output parameters
     parser.add_argument("--logPath", help="path to log folder", type=str, default="logs/") 
-    parser.add_argument("--outputCSV", help="outputCSV", type=str, default="") # Will be saved to logPath+outputCSV
+    parser.add_argument("--outputCSV", help="outputCSV, ends with .csv", type=str, default="") # Will be saved to logPath+outputCSV
     args = parser.parse_args()
 
     if args.mapName not in mapsToMaxNumAgents:
@@ -174,7 +158,7 @@ if __name__ == "__main__":
         raise ValueError("num_scens should be less than or equal to 25")
     scens = helperCreateScens(args.num_scens, args.mapName, args.dataPath)
 
-    increment = 50
+    increment = mapsToMaxNumAgents[args.mapName] // 10
     agentNumbers = list(range(increment, mapsToMaxNumAgents[args.mapName]+1, increment))
 
     ### Run model

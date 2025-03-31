@@ -672,58 +672,14 @@ def main(args: argparse.ArgumentParser):
 
 
 ### Example command
-"""
-python -m gnn.simulator --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
-      --mapName=random_32_32_10 --scenFile=data_collection/data/benchmark_data/scens/random_32_32_10-random-1.scen \
-      --agentNum=440 --bdNpzFile=data_collection/data/benchmark_data/constant_npzs/random_32_32_10_bds.npz \
-      --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
-      --k=4 --m=5 \
-      --outputCSVFile=data_collection/data/logs/EXP_Test4/iter0/results.csv \
-      --outputPathsFile=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
-      --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-      --maxSteps=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5
-
-# --modelPath=data_collection/data/logs/EXP_Small/iter29/models/max_test_acc.pt --useGPU=False \
-python -m gnn.simulator --mapNpzFile=data_collection/data/benchmark_data/constant_npzs/all_maps.npz \
-      --mapName=den312d --scenFile=data_collection/data/benchmark_data/scens/den312d-random-1.scen \
-      --bdNpzFile=data_collection/data/benchmark_data/constant_npzs/den312d_bds.npz \
-      --modelPath=data_collection/data/logs/EXP_den312d_lacam2/iter0/models/max_test_acc.pt --useGPU=False \
-      --k=4 --m=5 \
-      --outputCSVFile=data_collection/data/logs/EXP_Test4/iter0/results.csv \
-      --outputPathsFile=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/paths.npy \
-      --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_Test4/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-      --maxSteps=500 --agentNum=400 --seed=0 --shieldType=LaCAM --lacamLookahead=5 --debug=true
-      
-      
-python -m gnn.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
-      --mapName=random_32_32_20 --scenFile=data/mapf-scen-random/random-32-32-20-random-1.scen \
-      --bdNpzFile=data/constant_npzs/completed_splitting/random_32_32_20_bds.npz \
-      --modelPath=data/model/max_test_acc.pt \
-      --k=4 --m=5 \
-      --outputCSVFile=logs/results.csv \
-      --outputPathsFile=logs/paths.npy \
-      --numScensToCreate=0 --outputScenPrefix=logs/outputscene.txt \
-      --maxSteps=400 --seed=0 --useGPU=True --bd_pred=t --extra_layers=agent_locations \
-      --shieldType=CS-PIBT --agentNum=200
-      
-      --shieldType=LaCAM --lacamLookahead=5 --agentNum=200
-      
-python -m simplified.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
+"""   
+python -m main_pys.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
       --mapName=den312d --scenFile=data/mapf-scen-random/den312d-random-1.scen \
-      --bdNpzFile=data/constant_npzs/completed_splitting/den312d_bds.npz \
+      --bdNpzFile=data/constant_npzs/bd_npzs/den312d_bds.npz \
       --modelPath=data/model/max_test_acc.pt \
       --outputCSVFile=logs/results.csv \
       --outputPathsFile=logs/paths.npy \
-      --maxSteps=1000 --seed=0 --useGPU=True \
-      --agentNum=50 --shieldType=Real-Time-LaCAM --lacamLookahead=1
-      
-python -m simplified.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
-      --mapName=random-32-32-10 --scenFile=data/mapf-scen-random/random-32-32-10-random-1.scen \
-      --bdNpzFile=data/constant_npzs/bd_npzs/random-32-32-10_bds.npz \
-      --modelPath=data/model/max_test_acc.pt \
-      --outputCSVFile=logs/results.csv \
-      --outputPathsFile=logs/paths.npy \
-      --maxSteps=1000 --seed=0 --useGPU=True \
+      --maxSteps=3x --seed=0 --useGPU=True \
       --agentNum=50 --shieldType=Real-Time-LaCAM --lacamLookahead=1
 """
 
