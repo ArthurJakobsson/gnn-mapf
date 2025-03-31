@@ -3,25 +3,16 @@ import argparse
 import pdb
 import numpy as np
 import torch # For the model and 
-import pandas as pd # For saving the results
 import csv # For saving the results
 from collections import deque, defaultdict # For the cs-pibt and lacam
-from functools import lru_cache # For caching the model calls
 import cProfile # For profiling
 import pstats # For profiling
 from tqdm import tqdm # For progress bar
 import time
-import datetime
 
-# import torch_geometric.inspector
-# import torch_geometric.nn as pyg_nn
-# from gnn.dataloader import create_data_object, get_bd_prefs, normalize_graph_data
-# from gnn.trainer import GNNStack, CustomConv # Required for using the model even if not explictly called
-from simplified.model import GNNStack, CustomConv # Required for using the model even if not explictly called
-from simplified.model_inputs import create_data_object, normalize_graph_data
-# from custom_utils.common_helper import str2bool, getMapBDScenAgents
-# from custom_utils.custom_timer import CustomTimer
-from simplified.custom_timer import CustomTimer
+from main_pys.model import GNNStack, CustomConv # Required for using the model even if not explictly called
+from main_pys.model_inputs import create_data_object, normalize_graph_data
+from main_pys.custom_timer import CustomTimer
 
 def str2bool(v: str) -> bool:
     """Converts a string to a boolean value. Used for argparse."""
@@ -720,6 +711,15 @@ python -m gnn.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
 python -m simplified.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
       --mapName=den312d --scenFile=data/mapf-scen-random/den312d-random-1.scen \
       --bdNpzFile=data/constant_npzs/completed_splitting/den312d_bds.npz \
+      --modelPath=data/model/max_test_acc.pt \
+      --outputCSVFile=logs/results.csv \
+      --outputPathsFile=logs/paths.npy \
+      --maxSteps=1000 --seed=0 --useGPU=True \
+      --agentNum=50 --shieldType=Real-Time-LaCAM --lacamLookahead=1
+      
+python -m simplified.simulator --mapNpzFile=data/constant_npzs/all_maps.npz \
+      --mapName=random-32-32-10 --scenFile=data/mapf-scen-random/random-32-32-10-random-1.scen \
+      --bdNpzFile=data/constant_npzs/bd_npzs/random-32-32-10_bds.npz \
       --modelPath=data/model/max_test_acc.pt \
       --outputCSVFile=logs/results.csv \
       --outputPathsFile=logs/paths.npy \

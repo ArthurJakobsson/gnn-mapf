@@ -1,4 +1,4 @@
-name: pytorchfun
+name: ssil
 channels:
   - pyg
   - pytorch
@@ -208,9 +208,11 @@ dependencies:
   - zstd=1.5.5=hc292b87_0
   - pip:
       - appdirs==1.4.4
+      - beautifulsoup4==4.13.3
       - click==8.1.7
       - docker-pycreds==0.4.0
       - fsspec==2023.10.0
+      - gdown==5.2.0
       - gitdb==4.0.11
       - gitpython==3.1.42
       - hashids==1.3.1
@@ -218,9 +220,9 @@ dependencies:
       - setproctitle==1.3.3
       - smmap==5.0.1
       - snakeviz==2.2.0
+      - soupsieve==2.6
       - tabulate==0.9.0
       - torch-summary==1.4.5
       - torchsummaryx==1.3.0
       - tqdm==4.66.2
       - wandb==0.16.3
-prefix: /home/rishi/anaconda3/envs/pytorchfun
