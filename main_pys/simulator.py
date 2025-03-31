@@ -366,6 +366,8 @@ class LaCAMRunner:
             if len(curNode.queue_of_constraints) != 0: # Always add in the original HLNode if not exhausted
                 self.mainStack.appendleft(curNode)
             new_locs = curNode.getNextState(grid_map, start_time, timeLimit)
+            if time.time() - start_time > timeLimit: # Time limit hit
+                break
             if new_locs is None:
                 continue
             numNodesExpanded += 1
@@ -391,7 +393,7 @@ class LaCAMRunner:
                 self.stateToHLNodes[key] = newHLNode
                 self.mainStack.appendleft(newHLNode)
                 
-            if numGenerated >= MAXGENERATED or (time.time() - start_time > timeLimit): # Limit the number of nodes generated or check time limit
+            if numGenerated >= MAXGENERATED: # Limit the number of nodes generated
                 break
             
         if self.real_time:
@@ -512,8 +514,7 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
         # Update priorities
         agents_at_goal = np.all(np.equal(cur_locs, goal_locations), axis=1) # (N)
         agent_priorities = updatePriorities(agent_priorities, agents_at_goal)
-        cur_time = time.time()
-        if cur_time-start_time > args.timeLimit and args.timeLimit > 0:
+        if time.time()-start_time > args.timeLimit and args.timeLimit > 0:
             print("time limit hit")
             break
         
@@ -552,6 +553,9 @@ def simulate(device, model, k, m, grid_map, bd, start_locations, goal_locations,
                 success = True
                 break
             else:
+                if time.time()-start_time > args.timeLimit and args.timeLimit > 0:
+                    print("time limit hit")
+                    break
                 new_move = next_locs[1] - cur_locs # (N,2)
 
         cur_locs = cur_locs + new_move # (N,2)
@@ -600,7 +604,6 @@ def main(args: argparse.ArgumentParser):
         raise FileNotFoundError('BD file: {} not found.'.format(args.bdNpzFile))
     scen_num = args.scenFile.split('-')[-1].split('.')[0]
     bd_key = f"{args.mapName}-random-{scen_num}"
-    print(args.bdNpzFile)
     bd_npz = np.load(args.bdNpzFile)
     if bd_key not in bd_npz:
         raise ValueError('BD key {} not found in the bd file'.format(bd_key))
@@ -611,7 +614,6 @@ def main(args: argparse.ArgumentParser):
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.useGPU else "cpu") # Use GPU if available
     if not os.path.exists(args.modelPath):
         raise FileNotFoundError('Model file: {} not found.'.format(args.modelPath))
-    print(args.modelPath)
     model = torch.load(args.modelPath, map_location=device)
     model.eval()
 

@@ -22,7 +22,7 @@ def runBatchExps(mapName: str, num_scens: int, output_csv:str, shieldType: str, 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run mini test")
-    parser.add_argument("--mapName", type=str, default="random-32-32-10", help="Map name")
+    parser.add_argument("--mapName", type=str, help="Map name", required=True)
     args = parser.parse_args()
 
     # Run the batch experiments
