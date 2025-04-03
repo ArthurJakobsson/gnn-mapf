@@ -150,9 +150,7 @@ def generate_scens(maze, args):
 
     t0 = time.time()
     for scen_idx in range(args.num_scens):
-        permutation = np.random.choice(range(len(open_locs)), size=len(open_locs), replace=False) # (num_open_locs,)
-        start_locs = open_locs[permutation[:args.num_agents]] # (N, 2)
-        goal_locs = open_locs[derange(permutation)[:args.num_agents]] # (N, 2)
+        start_locs, goal_locs = get_start_goal_locs(args.scen_type, open_locs, args.num_agents, args.width, args.height)
         scen_starts[scen_idx, :] = start_locs
         scen_goals[scen_idx, :] = goal_locs
     print(f'Scen start goal pairs generated in {time.time() - t0:.4f}s')
@@ -167,6 +165,21 @@ def generate_scens(maze, args):
         print(f'Octile BFS completed in {time.time() - t0:.4f}s')
     
     return (scen_starts, scen_goals, scen_costs)
+
+
+def get_start_goal_locs(scen_type, open_locs, num_agents, width, height):
+    if scen_type == 'random':
+        permutation = np.random.choice(range(len(open_locs)), size=len(open_locs), replace=False) # (num_open_locs,)
+        start_locs = open_locs[permutation[:num_agents]] # (N, 2)
+        goal_locs = open_locs[derange(permutation)[:num_agents]] # (N, 2)
+
+    if scen_type == 'cluster':
+        start_center = (0, 0)
+        goal_center = (width-1, height-1)
+        start_locs = open_locs[np.argsort(np.sum((open_locs - start_center) ** 2, axis=1))][:num_agents]
+        goal_locs = open_locs[np.argsort(np.sum((open_locs - goal_center) ** 2, axis=1))][:num_agents]
+
+    return start_locs, goal_locs
 
 
 def save_map_file(maze, args):
@@ -201,9 +214,9 @@ def save_scen_files(scen_data, args):
 
 def generate_map_scens(args):
     # generate map
-    if args.type == 'maze':
+    if args.map_type == 'maze':
         maze = generate_maze(args.height, args.width, args.corridor_size)
-    elif args.type == 'room':
+    elif args.map_type == 'room':
         maze = generate_room_maze(args.height, args.width, args.corridor_size, args.room_size)
 
     num_open_locs = int(args.width*args.height-np.sum(maze))
@@ -233,7 +246,7 @@ def generate_constants(args):
 
 '''
 maze_config_csv: 
-map_name,type,height,width,corridor_size,roomnum_agents,num_scens
+map_name,map_type,scen_type,height,width,corridor_size,roomnum_agents,num_scens
 maze1,16,16,1,1000,25
 
 Example run:
@@ -272,7 +285,7 @@ if __name__ == "__main__":
         csv_reader = csv.reader(file)
         header = next(csv_reader)
         for row in csv_reader:
-            values = row[0:2] + [*map(int, row[2:])]
+            values = row[0:3] + [*map(int, row[3:])]
             map_args = argparse.Namespace(**dict(zip(header, values)))
             map_args.data_path = args.data_path
             map_args.skip_octile_bfs = args.skip_octile_bfs
