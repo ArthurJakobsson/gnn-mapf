@@ -1,5 +1,0 @@
-usage: maze_generator.py [-h] --config_csv CONFIG_CSV --data_path DATA_PATH
-                         [--skip_octile_bfs] [--skip_constants_generation]
-                         [--temp_bd_path TEMP_BD_PATH]
-                         [--eecbs_path EECBS_PATH]
-maze_generator.py: error: the following arguments are required: --config_csv
