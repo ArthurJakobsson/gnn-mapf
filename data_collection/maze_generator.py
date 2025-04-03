@@ -7,23 +7,19 @@ import time
 from collections import deque
 import subprocess
 import csv
+import random
 
-# generate maps with DFS backtracking
+# generate maze map with DFS backtracking
 def generate_maze(height, width, corridor_size):
-    """Generates a maze using DFS.
-
-    Args:
-        rows: Number of rows in the maze.
-        cols: Number of columns in the maze.
-
-    Returns:
-        A list of lists representing the maze. 
-        0 represents a path, and 1 represents a wall.
+    """Generates a maze map using DFS.
+        height: Number of rows in the maze
+        width: Number of columns in the maze
+        corridor_size: width of space between walls
     """
 
     t0 = time.time()
 
-    maze = np.ones((height, width))  # initialize maze with walls
+    maze = np.ones((height, width))  # initialize map with walls
     visited = np.zeros((height, width))
     moves = np.asarray([(0, 1), (1, 0), (0, -1), (-1, 0)])
 
@@ -46,6 +42,50 @@ def generate_maze(height, width, corridor_size):
                 dq.append((new_row, new_col, row, col))
 
     print(f'Maze generated in {time.time() - t0:.4f}s')
+    return maze
+
+
+# generate room maze map with DFS backtracking
+def generate_room_maze(height, width, corridor_size, room_size):
+    """Generates a maze map using DFS.
+        height: Number of rows in the maze
+        width: Number of columns in the maze
+        corridor_size: width of corridor between rooms
+        room_size: width of room (square)
+    """
+    
+    t0 = time.time()
+
+    maze = np.ones((height, width))  # initialize map with walls
+    visited = np.zeros((height, width))
+    moves = np.asarray([(0, 1), (1, 0), (0, -1), (-1, 0)])
+
+    dq = deque()
+    dq.append((1, 1, 1, 1)) # row, col, prev_row, prev_col
+    
+    while dq:
+        row, col, prev_row, prev_col = dq.pop()
+
+        if visited[row, col] == 1: continue
+        visited[row, col] = 1
+
+        maze[row : row + room_size, col : col + room_size] = 0
+        if prev_row != row:
+            random_col = random.randint(prev_col, prev_col + room_size - corridor_size)
+            maze[min(prev_row, row) : max(prev_row + room_size, row + room_size), 
+                 random_col : random_col + corridor_size] = 0
+        else:
+            random_row = random.randint(prev_row, prev_row + room_size - corridor_size)
+            maze[random_row : random_row + corridor_size, 
+                 min(prev_col, col) : max(prev_col + room_size, col + room_size)] = 0
+
+        for index in np.random.choice(range(4), size=4, replace=False):
+            dr, dc = moves[index]
+            new_row, new_col = row + dr * (1 + room_size), col + dc * (1 + room_size) # move two steps to leave a wall in between
+            if 0 <= new_row < height and 0 <= new_col < width and not visited[new_row, new_col]:
+                dq.append((new_row, new_col, row, col))
+
+    print(f'Rooms generated in {time.time() - t0:.4f}s')
     return maze
 
 
@@ -130,19 +170,19 @@ def generate_scens(maze, args):
 
 
 def save_map_file(maze, args):
-    with open(f'{args.data_path}/maps/{args.maze_name}_{args.width}_{args.height}_{args.corridor_size}.map', 'w') as f:
+    with open(f'{args.data_path}/maps/{args.name}_{args.width}_{args.height}_{args.corridor_size}.map', 'w') as f:
         f.write('type octile\n')
         f.write(f'height {args.height}\n')
         f.write(f'width {args.width}\n')
         f.write('map\n')
 
-        maze_str = '\n'.join([''.join(['@' if cell else '.' for cell in row]) for row in maze])
-        f.write(maze_str)
+        map_str = '\n'.join([''.join(['@' if cell else '.' for cell in row]) for row in maze])
+        f.write(map_str)
 
 
 def save_scen_files(scen_data, args):
     scen_starts, scen_goals, scen_costs = scen_data
-    map_filename = f'{args.maze_name}_{args.width}_{args.height}_{args.corridor_size}'
+    map_filename = f'{args.name}_{args.width}_{args.height}_{args.corridor_size}'
 
     for scen_idx in range(args.num_scens):
         with open(f'{args.data_path}/scens/{map_filename}-random-{scen_idx+1}.scen', 'w') as f:
@@ -161,7 +201,11 @@ def save_scen_files(scen_data, args):
 
 def generate_map_scens(args):
     # generate map
-    maze = generate_maze(args.height, args.width, args.corridor_size)
+    if args.type == 'maze':
+        maze = generate_maze(args.height, args.width, args.corridor_size)
+    elif args.type == 'room':
+        maze = generate_room_maze(args.height, args.width, args.corridor_size, args.room_size)
+
     num_open_locs = int(args.width*args.height-np.sum(maze))
     assert(num_open_locs > 1)
     args.num_agents = min(args.num_agents, num_open_locs)
@@ -188,25 +232,28 @@ def generate_constants(args):
     
 
 '''
-maze_config_csv: 
-maze_name,height,width,corridor_size,num_agents,num_scens
+map_config_csv: 
+map_name,type,height,width,corridor_size,roomnum_agents,num_scens
 maze1,16,16,1,1000,25
 
-Example runs:
-python -m data_collection.maze_generator --data_path=$PROJECT/data/maze_benchmark_data/ \
-        --temp_bd_path=$PROJECT/data/logs/EXP_Generate_mazes/ \
-        --maze_config_csv=$PROJECT/data/mazes.csv \
-        --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs
-
+Example run:
+python -m data_collection.maze_generator --data_path=data_collection/data/new_map_data/ \
+        --temp_bd_path=data_collection/data/logs/EXP_Generate_mazes/ \
+        --map_config_csv=data_collection/data/map_config.csv \
+        --eecbs_path=./data_collection/eecbs/build_release4/eecbs --skip_octile_bfs
 '''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--maze_config_csv', type=str, help='mazes to generate', required=True)
+    parser.add_argument('--config_csv', type=str, help='maps to generate', required=True)
     parser.add_argument('--data_path', type=str, help='name of folder with data', required=True)
+    
+    parser.add_argument('--skip_octile_bfs', action='store_true')
+
+    # constants generator args
+    parser.add_argument('--skip_constants_generation', action='store_true')
     parser.add_argument('--temp_bd_path', type=str, help='temp paths/ and csvs/ path for constants_generator.py if generating constants', default='')
     parser.add_argument('--eecbs_path', type=str, help='eecbs path for constants_generator.py if generating constants', default='')
-    parser.add_argument('--skip_octile_bfs', action='store_true')
 
     args = args = parser.parse_args()
 
@@ -221,18 +268,18 @@ if __name__ == "__main__":
     os.makedirs(args.data_path+'/maps', exist_ok=True)
     os.makedirs(args.data_path+'/scens', exist_ok=True)
 
-    with open(args.maze_config_csv, mode='r') as file:
+    with open(args.config_csv, mode='r') as file:
         csv_reader = csv.reader(file)
         header = next(csv_reader)
         for row in csv_reader:
-            values = [row[0]] + [*map(int, row[1:])]
+            values = row[0:2] + [*map(int, row[2:])]
             map_args = argparse.Namespace(**dict(zip(header, values)))
             map_args.data_path = args.data_path
             map_args.skip_octile_bfs = args.skip_octile_bfs
             generate_map_scens(map_args)
     print(f'Maps and scens in {args.data_path}')
 
-    if args.eecbs_path and args.temp_bd_path:
+    if not args.skip_constants_generation and args.eecbs_path and args.temp_bd_path:
         print('Running constants_generator.py...')
         generate_constants(args)
     

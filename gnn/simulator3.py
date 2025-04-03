@@ -746,7 +746,7 @@ def main(args: argparse.ArgumentParser):
 ### Example command
 """
 python -m gnn.simulator3 --mapNpzFile=data_collection/data/maze_benchmark_data/constant_npzs/all_maps.npz \
-        --mapName=maze2_32_32_1 --scenFile=data_collection/data/maze_benchmark_data/scens/maze2_32_32_1-random-1.scen \
+        --mapName=maze2_16_16_1 --scenFile=data_collection/data/maze_benchmark_data/scens/maze2_16_16_1-random-1.scen \
         --agentNum=4 --bdPath=data_collection/data/maze_benchmark_data/constant_npzs/\
         --k=5 --m=3 \
         --outputCSVFile=data_collection/data/logs/EXP_mini/tests/results.csv \
@@ -758,7 +758,7 @@ python -m gnn.simulator3 --mapNpzFile=data_collection/data/maze_benchmark_data/c
         --num_multi_inputs=0 --num_multi_outputs=1 --shieldType=CS-PIBT 
 python -m gnn.simulator3 --mapNpzFile=data_collection/data/maze_benchmark_data/constant_npzs/all_maps.npz \
         --mapName=maze1_16_16_1 --scenFile=data_collection/data/maze_benchmark_data/scens/maze1_16_16_1-random-1.scen \
-        --agentNum=10 --bdPath=data_collection/data/maze_benchmark_data/constant_npzs/\
+        --agentNum=4 --bdPath=data_collection/data/maze_benchmark_data/constant_npzs/\
         --k=5 --m=3 \
         --outputCSVFile=data_collection/data/logs/EXP_mini/tests/results.csv \
         --outputPathsFile=data_collection/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
