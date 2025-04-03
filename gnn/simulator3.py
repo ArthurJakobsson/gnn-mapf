@@ -609,7 +609,7 @@ def main(args: argparse.ArgumentParser):
         raise FileNotFoundError(f'Map file: {args.mapNpzFile} not found.')
     map_npz = np.load(args.mapNpzFile) # Keys are {MAPNAME}.map -> (H,W)
     if args.mapName+".map" not in map_npz:
-        raise ValueError('Map name not found in the map file.')
+        raise ValueError(f'Map name {args.mapName+".map"} not found in the map file.')
     map_grid = map_npz[args.mapName+".map"] # (H,W)
     map_grid = np.pad(map_grid, k, 'constant', constant_values=1) # Add padding
 

@@ -195,13 +195,9 @@ maze1,16,16,1,1000,25
 Example runs:
 python -m data_collection.maze_generator --data_path=$PROJECT/data/maze_benchmark_data/ \
         --temp_bd_path=$PROJECT/data/logs/EXP_Generate_mazes/ \
-        --maze_config_csv=$PROJECT/data/mazes_test.csv \
+        --maze_config_csv=$PROJECT/data/mazes.csv \
         --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs
 
-python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
-        --temp_bd_path=data_collection/data/logs/EXP_Generate_mazes/ \
-        --maze_config_csv=data_collection/data/mazes_test.csv \
-        --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs
 '''
 
 if __name__ == "__main__":

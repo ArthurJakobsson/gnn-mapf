@@ -1,0 +1,40 @@
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 815, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 612, in main
+    raise ValueError('Map name not found in the map file.')
+ValueError: Map name not found in the map file.
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 815, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 612, in main
+    raise ValueError('Map name not found in the map file.')
+ValueError: Map name not found in the map file.
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 815, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 612, in main
+    raise ValueError('Map name not found in the map file.')
+ValueError: Map name not found in the map file.
+Traceback (most recent call last):
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis240049p/mliu13/.conda/envs/gnn-mapf-dev2/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 815, in <module>
+    main(args)
+  File "/jet/home/mliu13/gnn-mapf/gnn/simulator3.py", line 612, in main
+    raise ValueError('Map name not found in the map file.')
+ValueError: Map name not found in the map file.

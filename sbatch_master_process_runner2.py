@@ -17,9 +17,12 @@ last_recorded_time = datetime.datetime.now()
 def run_maze_generator(args):
     if args.clean:
         try:
-            shutil.rmtree(f'{args.maze_data_path}')
+            shutil.rmtree(args.maze_data_path)
         except: pass
-    
+        try:
+            shutil.rmtree(args.exp_path)
+        except: pass
+
     maze_cmd = f'''python -m data_collection.maze_generator --data_path={args.maze_data_path} \\
         --maze_config_csv={args.maze_config_csv} \\
         --eecbs_path=./data_collection/eecbs/{args.eecbs_build_release}/eecbs \\
@@ -29,6 +32,29 @@ def run_maze_generator(args):
     return maze_cmd
 
 
+def run_constants_generator(args):
+    if args.clean:
+        try: 
+            shutil.rmtree(args.temp_bd_path)
+        except: pass
+        try: 
+            shutil.rmtree(args.data_path + '/constant_npzs/')
+        except: pass
+
+    constants_cmd = f'''python -m data_collection.constants_generator \\
+        --mapFolder={args.data_path}/maps \\
+        --scenFolder={args.data_path}/scens \\
+        --constantMapAndBDFolder={args.data_path}/constant_npzs \\
+        --outputFolder={args.temp_bd_path}/ \\
+        --num_parallel_runs={args.num_parallel} \\
+        --deleteTextFiles=true \\
+        "eecbs" \\
+        --eecbsPath=./data_collection/eecbs/{args.eecbs_build_release}/eecbs \\
+        --cutoffTime=1'''
+
+    return constants_cmd
+    
+    
 def run_eecbs_batchrunner(args):
     if args.clean:
         try:
@@ -50,29 +76,6 @@ def run_eecbs_batchrunner(args):
 
     return batchrunner_cmd
 
-
-def run_constants_generator(args):
-    if args.clean:
-        try: 
-            shutil.rmtree(f'{args.temp_bd_path}')
-        except: pass
-        try: 
-            shutil.rmtree(f'{args.data_path}/constant_npzs/')
-        except: pass
-
-    constants_cmd = f'''python -m data_collection.constants_generator \\
-        --mapFolder={args.data_path}/maps \\
-        --scenFolder={args.data_path}/scens \\
-        --constantMapAndBDFolder={args.data_path}/constant_npzs \\
-        --outputFolder={args.temp_bd_path}/ \\
-        --num_parallel_runs={args.num_parallel} \\
-        --deleteTextFiles=true \\
-        "eecbs" \\
-        --eecbsPath=./data_collection/eecbs/{args.eecbs_build_release}/eecbs \\
-        --cutoffTime=1'''
-
-    return constants_cmd
-    
 
 def run_dataloader(num_multi_inputs, num_multi_outputs, args):
     if args.clean:
@@ -116,7 +119,7 @@ def run_trainer(num_multi_inputs, num_multi_outputs, args):
 def run_simulator(num_multi_inputs, num_multi_outputs, sim_num_agents, args):
     if args.clean:
         try:
-            shutil.rmtree(f'{args.exp_path}/tests')
+            shutil.rmtree(args.exp_path + '/tests')
         except: pass
 
     sim_map = args.sim_scenname.strip().split('-')[0]
@@ -172,37 +175,47 @@ def generate_sh_script(exp_path, file, conda_env, commands):
 Generate mazes:
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --exp_dir=EXP_Generate_mazes \
+    --temp_bd_dir=EXP_Generate_mazes \
     --maze_data_dir=maze_benchmark_data \
     --maze_config_csv=mazes.csv \
-    --clean --which_sections=maze
+    --clean --which_section=maze
 
 Small run: 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 --bd_pred \
-    --clean --which_sections=eecbs,load,train,simulate \
+    --clean --which_section=all \
     --sim_scenname='maze4_32_32_1-random-1' --sim_num_agents=10
-
-Small run sections:
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --clean --which_sections=eecbs
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 --bd_pred \
-    --clean --which_sections=load,train
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 --bd_pred \
-    --clean --which_sections=simulate \
-    --sim_scenname='maze4_32_32_1-random-1' --sim_num_agents=6
 
 Full run: 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full \
+    --which_section=constants
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --which_section=eecbs
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=benchmark_data --exp_dir=EXP_full \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_sections=eecbs.load,train,simulate \
-    --sim_scenname='maze4_32_32_1-random-1'
+    --clean --which_section=load
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --model=ResGatedGraphConv --use_edge_attr --logging \
+    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
+    --clean --which_section=train
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --model=ResGatedGraphConv --use_edge_attr \
+    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
+    --clean --which_section=simulate \
+    --sim_scenname='maze0_16_16_2-random-1' --sim_num_agents=10
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --model=ResGatedGraphConv --use_edge_attr \
+    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
+    --clean --which_section=simulate \
+    --sim_data_dir='benchmark_data' --sim_scenname='maze_16_16_2-random-1' --sim_num_agents=10
 
 
 """
@@ -212,12 +225,12 @@ if __name__ == "__main__":
     # setting and paths
     parser.add_argument('--machine_setting', help="[omega, psc]", required=True, type=str)
     parser.add_argument('--which_setting', help="[Arthur, Rishi, Michelle, PSC]", required=True) # E.g. use --which_setting to determine using 
-    parser.add_argument('--data_dir', type=str, default='mini_benchmark_data', help='directory name in data/ that contains maps and scens')
-    parser.add_argument('--temp_bd_dir', type=str, default='EXP_Collect_BD', help='directory name in data/logs for constants_generator.py')
+    parser.add_argument('--data_dir', type=str, default='mini_benchmark_data', help='directory in data/ that contains maps and scens')
+    parser.add_argument('--temp_bd_dir', type=str, default='EXP_Collect_BD', help='directory in data/logs for constants_generator.py')
     parser.add_argument('--exp_dir', type=str, default='EXP_mini', help='directory name in data/logs for experiment')
-    parser.add_argument('--maze_data_dir', type=str, default='maze_benchmark_data', help='directory name in data/ for maze_generator.py')
+    parser.add_argument('--maze_data_dir', type=str, default='EXP_Generate_mazes', help='directory in data/ for mazes')
     parser.add_argument('--maze_config_csv', type=str, default='mazes.csv', help='mazes to generate with maze_generator.py')
-    parser.add_argument('--sim_data_dir', type=str, default='maze_benchmark_data', help='directory name in data/ for simulator.py')
+    parser.add_argument('--sim_data_dir', type=str, default='maze_benchmark_data', help='directory in data/ for simulator.py')
 
     # use default 
     parser.add_argument('--num_parallel', type=int, default=50)
@@ -249,30 +262,27 @@ if __name__ == "__main__":
 
     parser.add_argument('--logging', action='store_true')
     parser.add_argument('--clean', action='store_true')
-    parser.add_argument('--which_sections', help="[eecbs, load, train, simulate, mazes]", required=True)
+    parser.add_argument('--which_section', help="[constants, eecbs, load, train, simulate, mazes]", required=True)
 
     args = parser.parse_args()
 
     # settings
     if args.machine_setting == 'Omega':
-        args.data_path = 'data_collection/data/' + args.data_dir
-        args.temp_bd_path = 'data_collection/data/logs/' + args.temp_bd_dir
-        args.exp_path = 'data_collection/data/logs/' + args.exp_dir
-        args.maze_data_path = 'data_collection/data/' + args.maze_data_dir
-        args.maze_config_csv = 'data_collection/data/' + args.maze_config_csv
-        args.sim_data_path = 'data_collection/data/' + args.sim_data_dir
+        prefix = 'data_collection/data/'
         args.eecbs_build_release = 'build_release4'
     elif args.machine_setting == 'PSC':
         project = os.getenv('PROJECT')
-        args.data_path = f'{project}/data/' + args.data_dir
-        args.temp_bd_path = f'{project}/data/logs/' + args.temp_bd_dir
-        args.exp_path = f'{project}/data/logs/' + args.exp_dir
-        args.maze_data_path = f'{project}/data/' + args.maze_data_dir
-        args.maze_config_csv = f'{project}/data/' + args.maze_config_csv
-        args.sim_data_path = f'{project}/data/' + args.sim_data_dir
+        prefix = f'{project}/data/'
         args.eecbs_build_release = 'build_release5'
     else:
         raise ValueError(f"Invalid setting: {args.machine_setting}")
+
+    args.data_path = prefix + args.data_dir
+    args.temp_bd_path = prefix + 'logs/' + args.temp_bd_dir
+    args.exp_path = prefix + 'logs/' + args.exp_dir
+    args.maze_data_path = prefix + args.maze_data_dir
+    args.maze_config_csv = prefix + args.maze_config_csv
+    args.sim_data_path = prefix + args.sim_data_dir
 
     print()
     print("data path:", args.data_path)
@@ -296,43 +306,46 @@ if __name__ == "__main__":
         args.num_parallel = 1
     
     # get commands for sh script
-    sections = args.which_sections.strip().split(',')
+    section = args.which_section
     python_commands = []
-    if 'maze' in sections:
-        python_commands.append(run_maze_generator(args))
-    if 'eecbs' in sections:
-        python_commands.append(run_eecbs_batchrunner(args))
-        python_commands.append(run_constants_generator(args))
 
     inputs_outputs = list(itertools.product(args.num_multi_inputs_list.strip().split(','),
                                             args.num_multi_outputs_list.strip().split(',')))
                                         
-    if 'load' in sections:
+    if section in ['maze', 'all']:
+        python_commands.append(run_maze_generator(args))
+    elif section in ['constants', 'all']:
+        python_commands.append(run_constants_generator(args))
+    elif section in ['eecbs', 'all']:
+        python_commands.append(run_eecbs_batchrunner(args))
+    elif section in ['load', 'all']:
         for num_in, num_out in inputs_outputs:
             python_commands.append(run_dataloader(num_in, num_out, args))
-    if 'train' in sections:
+    elif section in ['train', 'all']:
         EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
         NO_EDGE_ATTR_GNNS = ["SAGEConv"]
         assert(args.model in EDGE_ATTR_GNNS or args.model in NO_EDGE_ATTR_GNNS)
         if args.use_edge_attr: assert(args.model in EDGE_ATTR_GNNS)
         for num_in, num_out in inputs_outputs:
             python_commands.append(run_trainer(num_in, num_out, args))
-    if 'simulate' in sections:
+    elif section in ['simulate', 'all']:
         assert(args.sim_scenname)
         for num_in, num_out in inputs_outputs:
             for sim_num_agents in args.sim_num_agents.strip().split(','):
                 python_commands.append(run_simulator(num_in, num_out, sim_num_agents, args))
 
-    job_name = f'{args.which_sections}'
-    generate_sh_script(args.exp_path, args.which_sections, conda_env, python_commands)
+    # job name and sh script
+    job_name = f'{args.which_section}'
+    generate_sh_script(args.exp_path, args.which_section, conda_env, python_commands)
 
-    if args.data_dir == 'mini_benchmark_data':
-        command = f'sbatch --job-name {job_name} {args.exp_path}/{args.which_sections}.sh'
+    if args.data_dir == 'mini_benchmark_data' or section in ['simulate', 'maze']:
+        command = f'sbatch --job-name {job_name} {args.exp_path}/{args.which_section}.sh'
     else:
         sbatch_timeout = 16
-        command = f'sbatch -p RM-shared -N 1 --ntasks-per-node=10 -t {sbatch_timeout}:00:00 ' + \
-        f'--job-name {job_name} {args.exp_path}/{args.which_sections}.sh'
+        command = f'sbatch -p GPU-shared --gres=gpu:v100-32:1 -t {sbatch_timeout}:00:00 ' + \
+        f'--job-name {job_name} {args.exp_path}/{args.which_section}.sh'
 
+    # run sbatch
     print('sbatch command:', command, '\n')
     run_command(command.split())
     
