@@ -1,55 +1,28 @@
 # Work Smarter Not Harder: Simple Imitation Learning with CS-PIBT Outperforms Large Scale Imitation Learning for MAPF
 
-For a more comprehensive and fuller explanation please see our documentation website [SSIL GNN MAPF Documentation](https://arthurjakobsson.github.io/ssil_documentation)
+This codebase is mainly for archival / documentation purposes. This codebase is unfortunately not directly runable, but hopefully can help others interested in large scale imitation learning for MAPF.
+If you would like to run our model (trained on the largest dataset we collected for the paper), please see the [https://github.com/Rishi-V/ML-MAPF-with-Search](https://github.com/Rishi-V/ML-MAPF-with-Search) repo which contains directly runnable code of the model, CS-PIBT, and other collision shields.
 
-Our project website is also available [SSIL Website](https://arthurjakobsson.github.io/ssil_mapf)
+Our project website is available at [SSIL Website](https://arthurjakobsson.github.io/ssil_mapf).
 
-## Overview
-This repository contains the implementation of a Graph Neural Network (GNN) for Multi-Agent Path Finding (MAPF) using Simulation and DAgger (Dataset Aggregation). The project includes data collection, benchmarking, model training, and simulation components.
-
-## Installation
-To clone the repository, run:
-```sh
-git clone https://github.com/ArthurJakobsson/gnn-mapf.git
-```
-
-For active development, use the `GNN-development2` branch.
-
-To install dependencies, run:
-```sh
-pip install -r requirements.txt
-```
-
-To install the data and our largest model, run:
-
-install via pip:
-```sh
-pip install gdown
-```
-
-use it in python:
-```py
-import gdown
-gdown.download_folder(url, quiet=True)
-```
-
-where the url is [https://drive.google.com/drive/folders/15G5mmBh5FDEpGlNKAE_gA5je8xV_NYKf?usp=drive_link](https://drive.google.com/drive/folders/15G5mmBh5FDEpGlNKAE_gA5je8xV_NYKf?usp=drive_link)
-
-Please note that this folder is about 40 GB.
 
 ## Repository Structure
+This repository contains the implementation of a Graph Neural Network (GNN) for Multi-Agent Path Finding (MAPF) using Simulation and DAgger (Dataset Aggregation). The project includes data collection, benchmarking, model training, and simulation components.
 ### Data Collection
-- Manages the data collection process by calling the simulator and eecbs in parallel.
-- Stores collected data.`
+- The `data_collection` folder manages the data collection process by calling the simulator and eecbs in parallel.
+- `data_collection/eecbs_batchrunner.py` runs many instances of eecbs in parallel. It takes in a folder with `.scen` and `.map` files (which eecbs takes as inputs) and creates many `.txt` solution files. It uses a semi-hacky system of creating and calling tmux sessions in parallel and should be changed to something like [Ray](https://docs.ray.io/en/latest/ray-overview/getting-started.html).
+- `data_collection/data_manipulator.py` parses the created `.txt` files into `.npz` files.
 
-To run data collection OR simulation use the eecbs_batchrunner. Below is an example command where the inputs can be varied depending on file paths and whether simulation, eecbs or some other subprocess is required.
+### Training
+- The `gnn` folder contains the training code.
+- `gnn/dataloader.py` parses the created solution path `.npz` files along with the correponding map and backward dijkstra files to create a dataset of `.pt` files, where each `.pt` file correponds to a single agent graph with inputs and target labels. Thus, dataloader handles the processing of creating the local field of view, finding neighbors, and creating the input observations more generally.
+- `gnn/trainer.py` trains the model based on the given dataset and model architecture.
 
-```sh
-python -m data_collection.eecbs_batchrunner --mapFolder=./data_collection/data/benchmark_new_maps/maps --scenFolder=./data_collection/data/benchmark_new_maps/scens --numAgents=50 --constantMapAndBDFolder=data_collection/data/benchmark_new_maps/constant_npzs --outputFolder=data_collection/data/logs/EXP_test_agents/iter0/eecbs_outputs --num_parallel_runs=1 "eecbs" --outputPathNpzFolder=data_collection/data/logs/EXP_test_agents/iter0/eecbs_npzs --firstIter=true --cutoffTime=60 --suboptimality=2
-```
+### Evaluating / DAgger collection
+- The `gnn` folder also contains the evaluation code.
+- `gnn/simulator.py` runs the trained model on a given scen and map. It also has the capability to create new scens based on the agents path for DAgger (e.g., if it fails, it could create `.scen` files for the last 10 timesteps to be fed into eecbs afterwards to obtain labels).
 
-To run the pymodel (simulation) instead of eecbs you should replace "eecbs" with "pymodel" and provide the information required by the argparse under the pymodel section in eecbs_batchrunner such as model path. Your model can be stored anywhere as long as a correct file path is provided.
-
+## Other Comments
 ### Slurm Implementation
 - Facilitates large-scale testing on a cluster.
 - Runs batch jobs using `.sh` scripts to execute the next steps automatically.
@@ -70,13 +43,22 @@ To run the pymodel (simulation) instead of eecbs you should replace "eecbs" with
 - Generates custom maps and scenarios for experiments.
 - Expands the MovingAI Benchmark dataset with additional scenarios.
 
-## Understanding Data Structure
+### Understanding Data Structure
 - Data is stored in `.npz` files containing maps, bd values, and paths.
 - Paths are split into multiple files for efficient loading.
 - Training data is converted into `.pt` files, each representing a single training instance.
 - Benchmark datasets are organized into folders for easy toggling.
 
-## Development Status
-This project is actively being developed. For questions or contributions, contact: **rveerapa@andrew.cmu.edu** or **ajakobss@cmu.edu** 
-
-
+### Citation
+If this work is relevant to your project, please cite us:
+ ```bibtex
+@article{veerapaneni2024work_smart_not_harder,
+  title = {Work Smarter Not Harder: Simple Imitation Learning with CS-PIBT Outperforms Large Scale Imitation Learning for MAPF},
+  author = {Veerapaneni, Rishi and Jakobsson, Arthur and Ren, Kevin and Kim, Samuel and Li, Jiaoyang and Likhachev, Maxim},
+  year = {2024},
+  journal = {arXiv preprint arxiv:2409.14491},
+  eprint = {2409.14491},
+  archiveprefix = {arXiv},
+  primaryclass = {cs.MA},
+}
+```
