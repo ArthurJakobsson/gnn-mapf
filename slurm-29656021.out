@@ -1,16 +1,0 @@
-/ocean/projects/cis240049p/mliu13/data/logs/EXP_full/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt
-  0%|          | 0/400 [00:00<?, ?it/s]  0%|          | 1/400 [00:03<23:34,  3.54s/it] 10%|▉         | 38/400 [00:03<00:34, 10.46it/s]
-(40, 10, 2)
-Success: True, Total cost true: 243, Total cost not at goal: 222, Num agents at goal: 10/10, Seconds spent: 3.6583073139190674
-/ocean/projects/cis240049p/mliu13/data/logs/EXP_full/iter0/models_ResGatedGraphConv_0_2_p/max_test_acc.pt
-  0%|          | 0/400 [00:00<?, ?it/s]  9%|▉         | 37/400 [00:00<00:00, 398.17it/s]
-(39, 10, 2)
-Success: True, Total cost true: 266, Total cost not at goal: 228, Num agents at goal: 10/10, Seconds spent: 0.09412026405334473
-/ocean/projects/cis240049p/mliu13/data/logs/EXP_full/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt
-  0%|          | 0/400 [00:00<?, ?it/s] 10%|█         | 41/400 [00:00<00:00, 400.67it/s]
-(43, 10, 2)
-Success: True, Total cost true: 275, Total cost not at goal: 258, Num agents at goal: 10/10, Seconds spent: 0.10350537300109863
-/ocean/projects/cis240049p/mliu13/data/logs/EXP_full/iter0/models_ResGatedGraphConv_3_2_p/max_test_acc.pt
-  0%|          | 0/400 [00:00<?, ?it/s]  8%|▊         | 30/400 [00:00<00:00, 394.23it/s]
-(32, 10, 2)
-Success: True, Total cost true: 251, Total cost not at goal: 217, Num agents at goal: 10/10, Seconds spent: 0.07728362083435059

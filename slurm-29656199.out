@@ -1,16 +1,0 @@
-/ocean/projects/cis240049p/mliu13/data/logs/EXP_full/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt
-  0%|          | 0/400 [00:00<?, ?it/s]  0%|          | 1/400 [00:03<21:27,  3.23s/it] 12%|█▏        | 47/400 [00:03<00:17, 19.79it/s] 19%|█▉        | 75/400 [00:03<00:14, 22.04it/s]
-(77, 10, 2)
-Success: True, Total cost true: 396, Total cost not at goal: 396, Num agents at goal: 10/10, Seconds spent: 3.4161603450775146
-/ocean/projects/cis240049p/mliu13/data/logs/EXP_full/iter0/models_ResGatedGraphConv_0_2_p/max_test_acc.pt
-  0%|          | 0/400 [00:00<?, ?it/s] 11%|█▏        | 45/400 [00:00<00:00, 446.64it/s] 20%|█▉        | 78/400 [00:00<00:00, 445.71it/s]
-(80, 10, 2)
-Success: True, Total cost true: 397, Total cost not at goal: 397, Num agents at goal: 10/10, Seconds spent: 0.17613720893859863
-/ocean/projects/cis240049p/mliu13/data/logs/EXP_full/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt
-  0%|          | 0/400 [00:00<?, ?it/s] 11%|█         | 44/400 [00:00<00:00, 437.53it/s] 19%|█▉        | 75/400 [00:00<00:00, 440.50it/s]
-(77, 10, 2)
-Success: True, Total cost true: 421, Total cost not at goal: 420, Num agents at goal: 10/10, Seconds spent: 0.17145037651062012
-/ocean/projects/cis240049p/mliu13/data/logs/EXP_full/iter0/models_ResGatedGraphConv_3_2_p/max_test_acc.pt
-  0%|          | 0/400 [00:00<?, ?it/s] 11%|█         | 44/400 [00:00<00:00, 439.71it/s] 22%|██▎       | 90/400 [00:00<00:00, 447.96it/s] 34%|███▍      | 135/400 [00:00<00:00, 447.00it/s] 45%|████▌     | 180/400 [00:00<00:00, 447.36it/s] 56%|█████▋    | 225/400 [00:00<00:00, 447.49it/s] 68%|██████▊   | 270/400 [00:00<00:00, 447.31it/s] 79%|███████▉  | 315/400 [00:00<00:00, 447.54it/s] 90%|█████████ | 360/400 [00:00<00:00, 447.54it/s]100%|██████████| 400/400 [00:00<00:00, 447.34it/s]
-(401, 10, 2)
-Success: False, Total cost true: 792, Total cost not at goal: 792, Num agents at goal: 9/10, Seconds spent: 0.8955609798431396

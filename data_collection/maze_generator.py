@@ -232,20 +232,20 @@ def generate_constants(args):
     
 
 '''
-map_config_csv: 
+maze_config_csv: 
 map_name,type,height,width,corridor_size,roomnum_agents,num_scens
 maze1,16,16,1,1000,25
 
 Example run:
-python -m data_collection.maze_generator --data_path=data_collection/data/new_map_data/ \
+python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
         --temp_bd_path=data_collection/data/logs/EXP_Generate_mazes/ \
-        --map_config_csv=data_collection/data/map_config.csv \
+        --maze_config_csv=data_collection/data/map_config.csv \
         --eecbs_path=./data_collection/eecbs/build_release4/eecbs --skip_octile_bfs
 '''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_csv', type=str, help='maps to generate', required=True)
+    parser.add_argument('--maze_config_csv', type=str, help='maps to generate', required=True)
     parser.add_argument('--data_path', type=str, help='name of folder with data', required=True)
     
     parser.add_argument('--skip_octile_bfs', action='store_true')
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     os.makedirs(args.data_path+'/maps', exist_ok=True)
     os.makedirs(args.data_path+'/scens', exist_ok=True)
 
-    with open(args.config_csv, mode='r') as file:
+    with open(args.maze_config_csv, mode='r') as file:
         csv_reader = csv.reader(file)
         header = next(csv_reader)
         for row in csv_reader:
