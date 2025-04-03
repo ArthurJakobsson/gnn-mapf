@@ -381,7 +381,7 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
                 index = len(goal_to_index)
                 goal_to_index[goal] = index
                 goal_bds.append(bd) # add to list of unique goals
-        scen_to_goals[scenname] = np.asarray([goal_to_index[goal] for goal in goals])
+        scen_to_goals[scenname] = np.asarray([goal_to_index[goal] for goals[agent] in range(len(agent_to_bd))])
 
     for filename in os.listdir(bdInDir):
         f = os.path.join(bdInDir, filename)

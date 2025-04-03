@@ -246,13 +246,12 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
                         f"--bdIn={mapOutputFolder}/bd", f"--goalsOutFile={goalsOutputNpz}", f"--bdOutFile={bdOutputNpz}", 
                         f"--scenIn={scensInputFolder}", f"--mapIn={mapsInputFolder}", f"--mapOutFile={mapOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}"])
-        print("COMMAND: ", command)
         
         input_list.append((command,))
     
     if len(input_list) > 0:
         with ray.util.multiprocessing.Pool(processes=min(len(input_list), num_workers//numWorkersParallelForDataManipulator)) as pool:
-            pool.starmap(helperRun, input_list[:3])
+            pool.starmap(helperRun, input_list)
     else:
         print("No data manipulator runs as all paths npz files already exist")
     ct.stop("Data Manipulator")

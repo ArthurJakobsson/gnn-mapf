@@ -9,8 +9,6 @@ export MKL_SERVICE_FORCE_INTEL=1
 #         --maze_config_csv=$PROJECT/data/mazes_test.csv \
 #         --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs
 
-python -m data_collection.data_manipulator --bdIn=/ocean/projects/cis240049p/mliu13/data/logs/EXP_Generate_mazes///maze4_32_32_1/bd --goalsOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze4_32_32_1_goals.npz --bdOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/maze4_32_32_1_bds.npz --scenIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//scens --mapIn=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//maps --mapOutFile=/ocean/projects/cis240049p/mliu13/data/maze_benchmark_data//constant_npzs/all_maps.npz --num_parallel=1        
-
 # python -m data_collection.eecbs_batchrunner5 --mapFolder=$PROJECT/data/mini_benchmark_data/maps \
 #     --scenFolder=$PROJECT/data/mini_benchmark_data/scens \
 #     --numAgents=50,100 \
