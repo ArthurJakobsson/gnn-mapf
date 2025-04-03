@@ -297,7 +297,7 @@ def generic_batch_runner(args):
     for dir_path in all_scen_files:
         if dir_path == ".DS_Store" or not dir_path.endswith(".scen"):
             continue 
-        mapFile = dir_path.split("-random")[0]
+        mapFile = dir_path.split("-")[0]
         # if mapFile not in mapsToScens:
         mapsToScens[mapFile].append(scenInputFolder+"/"+dir_path)
 

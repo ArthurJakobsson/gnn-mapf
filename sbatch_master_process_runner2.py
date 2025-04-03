@@ -182,6 +182,7 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
 
 Small run: 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --num_agents=50,100 \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 --bd_pred \
     --clean --which_section=all \
@@ -189,29 +190,29 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
 
 Full run: 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --which_section=constants
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --which_section=eecbs
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
     --clean --which_section=load
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr --logging \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
     --clean --which_section=train
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
     --clean --which_section=simulate \
     --sim_scenname='maze0_16_16_2-random-1' --sim_num_agents=10
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
     --clean --which_section=simulate \
@@ -250,7 +251,7 @@ if __name__ == "__main__":
 
     # test
     num_agents_help = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max or include .json for pulling from config file, see eecbs_batchrunner3.py "
-    parser.add_argument('--num_agents', help=num_agents_help, type=str, default='50,100')
+    parser.add_argument('--num_agents', help=num_agents_help, type=str, default='increment')
     parser.add_argument('--bd_pred', action="store_true", help="bd_predictions added to NN")
     parser.add_argument('--model', type=str, default='ResGatedGraphConv')
     parser.add_argument('--use_edge_attr', action='store_true')

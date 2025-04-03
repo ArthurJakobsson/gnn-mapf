@@ -198,7 +198,7 @@ def save_scen_files(scen_data, args):
     map_filename = f'{args.name}_{args.width}_{args.height}_{args.corridor_size}'
 
     for scen_idx in range(args.num_scens):
-        with open(f'{args.data_path}/scens/{map_filename}-random-{scen_idx+1}.scen', 'w') as f:
+        with open(f'{args.data_path}/scens/{map_filename}-{args.scen_type}-{scen_idx+1}.scen', 'w') as f:
             f.write('version 1\n')
             # Bucket, map, map width, map height, start x-coordinate, start y-coordinate, goal x-coordinate, goal y-coordinate, optimal length
             # (0, 0) is in the upper left corner of the maps 
