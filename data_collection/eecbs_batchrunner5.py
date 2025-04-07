@@ -466,7 +466,7 @@ def generic_batch_runner(args):
                         maximumAgents = [sum(1 for line in fh if line.strip()) - 1]
                     break
 
-            if args.numAgents == "increment" or args.numAgents == "difficult":
+            if args.numAgents == "increment" or args.numAgents == "threshold":
                 increment = min(100,  maximumAgents)
                 maximumAgents = maximumAgents + 1
                 agentNumbers = list(range(increment, maximumAgents, increment))
@@ -555,7 +555,7 @@ rm -rf ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/eecbs_npzs
 
 python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
     --scenFolder=data_collection/data/mini_benchmark_data/scens \
-    --numAgents=difficult \
+    --numAgents=threshold \
     --runtime_threshold=0.1 \
     --outputFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_outputs \
     --num_parallel_runs=1 \
@@ -580,7 +580,7 @@ if __name__ == "__main__":
     # Common arguments
     parser.add_argument("--mapFolder", help="contains all scens to run", type=str, required=True)
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str, required=True)
-    numAgentsHelp = "Number of agents per scen; [int1,int2,..], or `increment` for all agents up to the max, or 'difficult' to increment and keep examples that take eecbs longer than difficultThreshold seconds to solve"
+    numAgentsHelp = "Number of agents per scen; [int1,int2,..], or `increment` for all agents up to the max, or 'threshold' to increment and keep examples that take eecbs longer than runtime_threshold seconds to solve"
     parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
     parser.add_argument("--runtime_threshold", type=float, default=0.1)
     parser.add_argument("--outputFolder", help="parent output folder where each map folder will contain paths/ and csvs/ results", 

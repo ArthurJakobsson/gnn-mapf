@@ -67,6 +67,7 @@ def run_eecbs_batchrunner(args):
     batchrunner_cmd = f'''python -m data_collection.eecbs_batchrunner5 --mapFolder={args.data_path}/maps \\
         --scenFolder={args.data_path}/scens \\
         --numAgents={args.num_agents} \\
+        --runtime_threshold={args.eecbs_threshold} \\
         --outputFolder={args.exp_path}/iter{args.iternum}/eecbs_outputs \\
         --num_parallel_runs={args.num_parallel} \\
         "eecbs" \\
@@ -185,7 +186,7 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
     --num_agents=50,100 \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 --bd_pred \
-    --clean --which_section=all \
+    --clean --which_section=mini \
     --sim_scenname='maze4_32_32_1-random-1' --sim_num_agents=10
 
 Full run: 
@@ -250,8 +251,9 @@ if __name__ == "__main__":
     # parser.add_argument('--timeLimit', help="time limit for simulation cs-pibt (-1 for no limit)", type=int, required=True)
 
     # test
-    num_agents_help = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max or include .json for pulling from config file, see eecbs_batchrunner3.py "
-    parser.add_argument('--num_agents', help=num_agents_help, type=str, default='increment')
+    num_agents_help = "Number of agents per scen; [int1,int2,..] or `increment` or `threshold`"
+    parser.add_argument('--num_agents', help=num_agents_help, type=str, default='threshold')
+    parser.add_argument('--eecbs_threshold', type=float, default=10)
     parser.add_argument('--bd_pred', action="store_true", help="bd_predictions added to NN")
     parser.add_argument('--model', type=str, default='ResGatedGraphConv')
     parser.add_argument('--use_edge_attr', action='store_true')
@@ -313,23 +315,23 @@ if __name__ == "__main__":
     inputs_outputs = list(itertools.product(args.num_multi_inputs_list.strip().split(','),
                                             args.num_multi_outputs_list.strip().split(',')))
                                         
-    if section in ['maze', 'all']:
+    if section in ['maze', 'mini']:
         python_commands.append(run_maze_generator(args))
-    elif section in ['constants', 'all']:
+    elif section in ['constants', 'mini']:
         python_commands.append(run_constants_generator(args))
-    elif section in ['eecbs', 'all']:
+    elif section in ['eecbs', 'mini']:
         python_commands.append(run_eecbs_batchrunner(args))
-    elif section in ['load', 'all']:
+    elif section in ['load', 'mini']:
         for num_in, num_out in inputs_outputs:
             python_commands.append(run_dataloader(num_in, num_out, args))
-    elif section in ['train', 'all']:
+    elif section in ['train', 'mini']:
         EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
         NO_EDGE_ATTR_GNNS = ["SAGEConv"]
         assert(args.model in EDGE_ATTR_GNNS or args.model in NO_EDGE_ATTR_GNNS)
         if args.use_edge_attr: assert(args.model in EDGE_ATTR_GNNS)
         for num_in, num_out in inputs_outputs:
             python_commands.append(run_trainer(num_in, num_out, args))
-    elif section in ['simulate', 'all']:
+    elif section in ['simulate', 'mini']:
         assert(args.sim_scenname)
         for num_in, num_out in inputs_outputs:
             for sim_num_agents in args.sim_num_agents.strip().split(','):
@@ -339,10 +341,14 @@ if __name__ == "__main__":
     job_name = f'{args.which_section}'
     generate_sh_script(args.exp_path, args.which_section, conda_env, python_commands)
 
-    if args.data_dir == 'mini_benchmark_data' or section in ['simulate', 'maze']:
+    if section in ['maze', 'simulate', 'mini']:
         command = f'sbatch --job-name {job_name} {args.exp_path}/{args.which_section}.sh'
-    else:
+    elif section in ['constants', 'eecbs', 'load']:
         sbatch_timeout = 16
+        command = f'sbatch -p RM-shared -N 1 --ntasks-per-node=64 -t {sbatch_timeout}:00:00 ' + \
+        f'--job-name {job_name} {args.exp_path}/{args.which_section}.sh'
+    else:
+        sbatch_timeout = 24
         command = f'sbatch -p GPU-shared --gres=gpu:v100-32:1 -t {sbatch_timeout}:00:00 ' + \
         f'--job-name {job_name} {args.exp_path}/{args.which_section}.sh'
 
