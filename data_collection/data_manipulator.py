@@ -225,7 +225,8 @@ def parse_path(pathfile):
     '''
     # save dimensions for later array saving
     w = h = 0
-    # save priorities
+    # save runtime and priorities
+    runtime = 0
     priorities = None
     # maps timesteps to a list of agent coordinates
     timestepsToMaps = defaultdict(list)
@@ -234,9 +235,9 @@ def parse_path(pathfile):
     with open(pathfile, 'r') as fd:
         linenum = 0
         for line in fd.readlines():
-            if linenum == 0 or linenum == 1:
+            if linenum <= 2:
                 linenum += 1
-                continue # ignore dimension line and priorities line
+                continue # ignore dimension, runtime, priorities line
             timesteps = 0
             for c in line:
                 if c == ',': timesteps += 1
@@ -252,7 +253,10 @@ def parse_path(pathfile):
                 w = int(line[0])
                 h = int(line[1])
                 continue
-            elif linenum == 1: # parse priorities and keep going
+            elif linenum == 1: # parse runtime and keep going
+                runtime = float(line.strip().split()[1])
+                continue
+            elif linenum == 2: # parse priorities and keep going
                 priorities_str = line.strip().split()[1] # comma-separated string
                 priorities = list(map(int, priorities_str.split(",")[:-1]))
                 continue
@@ -296,7 +300,7 @@ def parse_path(pathfile):
     #         res2[time][width][height] = agent
 
     res = np.asarray(res) # (t,n,2)
-    return res, np.asarray(priorities)
+    return res, np.asarray(priorities), runtime
 
 def parse_bd(bdfile):
     '''
@@ -413,7 +417,7 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
     return scen_to_goals, np.asarray(goal_bds)
 
 
-def batch_path(dir):
+def batch_path(dir, runtime_threshold):
     '''
         goes through a directory of outputted EECBS paths,
         returning a dictionary of tuples of the map name, bd name, and paths dictionary
@@ -442,15 +446,18 @@ def batch_path(dir):
             # scen, numAgents = filename.split(".txt")[0].split(".scen") # remove .txt, e.g. empty_8_8-random-9, 32
             # mapname = scen.split("-")[0] + ".map" # e.g. empty_8_8.map
             mapname, scen, numAgents = getMapScenAgents(filename)
-            val, priorities = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
+            val, priorities, runtime = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             # print("___________________________\n")
             # if idx in valFiles:
             #     res2[mapname + "," + bdname] = val
             # else:
-            res1[f"{mapname}.map,{scen},{numAgents}_paths"] = val
-            res1[f"{mapname}.map,{scen},{numAgents}_priorities"] = priorities
-            idx += 1
+            if runtime >= runtime_threshold:
+                res1[f"{mapname}.map,{scen},{numAgents}_paths"] = val
+                res1[f"{mapname}.map,{scen},{numAgents}_priorities"] = priorities
+                idx += 1
+            # else:
+            #     print(f"Skipping {os.path.basename(f)}, runtime {runtime} < {runtime_threshold}")
         else:
             raise RuntimeError("bad path dir")
     
@@ -472,6 +479,8 @@ def main():
     parser.add_argument("--mapOutFile", help="output filepath npz to save map", type=str)
     # npzMsg = "output file with maps, bds as name->array dicts, along with (mapname, bdname, path) triplets for each EECBS run"
     parser.add_argument("--num_parallel", help="num_parallel", type=int, default=1)
+
+    parser.add_argument("--runtime_threshold", help="output eecbs npzs with runtime higher than threshold", type=float)
     
 
     args = parser.parse_args()
@@ -527,11 +536,13 @@ def main():
                 print("WARNING: pathsIn folder is empty. This might be okay if restarting previous run or all failed.")
                 return
             with ct("Parsing paths"):
-                paths_data = batch_path(args.pathsIn)
+                paths_data = batch_path(args.pathsIn, args.runtime_threshold)
             ct.printTimes("Parsing paths")
             with ct("Saving npz"):
                 np.savez_compressed(args.pathOutFile, **paths_data)
             ct.printTimes("Saving npz")
+            # print('\n'.join(paths_data.keys()))
+            print(f"Saved npz for {len(paths_data)//2}/{len(os.listdir(args.pathsIn))} txt files.") # priorities and paths array for each txt file
 
     # Verify that the dataloader works by sampling 10 random items
     # with ct("Testing dataloader"):

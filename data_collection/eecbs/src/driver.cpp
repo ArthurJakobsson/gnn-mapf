@@ -227,11 +227,11 @@ int main(int argc, char** argv)
             ecbs.randomRoot = true;
             cout << "Failed to find solutions in Run " << i << endl;
         }
-        ecbs.runtime = runtime; 
+        // ecbs.runtime = runtime; 
         if (vm.count("output"))
             ecbs.saveResults(vm["output"].as<string>(), vm);
         if (ecbs.solution_found && vm.count("outputPaths"))
-            ecbs.savePaths(vm["outputPaths"].as<string>(), instance.num_of_rows, instance.num_of_cols);
+            ecbs.savePaths(vm["outputPaths"].as<string>(), instance.num_of_rows, instance.num_of_cols, ecbs.runtime);
         /*size_t pos = vm["output"].as<string>().rfind('.');      // position of the file extension
         string output_name = vm["output"].as<string>().substr(0, pos);     // get the name without extension
         cbs.saveCT(output_name); // for debug*/

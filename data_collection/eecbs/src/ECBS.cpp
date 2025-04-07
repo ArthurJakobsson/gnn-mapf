@@ -622,12 +622,14 @@ void ECBS::printPaths() const
 }
 
 
-void ECBS::savePaths(const string &fileName, int rows, int cols) const
+void ECBS::savePaths(const string &fileName, int rows, int cols, double runtime) const
 {
     std::ofstream output;
     output.open(fileName, std::ios::out);
 	// NEW write dimensions first
 	output << rows << "," << cols << endl;
+
+	output << "Runtime: " << runtime << endl;
 
 	output << "Priorities: ";
 	for (auto i : agentOrder)

@@ -70,10 +70,6 @@ mapsToMaxNumAgents = {
     "warehouse_10_20_10_2_2": 1000,
     "warehouse_20_40_10_2_1": 1000,
     "warehouse_20_40_10_2_2": 1000,
-
-    "tiny_1": 2,
-    "tiny_2": 2,
-    "tiny_3": 2,
 }
 
 
@@ -355,7 +351,8 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
 
         command = " ".join(["python", "-m", "data_collection.data_manipulator", 
                         f"--pathsIn={pathsIn}", f"--pathOutFile={pathOutputNpz}",
-                        f"--num_parallel={numWorkersParallelForDataManipulator}"])
+                        f"--num_parallel={numWorkersParallelForDataManipulator}",
+                        f"--runtime_threshold={args.runtime_threshold}"])
         
         input_list.append((command,))
     
@@ -469,7 +466,7 @@ def generic_batch_runner(args):
                         maximumAgents = [sum(1 for line in fh if line.strip()) - 1]
                     break
 
-            if args.numAgents == "increment":
+            if args.numAgents == "increment" or args.numAgents == "difficult":
                 increment = min(100,  maximumAgents)
                 maximumAgents = maximumAgents + 1
                 agentNumbers = list(range(increment, maximumAgents, increment))
@@ -554,9 +551,22 @@ def generic_batch_runner(args):
 
 ## Example calls of BatchRunner5
 """
+rm -rf ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/eecbs_npzs
+
 python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
     --scenFolder=data_collection/data/mini_benchmark_data/scens \
-    --numAgents=50,100 \
+    --numAgents=difficult \
+    --runtime_threshold=0.1 \
+    --outputFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_outputs \
+    --num_parallel_runs=1 \
+    "eecbs" \
+    --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
+    --outputPathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
+    --firstIter=true --cutoffTime=5
+
+python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
+    --scenFolder=data_collection/data/mini_benchmark_data/scens \
+    --numAgents=increment \
     --outputFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_outputs \
     --num_parallel_runs=1 \
     "eecbs" \
@@ -570,8 +580,9 @@ if __name__ == "__main__":
     # Common arguments
     parser.add_argument("--mapFolder", help="contains all scens to run", type=str, required=True)
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str, required=True)
-    numAgentsHelp = "Number of agents per scen; [int1,int2,..] or `increment` for all agents up to the max"
+    numAgentsHelp = "Number of agents per scen; [int1,int2,..], or `increment` for all agents up to the max, or 'difficult' to increment and keep examples that take eecbs longer than difficultThreshold seconds to solve"
     parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
+    parser.add_argument("--runtime_threshold", type=float, default=0.1)
     parser.add_argument("--outputFolder", help="parent output folder where each map folder will contain paths/ and csvs/ results", 
                         type=str, required=True)
     parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 
