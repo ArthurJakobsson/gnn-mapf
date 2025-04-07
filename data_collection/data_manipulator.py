@@ -1,5 +1,6 @@
 import os
 import sys
+import csv
 import time
 from datetime import datetime # For printing current datetime
 import subprocess # For executing c++ executable
@@ -225,8 +226,7 @@ def parse_path(pathfile):
     '''
     # save dimensions for later array saving
     w = h = 0
-    # save runtime and priorities
-    runtime = 0
+    # save priorities
     priorities = None
     # maps timesteps to a list of agent coordinates
     timestepsToMaps = defaultdict(list)
@@ -235,9 +235,9 @@ def parse_path(pathfile):
     with open(pathfile, 'r') as fd:
         linenum = 0
         for line in fd.readlines():
-            if linenum <= 2:
+            if linenum <= 1:
                 linenum += 1
-                continue # ignore dimension, runtime, priorities line
+                continue # ignore dimension, priorities line
             timesteps = 0
             for c in line:
                 if c == ',': timesteps += 1
@@ -253,10 +253,7 @@ def parse_path(pathfile):
                 w = int(line[0])
                 h = int(line[1])
                 continue
-            elif linenum == 1: # parse runtime and keep going
-                runtime = float(line.strip().split()[1])
-                continue
-            elif linenum == 2: # parse priorities and keep going
+            elif linenum == 1: # parse priorities and keep going
                 priorities_str = line.strip().split()[1] # comma-separated string
                 priorities = list(map(int, priorities_str.split(",")[:-1]))
                 continue
@@ -300,7 +297,7 @@ def parse_path(pathfile):
     #         res2[time][width][height] = agent
 
     res = np.asarray(res) # (t,n,2)
-    return res, np.asarray(priorities), runtime
+    return res, np.asarray(priorities)
 
 def parse_bd(bdfile):
     '''
@@ -417,7 +414,7 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
     return scen_to_goals, np.asarray(goal_bds)
 
 
-def batch_path(dir, runtime_threshold):
+def batch_path(dir, csv_path, runtime_threshold):
     '''
         goes through a directory of outputted EECBS paths,
         returning a dictionary of tuples of the map name, bd name, and paths dictionary
@@ -426,6 +423,16 @@ def batch_path(dir, runtime_threshold):
     '''
     res1 = {} # dict of (mapname, bdname, int->np.darray dictionary), and is (n, t, 2);
     numFiles = 0
+
+    runtimes = {}
+    with open(csv_path, mode='r', newline='') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        for row in csv_reader:
+            if row:
+                f = f"{os.path.basename(row[1]).split('.')[0]}.{row[2]}.txt"
+                runtimes[f] = float(row[6]) # map name to runtime
+
     # get number of files
     for filename in os.listdir(dir):
         f = os.path.join(dir, filename)
@@ -446,18 +453,18 @@ def batch_path(dir, runtime_threshold):
             # scen, numAgents = filename.split(".txt")[0].split(".scen") # remove .txt, e.g. empty_8_8-random-9, 32
             # mapname = scen.split("-")[0] + ".map" # e.g. empty_8_8.map
             mapname, scen, numAgents = getMapScenAgents(filename)
-            val, priorities, runtime = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
+            val, priorities = parse_path(f) # get the 2 types of paths: the first being a list of agent locations for each timestep, the 2nd being a map for each timestep with -1 if no agent, agent number otherwise
             # print(mapname, bdname, seed, np.count_nonzero(val2 != -1)) # debug statement
             # print("___________________________\n")
             # if idx in valFiles:
             #     res2[mapname + "," + bdname] = val
             # else:
-            if runtime >= runtime_threshold:
+            if runtimes[filename] >= runtime_threshold:
                 res1[f"{mapname}.map,{scen},{numAgents}_paths"] = val
                 res1[f"{mapname}.map,{scen},{numAgents}_priorities"] = priorities
                 idx += 1
             # else:
-            #     print(f"Skipping {os.path.basename(f)}, runtime {runtime} < {runtime_threshold}")
+            #     print(f"Skipping {os.path.basename(f)}, runtime {runtimes[filename]} < {runtime_threshold}")
         else:
             raise RuntimeError("bad path dir")
     
@@ -536,7 +543,8 @@ def main():
                 print("WARNING: pathsIn folder is empty. This might be okay if restarting previous run or all failed.")
                 return
             with ct("Parsing paths"):
-                paths_data = batch_path(args.pathsIn, args.runtime_threshold)
+                csv_path = args.pathsIn + '/../csvs/combined.csv'
+                paths_data = batch_path(args.pathsIn, csv_path, args.runtime_threshold)
             ct.printTimes("Parsing paths")
             with ct("Saving npz"):
                 np.savez_compressed(args.pathOutFile, **paths_data)

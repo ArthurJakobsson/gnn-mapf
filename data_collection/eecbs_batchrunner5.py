@@ -582,7 +582,7 @@ if __name__ == "__main__":
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str, required=True)
     numAgentsHelp = "Number of agents per scen; [int1,int2,..], or `increment` for all agents up to the max, or 'threshold' to increment and keep examples that take eecbs longer than runtime_threshold seconds to solve"
     parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
-    parser.add_argument("--runtime_threshold", type=float, default=0.1)
+    parser.add_argument("--runtime_threshold", type=float, default=10)
     parser.add_argument("--outputFolder", help="parent output folder where each map folder will contain paths/ and csvs/ results", 
                         type=str, required=True)
     parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 
