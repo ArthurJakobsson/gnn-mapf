@@ -16,7 +16,7 @@ public:
 	bool solve(double time_limit, int cost_lowerbound = 0);
     void clear(); // used for rapid random  restart
 	
-	void savePaths(const string &fileName, int rows, int cols) const;
+	void savePaths(const string &fileName, int rows, int colsju) const;
 
 private:
 	vector<int> min_f_vals; // lower bounds of the cost of the shortest path
