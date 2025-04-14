@@ -144,6 +144,11 @@ def derange(arr0):
 def generate_scens(maze, args):
     open_locs = np.column_stack(np.where(maze == 0)) # (num_open_locs, 2)
 
+    if args.num_agents == -1:
+        args.num_agents = len(open_locs)
+    else:
+        args.num_agents = min(args.num_agents, len(open_locs))
+        
     scen_starts = np.zeros((args.num_scens, args.num_agents, 2), dtype=int)
     scen_goals = np.zeros((args.num_scens, args.num_agents, 2), dtype=int)
     scen_costs = np.zeros((args.num_scens, args.num_agents))
@@ -174,8 +179,22 @@ def get_start_goal_locs(scen_type, open_locs, num_agents, width, height):
         goal_locs = open_locs[derange(permutation)[:num_agents]] # (N, 2)
 
     if scen_type == 'cluster':
-        start_center = (0, 0)
-        goal_center = (width-1, height-1)
+        # pick 2 random points on opposite sides of the map
+        if random.randint(0, 1):
+            rand_h = random.randint(0, height-1)
+            p1 = (0, rand_h) # left
+            p2 = (width-1, height-1-rand_h) # right
+        else:
+            rand_w = random.randint(0, width-1)
+            p1 = (rand_w, 0) # top
+            p2 = (width-1-rand_w, height-1) # bottom
+        if random.randint(0, 1):
+            start_center = p1
+            goal_center = p2
+        else:
+            start_center = p2
+            goal_center = p1
+
         start_locs = open_locs[np.argsort(np.sum((open_locs - start_center) ** 2, axis=1))][:num_agents]
         goal_locs = open_locs[np.argsort(np.sum((open_locs - goal_center) ** 2, axis=1))][:num_agents]
 
@@ -246,10 +265,14 @@ def generate_constants(args):
 
 '''
 maze_config_csv: 
-map_name,map_type,scen_type,height,width,corridor_size,roomnum_agents,num_scens
-maze1,16,16,1,1000,25
+name,map_type,scen_type,height,width,corridor_size,room_size,num_agents,num_scens
 
 Example run:
+python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
+        --temp_bd_path=$PROJECT/data/logs/EXP_Generate_mazes/ \
+        --maze_config_csv=$PROJECT/data/map_config.csv \
+        --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs
+
 python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
         --temp_bd_path=data_collection/data/logs/EXP_Generate_mazes/ \
         --maze_config_csv=data_collection/data/map_config.csv \

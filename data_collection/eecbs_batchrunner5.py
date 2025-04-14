@@ -463,11 +463,11 @@ def generic_batch_runner(args):
                         continue
                     # open the file
                     with open(f'{scenInputFolder}/{scen}', 'r') as fh:
-                        maximumAgents = [sum(1 for line in fh if line.strip()) - 1]
+                        maximumAgents = sum(1 for line in fh if line.strip()) - 1
                     break
 
             if args.numAgents == "increment" or args.numAgents == "threshold":
-                increment = min(100,  maximumAgents)
+                increment = min(50, maximumAgents)
                 maximumAgents = maximumAgents + 1
                 agentNumbers = list(range(increment, maximumAgents, increment))
             elif ".json" in args.numAgents:
@@ -580,8 +580,9 @@ if __name__ == "__main__":
     # Common arguments
     parser.add_argument("--mapFolder", help="contains all scens to run", type=str, required=True)
     parser.add_argument("--scenFolder", help="contains all scens to run", type=str, required=True)
-    numAgentsHelp = "Number of agents per scen; [int1,int2,..], or `increment` for all agents up to the max, or 'threshold' to increment and keep examples that take eecbs longer than runtime_threshold seconds to solve"
+    numAgentsHelp = "Number of agents per scen; [int1,int2,..], or `increment` for all agents up to the max, or 'threshold' to increment and only keep examples that take eecbs longer than runtime_threshold seconds to solve"
     parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
+    parser.add_argument("--increment_size", help=numAgentsHelp, type=int, default=100)
     parser.add_argument("--runtime_threshold", type=float, default=10)
     parser.add_argument("--outputFolder", help="parent output folder where each map folder will contain paths/ and csvs/ results", 
                         type=str, required=True)

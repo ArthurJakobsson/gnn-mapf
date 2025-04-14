@@ -32,6 +32,10 @@ def run_maze_generator(args):
     return maze_cmd
 
 
+def run_data_summary(args):
+    return f"python data_collection/data_summary.py {args.exp_path}/iter{args.iternum}/"
+
+
 def run_constants_generator(args):
     if args.clean:
         try: 
@@ -67,6 +71,7 @@ def run_eecbs_batchrunner(args):
     batchrunner_cmd = f'''python -m data_collection.eecbs_batchrunner5 --mapFolder={args.data_path}/maps \\
         --scenFolder={args.data_path}/scens \\
         --numAgents={args.num_agents} \\
+        --increment_size={args.increment_size} \\
         --runtime_threshold={args.eecbs_threshold} \\
         --outputFolder={args.exp_path}/iter{args.iternum}/eecbs_outputs \\
         --num_parallel_runs={args.num_parallel} \\
@@ -173,28 +178,41 @@ def generate_sh_script(exp_path, file, conda_env, commands):
 
 ### Example command for full benchmark
 """ 
-Generate mazes:
+Generate mazes and test:
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --exp_dir=EXP_Generate_mazes \
+    --num_agents=increment \
+    --increment_size=10 \
+    --data_dir=maze_benchmark_data \
+    --exp_dir=EXP_new_maps_mini \
     --temp_bd_dir=EXP_Generate_mazes \
     --maze_data_dir=maze_benchmark_data \
-    --maze_config_csv=mazes.csv \
+    --maze_config_csv=map_config.csv \
     --clean --which_section=maze
 
 Small run: 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --num_agents=50,100 \
+    --data_dir=mini_maze_benchmark_data \
+    --exp_dir=EXP_new_maps \
+    --temp_bd_dir=EXP_Generate_mazes \
+    --maze_data_dir=mini_maze_benchmark_data \
+    --maze_config_csv=map_config_mini.csv \
+    --clean --which_section=maze
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --num_agents=threshold \
+    --increment_size=10 \
+    --eecbs_threshold=3 \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 --bd_pred \
     --clean --which_section=mini \
     --sim_scenname='maze4_32_32_1-random-1' --sim_num_agents=10
-
+    
 Full run: 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --which_section=constants
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
+    --eecbs_threshold=10 \
     --which_section=eecbs
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
@@ -231,7 +249,7 @@ if __name__ == "__main__":
     parser.add_argument('--temp_bd_dir', type=str, default='EXP_Collect_BD', help='directory in data/logs for constants_generator.py')
     parser.add_argument('--exp_dir', type=str, default='EXP_mini', help='directory name in data/logs for experiment')
     parser.add_argument('--maze_data_dir', type=str, default='EXP_Generate_mazes', help='directory in data/ for mazes')
-    parser.add_argument('--maze_config_csv', type=str, default='mazes.csv', help='mazes to generate with maze_generator.py')
+    parser.add_argument('--maze_config_csv', type=str, default='map_config.csv', help='mazes to generate with maze_generator.py')
     parser.add_argument('--sim_data_dir', type=str, default='maze_benchmark_data', help='directory in data/ for simulator.py')
 
     # use default 
@@ -253,6 +271,7 @@ if __name__ == "__main__":
     # test
     num_agents_help = "Number of agents per scen; [int1,int2,..] or `increment` or `threshold`"
     parser.add_argument('--num_agents', help=num_agents_help, type=str, default='threshold')
+    parser.add_argument('--increment_size', type=int, default=100)
     parser.add_argument('--eecbs_threshold', type=float, default=10)
     parser.add_argument('--bd_pred', action="store_true", help="bd_predictions added to NN")
     parser.add_argument('--model', type=str, default='ResGatedGraphConv')
@@ -315,27 +334,29 @@ if __name__ == "__main__":
     inputs_outputs = list(itertools.product(args.num_multi_inputs_list.strip().split(','),
                                             args.num_multi_outputs_list.strip().split(',')))
                                         
-    if section in ['maze', 'mini']:
+    if section in ['maze']:
         python_commands.append(run_maze_generator(args))
-    elif section in ['constants', 'mini']:
+    if section in ['constants', 'mini']:
         python_commands.append(run_constants_generator(args))
-    elif section in ['eecbs', 'mini']:
+    if section in ['eecbs', 'maze', 'mini']:
         python_commands.append(run_eecbs_batchrunner(args))
-    elif section in ['load', 'mini']:
+    if section in ['load', 'mini']:
         for num_in, num_out in inputs_outputs:
             python_commands.append(run_dataloader(num_in, num_out, args))
-    elif section in ['train', 'mini']:
+    if section in ['train', 'mini']:
         EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
         NO_EDGE_ATTR_GNNS = ["SAGEConv"]
         assert(args.model in EDGE_ATTR_GNNS or args.model in NO_EDGE_ATTR_GNNS)
         if args.use_edge_attr: assert(args.model in EDGE_ATTR_GNNS)
         for num_in, num_out in inputs_outputs:
             python_commands.append(run_trainer(num_in, num_out, args))
-    elif section in ['simulate', 'mini']:
+    if section in ['simulate', 'mini']:
         assert(args.sim_scenname)
         for num_in, num_out in inputs_outputs:
             for sim_num_agents in args.sim_num_agents.strip().split(','):
                 python_commands.append(run_simulator(num_in, num_out, sim_num_agents, args))
+    if section in ['maze']:
+        python_commands.append(run_data_summary(args))
 
     # job name and sh script
     job_name = f'{args.which_section}'
