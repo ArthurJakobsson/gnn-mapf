@@ -353,7 +353,6 @@ def runDataManipulator(args, ct: CustomTimer, mapsToScens, static_dict,
                         f"--pathsIn={pathsIn}", f"--pathOutFile={pathOutputNpz}",
                         f"--num_parallel={numWorkersParallelForDataManipulator}",
                         f"--runtime_threshold={args.runtime_threshold}"])
-        
         input_list.append((command,))
     
     if len(input_list) > 0:
@@ -467,7 +466,7 @@ def generic_batch_runner(args):
                     break
 
             if args.numAgents == "increment" or args.numAgents == "threshold":
-                increment = min(50, maximumAgents)
+                increment = min(args.increment_size, maximumAgents)
                 maximumAgents = maximumAgents + 1
                 agentNumbers = list(range(increment, maximumAgents, increment))
             elif ".json" in args.numAgents:
@@ -562,7 +561,7 @@ python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mi
     "eecbs" \
     --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
     --outputPathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
-    --firstIter=true --cutoffTime=5
+    --firstIter=true --cutoffTime=60
 
 python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
     --scenFolder=data_collection/data/mini_benchmark_data/scens \
@@ -572,7 +571,17 @@ python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mi
     "eecbs" \
     --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
     --outputPathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
-    --firstIter=true --cutoffTime=5
+    --firstIter=true --cutoffTime=60
+
+python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
+    --scenFolder=data_collection/data/mini_benchmark_data/scens \
+    --numAgents=increment \
+    --outputFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_outputs \
+    --num_parallel_runs=1 \
+    "eecbs" \
+    --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
+    --outputPathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
+    --firstIter=true --cutoffTime=60
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -628,8 +637,6 @@ if __name__ == "__main__":
     pymodel_parser.add_argument('--numScensToCreate', help="see simulator2", type=int, required=True)
     pymodel_parser.add_argument('--percentSuccessGenerationReduction', help="see simulator2", type=float, required=True)
     pymodel_parser.add_argument('--timeLimit', help="cs-pibt/lacam timeout", type=int, required=True)
-    
- 
 
     ### Parse arguments and run the batch runner
     args = parser.parse_args()

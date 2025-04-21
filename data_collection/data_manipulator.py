@@ -425,13 +425,13 @@ def batch_path(dir, csv_path, runtime_threshold):
     numFiles = 0
 
     runtimes = {}
-    with open(csv_path, mode='r', newline='') as file:
-        csv_reader = csv.reader(file)
-        next(csv_reader)
-        for row in csv_reader:
-            if row:
-                f = f"{os.path.basename(row[1]).split('.')[0]}.{row[2]}.txt"
-                runtimes[f] = float(row[6]) # map name to runtime
+
+    df = pd.read_csv(csv_path, skip_blank_lines=True)
+    df = df[df['solution cost'] != -1]
+
+    df['txt_name'] = df.apply(lambda row: f"{os.path.basename(row['agents']).split('.')[0]}.{row['agentNum']}.txt", axis=1)
+
+    runtimes.update(dict(zip(df['txt_name'], df['runtime'].astype(float))))
 
     # get number of files
     for filename in os.listdir(dir):
@@ -459,15 +459,13 @@ def batch_path(dir, csv_path, runtime_threshold):
             # if idx in valFiles:
             #     res2[mapname + "," + bdname] = val
             # else:
-            if runtimes[filename] >= runtime_threshold:
+            if filename in runtimes and runtimes[filename] >= runtime_threshold:
                 res1[f"{mapname}.map,{scen},{numAgents}_paths"] = val
                 res1[f"{mapname}.map,{scen},{numAgents}_priorities"] = priorities
                 idx += 1
-            # else:
-            #     print(f"Skipping {os.path.basename(f)}, runtime {runtimes[filename]} < {runtime_threshold}")
         else:
             raise RuntimeError("bad path dir")
-    
+    print('Saved', idx, '/', len(os.listdir(dir)))
     return res1
 
 

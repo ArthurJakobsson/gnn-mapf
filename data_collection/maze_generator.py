@@ -17,8 +17,6 @@ def generate_maze(height, width, corridor_size):
         corridor_size: width of space between walls
     """
 
-    t0 = time.time()
-
     maze = np.ones((height, width))  # initialize map with walls
     visited = np.zeros((height, width))
     moves = np.asarray([(0, 1), (1, 0), (0, -1), (-1, 0)])
@@ -41,7 +39,6 @@ def generate_maze(height, width, corridor_size):
             if 0 <= new_row < height and 0 <= new_col < width and not visited[new_row, new_col]:
                 dq.append((new_row, new_col, row, col))
 
-    print(f'Maze generated in {time.time() - t0:.4f}s')
     return maze
 
 
@@ -54,8 +51,6 @@ def generate_room_maze(height, width, corridor_size, room_size):
         room_size: width of room (square)
     """
     
-    t0 = time.time()
-
     maze = np.ones((height, width))  # initialize map with walls
     visited = np.zeros((height, width))
     moves = np.asarray([(0, 1), (1, 0), (0, -1), (-1, 0)])
@@ -85,7 +80,6 @@ def generate_room_maze(height, width, corridor_size, room_size):
             if 0 <= new_row < height and 0 <= new_col < width and not visited[new_row, new_col]:
                 dq.append((new_row, new_col, row, col))
 
-    print(f'Rooms generated in {time.time() - t0:.4f}s')
     return maze
 
 
@@ -141,35 +135,29 @@ def derange(arr0):
     return arr
 
 
-def generate_scens(maze, args):
+def generate_scens(maze, maze_filename, args):
     open_locs = np.column_stack(np.where(maze == 0)) # (num_open_locs, 2)
 
     if args.num_agents == -1:
-        args.num_agents = len(open_locs)
+        args.num_agents = len(open_locs)-1
     else:
-        args.num_agents = min(args.num_agents, len(open_locs))
+        args.num_agents = min(args.num_agents, len(open_locs)-1)
         
     scen_starts = np.zeros((args.num_scens, args.num_agents, 2), dtype=int)
     scen_goals = np.zeros((args.num_scens, args.num_agents, 2), dtype=int)
     scen_costs = np.zeros((args.num_scens, args.num_agents))
 
-    t0 = time.time()
     for scen_idx in range(args.num_scens):
         start_locs, goal_locs = get_start_goal_locs(args.scen_type, open_locs, args.num_agents, args.width, args.height)
         scen_starts[scen_idx, :] = start_locs
         scen_goals[scen_idx, :] = goal_locs
-    print(f'Scen start goal pairs generated in {time.time() - t0:.4f}s')
 
-    t0 = time.time()
-    if args.skip_octile_bfs:
-        print(f'Octile BFS skipped')
-    else:
+    if not args.skip_octile_bfs:
         for scen_idx in range(args.num_scens):
             for agent_idx in range(args.num_agents): 
                 scen_costs[scen_idx, agent_idx] = octile_bfs(maze, scen_starts[scen_idx, agent_idx], scen_goals[scen_idx, agent_idx])
-        print(f'Octile BFS completed in {time.time() - t0:.4f}s')
-    
-    return (scen_starts, scen_goals, scen_costs)
+
+    save_scen_files((scen_starts, scen_goals, scen_costs), maze_filename, args)
 
 
 def get_start_goal_locs(scen_type, open_locs, num_agents, width, height):
@@ -202,7 +190,12 @@ def get_start_goal_locs(scen_type, open_locs, num_agents, width, height):
 
 
 def save_map_file(maze, args):
-    with open(f'{args.data_path}/maps/{args.name}_{args.width}_{args.height}_{args.corridor_size}.map', 'w') as f:
+    if args.room_size == -1:
+        room_str = ''
+    else:
+        room_str = f'_{args.room_size}'
+    maze_filename = f'{args.name}_{args.width}_{args.height}_{args.corridor_size}{room_str}'
+    with open(f'{args.data_path}/maps/{maze_filename}.map', 'w') as f:
         f.write('type octile\n')
         f.write(f'height {args.height}\n')
         f.write(f'width {args.width}\n')
@@ -210,14 +203,14 @@ def save_map_file(maze, args):
 
         map_str = '\n'.join([''.join(['@' if cell else '.' for cell in row]) for row in maze])
         f.write(map_str)
+    return maze_filename
 
 
-def save_scen_files(scen_data, args):
+def save_scen_files(scen_data, maze_filename, args):
     scen_starts, scen_goals, scen_costs = scen_data
-    map_filename = f'{args.name}_{args.width}_{args.height}_{args.corridor_size}'
 
     for scen_idx in range(args.num_scens):
-        with open(f'{args.data_path}/scens/{map_filename}-{args.scen_type}-{scen_idx+1}.scen', 'w') as f:
+        with open(f'{args.data_path}/scens/{maze_filename}-{args.scen_type}-{scen_idx+1}.scen', 'w') as f:
             f.write('version 1\n')
             # Bucket, map, map width, map height, start x-coordinate, start y-coordinate, goal x-coordinate, goal y-coordinate, optimal length
             # (0, 0) is in the upper left corner of the maps 
@@ -226,12 +219,12 @@ def save_scen_files(scen_data, args):
                 y1, x1 = scen_goals[scen_idx, agent_idx]
                 cost = scen_costs[scen_idx, agent_idx]
                 
-                scen_row_str = '\t'.join(map(str, [0, map_filename+'.map', args.width, args.height,
+                scen_row_str = '\t'.join(map(str, [0, maze_filename+'.map', args.width, args.height,
                                           x0, y0, x1, y1, f'{cost:.8f}']))
                 f.write(scen_row_str + '\n')
 
 
-def generate_map_scens(args):
+def generate_map(args):
     # generate map
     if args.map_type == 'maze':
         maze = generate_maze(args.height, args.width, args.corridor_size)
@@ -241,13 +234,10 @@ def generate_map_scens(args):
     num_open_locs = int(args.width*args.height-np.sum(maze))
     assert(num_open_locs > 1)
     args.num_agents = min(args.num_agents, num_open_locs)
-
-    # generate scens
-    scen_data = generate_scens(maze, args)
     
     # output files
-    save_map_file(maze, args)
-    save_scen_files(scen_data, args)
+    maze_filename = save_map_file(maze, args)
+    return maze, maze_filename
 
 
 def generate_constants(args):
@@ -255,7 +245,7 @@ def generate_constants(args):
         --scenFolder={args.data_path}/scens \
         --constantMapAndBDFolder={args.data_path}/constant_npzs \
         --outputFolder={args.temp_bd_path}/ \
-        --num_parallel_runs=1 \
+        --num_parallel_runs=50 \
         "eecbs" \
         --eecbsPath={args.eecbs_path} \
         --firstIter=true --cutoffTime=1'''# \
@@ -267,52 +257,103 @@ def generate_constants(args):
 maze_config_csv: 
 name,map_type,scen_type,height,width,corridor_size,room_size,num_agents,num_scens
 
-Example run:
-python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
+Small run:
+python -m data_collection.maze_generator --data_path=$PROJECT/data/maze_benchmark_data/ \
         --temp_bd_path=$PROJECT/data/logs/EXP_Generate_mazes/ \
-        --maze_config_csv=$PROJECT/data/map_config.csv \
         --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs
+
+Full dataset:
+python -m data_collection.maze_generator --data_path=$PROJECT/data/maze_benchmark_data/ \
+        --temp_bd_path=$PROJECT/data/logs/EXP_Generate_mazes/ \
+        --eecbs_path=./data_collection/eecbs/build_release5/eecbs --skip_octile_bfs \
+        --num_maps_per_type=1 \
+        --min_size=16 --max_size=32 \
+        --min_corridor_size=1 --max_corridor_size=3 \
+        --min_room_size=3 --max_room_size=5 \
+        --num_scens_per_map=5
 
 python -m data_collection.maze_generator --data_path=data_collection/data/maze_benchmark_data/ \
         --temp_bd_path=data_collection/data/logs/EXP_Generate_mazes/ \
-        --maze_config_csv=data_collection/data/map_config.csv \
         --eecbs_path=./data_collection/eecbs/build_release4/eecbs --skip_octile_bfs
 '''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--maze_config_csv', type=str, help='maps to generate', required=True)
     parser.add_argument('--data_path', type=str, help='name of folder with data', required=True)
     
     parser.add_argument('--skip_octile_bfs', action='store_true')
 
     # constants generator args
+    parser.add_argument('--skip_maze_generation', action='store_true')
     parser.add_argument('--skip_constants_generation', action='store_true')
     parser.add_argument('--temp_bd_path', type=str, help='temp paths/ and csvs/ path for constants_generator.py if generating constants', default='')
     parser.add_argument('--eecbs_path', type=str, help='eecbs path for constants_generator.py if generating constants', default='')
+
+    # map config
+    parser.add_argument('--num_maps_per_type', type=int, help='num maps of each type to generate', default=1)
+    parser.add_argument('--min_size', type=int, default=16)
+    parser.add_argument('--max_size', type=int, default=32)
+    parser.add_argument('--min_corridor_size', type=int, default=1)
+    parser.add_argument('--max_corridor_size', type=int, default=1)
+    parser.add_argument('--min_room_size', type=int, default=3)
+    parser.add_argument('--max_room_size', type=int, default=3)
+    parser.add_argument('--num_scens_per_map', type=int, default=2)
 
     args = args = parser.parse_args()
 
     np.random.seed(0)
     
-    # make data directories
-    try:
-        shutil.rmtree(args.data_path)
-    except: pass
+    if not args.skip_maze_generation:
+        # make data directories
+        try:
+            shutil.rmtree(args.data_path)
+        except: pass
     
-    os.makedirs(args.data_path, exist_ok=True)
-    os.makedirs(args.data_path+'/maps', exist_ok=True)
-    os.makedirs(args.data_path+'/scens', exist_ok=True)
+        os.makedirs(args.data_path, exist_ok=True)
+        os.makedirs(args.data_path+'/maps', exist_ok=True)
+        os.makedirs(args.data_path+'/scens', exist_ok=True)
 
-    with open(args.maze_config_csv, mode='r') as file:
-        csv_reader = csv.reader(file)
-        header = next(csv_reader)
-        for row in csv_reader:
-            values = row[0:3] + [*map(int, row[3:])]
-            map_args = argparse.Namespace(**dict(zip(header, values)))
-            map_args.data_path = args.data_path
-            map_args.skip_octile_bfs = args.skip_octile_bfs
-            generate_map_scens(map_args)
+        map_sizes = []
+        s = 1
+        while s <= args.max_size:
+            if s >= args.min_size:
+                map_sizes.append(s)
+            s *= 2
+
+        for map_type in ['maze', 'room']:
+            for size in map_sizes:
+                for corridor_size in range(args.min_corridor_size, args.max_corridor_size+1):
+                    if map_type == 'room':
+                        room_sizes = range(args.min_room_size, args.max_room_size+1)
+                    else:
+                        room_sizes = [-1]
+                    for room_size in room_sizes:
+                        if map_type == 'room':
+                            adjusted_size = ((size-1)//(room_size+1)+1)*(room_size+1)+1
+                            assert(corridor_size <= room_size)
+                        else:
+                            adjusted_size = ((size-1)//(corridor_size+1)+1)*(corridor_size+1)+1
+                        for n in range(args.num_maps_per_type):
+                            map_args = {'name': f'new_{map_type}_{n}',
+                                        'map_type': map_type,
+                                        'scen_type': None,
+                                        'height': adjusted_size,
+                                        'width': adjusted_size,
+                                        'corridor_size': corridor_size,
+                                        'room_size': room_size,
+                                        'num_agents': -1,
+                                        'num_scens': args.num_scens_per_map,
+                            }
+                            print(f'Generatiing {adjusted_size}x{adjusted_size} {map_type} map with corridor size {corridor_size} and room size {room_size}')
+                            map_args = argparse.Namespace(**dict(zip(map_args.keys(), map_args.values())))
+                            map_args.data_path = args.data_path
+                            map_args.skip_octile_bfs = args.skip_octile_bfs
+                            maze, maze_filename = generate_map(map_args)
+                            for scen_type in ['random', 'cluster']:
+                                map_args.scen_type = scen_type
+                                generate_scens(maze, maze_filename, map_args)
+                                print(f' {args.num_scens_per_map} {scen_type} scens')
+
     print(f'Maps and scens in {args.data_path}')
 
     if not args.skip_constants_generation and args.eecbs_path and args.temp_bd_path:
