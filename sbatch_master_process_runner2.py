@@ -87,11 +87,11 @@ def run_eecbs_batchrunner(args):
 
 def run_dataloader(num_multi_inputs, num_multi_outputs, args):
     if args.clean:
-        try:
-            os.remove(f'{args.exp_path}/iter{args.iternum}/status_data_processed_{num_multi_inputs}_{num_multi_outputs}.csv')
-        except: pass
         try: 
             shutil.rmtree(f'{args.exp_path}/iter{args.iternum}/processed_{num_multi_inputs}_{num_multi_outputs}')
+        except: pass
+        try:
+            os.remove(f'{args.exp_path}/iter{args.iternum}/status_data_processed_{num_multi_inputs}_{num_multi_outputs}.csv')
         except: pass
 
     dataloader_cmd = f'''python -m gnn.dataloader --mapNpzFile={args.data_path}/constant_npzs/all_maps.npz \\
@@ -116,7 +116,7 @@ def run_trainer(num_multi_inputs, num_multi_outputs, args):
     trainer_cmd = f'''python -m gnn.trainer --exp_folder={args.exp_path} --experiment=exp0 --iternum={args.iternum} --num_cores=4 \\
         --processedFolders={args.exp_path}/iter{args.iternum}/processed_{num_multi_inputs}_{num_multi_outputs} \\
         --k={args.k} --m={args.m} --lr={args.lr} \\
-        --num_priority_copies={args.num_priority_copies} {args.bd_pred * '--bd_pred'}\\
+        --num_priority_copies={args.num_priority_copies} {args.bd_pred * '--bd_pred'} \\
         --num_multi_inputs={num_multi_inputs} \\
         --num_multi_outputs={num_multi_outputs} \\
         --gnn_name="{args.model}" {args.logging*'--logging'} {args.use_edge_attr*'--use_edge_attr'}'''
@@ -182,37 +182,40 @@ def generate_sh_script(exp_path, file, conda_env, commands):
 """ 
 New maps run:
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --maze_data_dir=maze_benchmark_data \
-    --temp_bd_dir=EXP_Generate_mazes \
     --data_dir=maze_benchmark_data \
-    --exp_dir=EXP_new_maps \
-    --num_agents=increment \
-    --increment_size=50 \
-    --eecbs_threshold=10 \
-    --which_section=maze --skip_maze_generation
+    --which_section=maze
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
+    --data_dir=maze_benchmark_data --exp_dir=EXP_new_maps \
+    --temp_bd_dir=EXP_Generate_mazes \
+    --which_section=constants
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=maze_benchmark_data --exp_dir=EXP_new_maps \
+    --eecbs_threshold=10 \
+    --which_section=eecbs
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=maze_benchmark_data --exp_dir=EXP_new_maps \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=load
+    --which_section=load
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
+    --data_dir=maze_benchmark_data --exp_dir=EXP_new_maps \
     --model=ResGatedGraphConv --use_edge_attr --logging \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=train
+    --which_section=train
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
+    --data_dir=maze_benchmark_data --exp_dir=EXP_new_maps \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
     --clean --which_section=simulate \
     --sim_scenname='maze0_16_16_2-random-1' --sim_num_agents=10
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
+    --data_dir=maze_benchmark_data --exp_dir=EXP_new_maps \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
     --clean --which_section=simulate \
-    --sim_data_dir='benchmark_data' --sim_scenname='maze_16_16_2-random-1' --sim_num_agents=10
+    --sim_data_dir='maze_benchmark_data' --sim_scenname='maze_16_16_2-random-1' --sim_num_agents=10
 
+    
 Small run: 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=mini_maze_benchmark_data \
@@ -221,43 +224,55 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
     --maze_data_dir=mini_maze_benchmark_data \
     --clean --which_section=maze
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --num_agents=threshold \
+    --num_agents=50,100 \
     --increment_size=10 \
-    --eecbs_threshold=3 \
     --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 --bd_pred \
-    --clean --which_section=mini \
-    --sim_scenname='maze4_32_32_1-random-1' --sim_num_agents=10
+    --num_multi_inputs_list=0 --num_multi_outputs_list=1 --bd_pred \
+    --which_section=mini \
+    --sim_scenname='maze4_32_32_1-random-1' --sim_num_agents=10 --clean
     
-Full run (no threshold):
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_unfiltered \
+    --num_agents=50,100 \
+    --increment_size=10 \
+    --model=ResGatedGraphConv --use_edge_attr \
+    --num_multi_inputs_list=0 --num_multi_outputs_list=1 --bd_pred \
+    --which_section=load --clean
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=mini_benchmark_data --exp_dir=EXP_mini \
+    --model=ResGatedGraphConv --use_edge_attr \
+    --num_multi_inputs_list=0 --num_multi_outputs_list=1 \
+    --which_section=train --clean
+    
+
+Full run old (no threshold):
+python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
     --which_section=constants
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_unfiltered \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
     --which_section=eecbs
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_unfiltered \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=load
+    --which_section=load
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_unfiltered \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
     --model=ResGatedGraphConv --use_edge_attr --logging \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=train
+    --num_multi_inputs_list=3 --num_multi_outputs_list=1 \
+    --which_section=train
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_unfiltered \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
     --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=simulate \
-    --sim_scenname='maze0_16_16_2-random-1' --sim_num_agents=10
+    --num_multi_inputs_list=0 --num_multi_outputs_list=1 \
+    --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
+    --clean --which_section=simulate
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_unfiltered \
+    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
     --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=simulate \
-    --sim_data_dir='benchmark_data' --sim_scenname='maze_16_16_2-random-1' --sim_num_agents=10
+    --num_multi_inputs_list=0 --num_multi_outputs_list=1 \
+    --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
+    --clean --which_section=simulate
     
 Full run (10s threshold): 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
@@ -270,25 +285,25 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=load
+    --num_multi_inputs_list=0,1,3 --num_multi_outputs_list=1 \
+    --which_section=load
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr --logging \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=train
+    --num_multi_inputs_list=3 --num_multi_outputs_list=1 \
+    --which_section=train
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=simulate \
-    --sim_scenname='maze0_16_16_2-random-1' --sim_num_agents=10
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment \
-    --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=simulate \
-    --sim_data_dir='benchmark_data' --sim_scenname='maze_16_16_2-random-1' --sim_num_agents=10
+    --num_multi_inputs_list=3 --num_multi_outputs_list=1 \
+    --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
+    --clean --which_section=simulate
+        python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
+            --data_dir=benchmark_data --exp_dir=EXP_full \
+            --model=ResGatedGraphConv --use_edge_attr \
+            --num_multi_inputs_list=0 --num_multi_outputs_list=1 \
+            --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
+            --clean --which_section=simulate
 
 
 """
@@ -300,12 +315,12 @@ if __name__ == "__main__":
     parser.add_argument('--which_setting', help="[Arthur, Rishi, Michelle, PSC]", required=True) # E.g. use --which_setting to determine using 
     parser.add_argument('--data_dir', type=str, default='mini_benchmark_data', help='directory in data/ that contains maps and scens')
     parser.add_argument('--temp_bd_dir', type=str, default='EXP_Collect_BD', help='directory in data/logs for constants_generator.py')
-    parser.add_argument('--exp_dir', type=str, default='EXP_mini', help='directory name in data/logs for experiment')
+    parser.add_argument('--exp_dirs', type=str, default='EXP_mini', help='directory names in data/logs for experiment')
     parser.add_argument('--maze_data_dir', type=str, default='EXP_Generate_mazes', help='directory in data/ for mazes')
     parser.add_argument('--sim_data_dir', type=str, default='maze_benchmark_data', help='directory in data/ for simulator.py')
 
     # use default 
-    parser.add_argument('--num_parallel', type=int, default=50)
+    parser.add_argument('--num_parallel', type=int, default=16)
     parser.add_argument('--k', type=int, default=4)
     parser.add_argument('--m', type=int, default=5)
     parser.add_argument('--lr', type=float, default=0.005)
@@ -355,13 +370,13 @@ if __name__ == "__main__":
 
     args.data_path = prefix + args.data_dir
     args.temp_bd_path = prefix + 'logs/' + args.temp_bd_dir
-    args.exp_path = prefix + 'logs/' + args.exp_dir
+    args.exp_paths = [prefix + 'logs/' + exp_dir for exp_dir in args.exp_dirs.strip().split(',')]
     args.maze_data_path = prefix + args.maze_data_dir
     args.sim_data_path = prefix + args.sim_data_dir
 
     print()
     print("data path:", args.data_path)
-    print("exp path:", args.exp_path)
+    print("exp paths:", args.exp_paths)
 
     if args.which_setting == "Arthur":
         conda_env = None # Used in eecbs_batchrunner3 for simulator2.py
@@ -386,49 +401,51 @@ if __name__ == "__main__":
 
     inputs_outputs = list(itertools.product(args.num_multi_inputs_list.strip().split(','),
                                             args.num_multi_outputs_list.strip().split(',')))
-                                        
-    if section in ['maze']:
-        python_commands.append(run_maze_generator(args))
-    if section in ['constants', 'mini']:
-        python_commands.append(run_constants_generator(args))
-    if section in ['eecbs', 'maze', 'mini']:
-        python_commands.append(run_eecbs_batchrunner(args))
-    if section in ['load', 'mini']:
-        for num_in, num_out in inputs_outputs:
-            python_commands.append(run_dataloader(num_in, num_out, args))
-    if section in ['train', 'mini']:
-        EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
-        NO_EDGE_ATTR_GNNS = ["SAGEConv"]
-        assert(args.model in EDGE_ATTR_GNNS or args.model in NO_EDGE_ATTR_GNNS)
-        if args.use_edge_attr: assert(args.model in EDGE_ATTR_GNNS)
-        for num_in, num_out in inputs_outputs:
-            python_commands.append(run_trainer(num_in, num_out, args))
-    if section in ['simulate', 'mini']:
-        assert(args.sim_scenname)
-        for num_in, num_out in inputs_outputs:
-            for sim_num_agents in args.sim_num_agents.strip().split(','):
-                python_commands.append(run_simulator(num_in, num_out, sim_num_agents, args))
-    if section in ['maze']:
-        python_commands.append(run_data_summary(args))
 
-    # job name and sh script
-    job_name = f'{args.which_section}'
-    generate_sh_script(args.exp_path, args.which_section, conda_env, python_commands)
+    for exp_path in args.exp_paths:    
+        args.exp_path = exp_path
+        if section in ['maze']:
+            python_commands.append(run_maze_generator(args))
+        if section in ['constants', 'mini']:
+            python_commands.append(run_constants_generator(args))
+        if section in ['eecbs', 'mini']:
+            python_commands.append(run_eecbs_batchrunner(args))
+        if section in ['load', 'mini']:
+            for num_in, num_out in inputs_outputs:
+                python_commands.append(run_dataloader(num_in, num_out, args))
+        if section in ['train', 'mini']:
+            EDGE_ATTR_GNNS = ["ResGatedGraphConv", "GATv2Conv", "TransformerConv", "GENConv"]
+            NO_EDGE_ATTR_GNNS = ["SAGEConv"]
+            assert(args.model in EDGE_ATTR_GNNS or args.model in NO_EDGE_ATTR_GNNS)
+            if args.use_edge_attr: assert(args.model in EDGE_ATTR_GNNS)
+            for num_in, num_out in inputs_outputs:
+                python_commands.append(run_trainer(num_in, num_out, args))
+        if section in ['simulate', 'mini']:
+            assert(args.sim_scenname)
+            for num_in, num_out in inputs_outputs:
+                for sim_num_agents in args.sim_num_agents.strip().split(','):
+                    python_commands.append(run_simulator(num_in, num_out, sim_num_agents, args))
+        if section in ['maze']:
+            python_commands.append(run_data_summary(args))
 
-    if section in ['simulate', 'mini']:
-        command = f'sbatch --job-name {job_name} {args.exp_path}/{args.which_section}.sh'
-    elif section in ['constants', 'eecbs', 'load', 'maze']:
-        sbatch_timeout = 16
-        command = f'sbatch -p RM-shared -N 1 --ntasks-per-node=64 -t {sbatch_timeout}:00:00 ' + \
-        f'--job-name {job_name} {args.exp_path}/{args.which_section}.sh'
-    else:
-        sbatch_timeout = 24
-        command = f'sbatch -p GPU-shared --gres=gpu:v100-32:1 -t {sbatch_timeout}:00:00 ' + \
-        f'--job-name {job_name} {args.exp_path}/{args.which_section}.sh'
+        # job name and sh script
+        job_name = f'{args.which_section}'
+        generate_sh_script(args.exp_path, args.which_section, conda_env, python_commands)
 
-    # run sbatch
-    print('sbatch command:', command, '\n')
-    run_command(command.split())
-    
-    log_time(args.exp_path, "begin")
+        if section in ['simulate', 'mini']:
+            command = f'sbatch --job-name {job_name} {args.exp_path}/{args.which_section}.sh'
+        elif section in ['constants', 'eecbs', 'load', 'maze'] or args.data_dir == 'mini_benchmark_data':
+            sbatch_timeout = 24
+            command = f'sbatch -p RM-shared -N 1 --ntasks-per-node=64 -t {sbatch_timeout}:00:00 ' + \
+            f'--job-name {job_name} {args.exp_path}/{args.which_section}.sh'
+        else:
+            sbatch_timeout = 24
+            command = f'sbatch -p GPU-shared --gres=gpu:v100-32:1 -t {sbatch_timeout}:00:00 ' + \
+            f'--job-name {job_name} {args.exp_path}/{args.which_section}.sh'
+
+        # run sbatch
+        print('sbatch command:', command, '\n')
+        run_command(command.split())
+        
+        log_time(args.exp_path, "begin")
     

@@ -17,6 +17,8 @@ import pstats
 from data_collection import data_manipulator
 from custom_utils.custom_timer import CustomTimer
 
+import ray
+
 
 def apply_masks(data_len, curdata):
     tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
@@ -302,6 +304,130 @@ def create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, k, m, 
                 weights=torch.from_numpy(weights), y=torch.from_numpy(labels))
 
 
+
+@ray.remote
+class SharedDataFrame:
+    def __init__(self):
+        self.df = pd.DataFrame()
+
+    def concat(self, new_data):
+        self.df = pd.concat([self.df, new_data], ignore_index=True)
+
+    def get(self):
+        return self.df.copy()
+    
+    def set(self, new_df):
+        self.df = new_df.copy()
+
+    def length(self):
+        return len(self.df)
+
+    def to_csv(self, df_path):
+        self.df.to_csv(df_path, index=False)
+
+
+@ray.remote
+class SharedCounter:
+    def __init__(self):
+        self.count = 0
+
+    def add(self, n):
+        self.count += n
+
+    def get(self):
+        return self.count
+
+
+def create_and_save_graph(idx, time_instance, k, m, num_priority_copies, extra_layers, bd_pred, 
+                                processed_dir, map_name, idx_start):
+    # Graphify
+    # if not time_instance: 
+    #     return #idk why but the last one is None
+    assert(time_instance is not None)
+    cur_locs, multi_inputs, labels, bd_list, grid, goal_locs, priorities = time_instance
+
+    curdata = create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, k, m, 
+                                    num_priority_copies, goal_locs, extra_layers, bd_pred, labels)
+    curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
+    # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+    torch.save(curdata, osp.join(processed_dir, f"data_{map_name}_{idx_start+idx}.pt"))
+    return
+
+@ray.remote
+def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_copies, num_multi_inputs, num_multi_outputs,
+                extra_layers, bd_pred, processed_dir, npz_path, bd_folder, df_path, shared_df):
+    print(f"running for {mapNpzFile}")
+    ct = CustomTimer()
+    # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
+    # if "maps" in raw_path or "bds" in raw_path:
+    #     continue
+    if not npz_path.endswith(".npz"):
+        return
+    map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
+    # cur_path_iter = raw_path.split("_")[-1][:-4]
+    # if not (int(cur_path_iter)==self.iternum):
+    #     continue
+    df = ray.get(shared_df.get.remote())
+    df_row = df.loc[df['npz_path'] == npz_path]
+    # assert(len(df_row) <= 1)
+    if len(df_row) >0:
+        if df_row.iloc[0]["status"] == "processed":
+            print(f"Skipping: {npz_path}")
+            # idx+=df_row.iloc[0]["num_pts"]
+            return
+
+    # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
+    maps_bds = list(filter(lambda k: map_name in k and "bds.npz" == k[-7:], bd_folder))
+    idx_start = 0
+
+    for bd_file_name in maps_bds:
+        bdNpzFile = f"{bdNpzFolder}/{bd_file_name}"
+        goalsNpzFile = bdNpzFile[:-7] + "goals.npz"
+        ct.start("Loading")
+        cur_dataset = data_manipulator.PipelineDataset(mapNpzFile, goalsNpzFile, bdNpzFile, npz_path, k, size, max_agents,
+                                                        num_multi_inputs, num_multi_outputs)
+        print(f"Loading: {npz_path} of size {len(cur_dataset)}")
+
+        ct.stop("Loading")
+        ct.start("Processing")
+        # pr = cProfile.Profile()
+        # pr.enable()
+        # tmp = []
+        counter = 0
+        batch_graphs = []
+        for t in tqdm(range(len(cur_dataset))):
+            time_instance = cur_dataset[t]
+            torch.save(create_and_save_graph(t, time_instance, k, m, num_priority_copies, extra_layers, bd_pred, 
+                                processed_dir, map_name, idx_start),
+                        osp.join(processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
+        
+        idx_start+=len(cur_dataset)
+        # Save tmp to pt
+        # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
+        # idx += len(cur_dataset)
+        ct.stop("Processing")
+        # pr.disable()
+        # ps = pstats.Stats(pr).sort_stats('cumtime')
+        # ps.print_stats(10)
+
+
+        ct.printTimes()
+        if(len(cur_dataset)>0):
+            new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
+                                            "pt_path": [f"data_{map_name}"],
+                                            "status": ["processed"], 
+                                            "num_pts": [len(cur_dataset)],
+                                            "loading_time": [ct.getTimes("Loading", "list")[-1]], 
+                                            "processing_time": [ct.getTimes("Processing", "list")[-1]]})
+            if shared_df.length.remote() == 0:
+                shared_df.set.remote(new_df)
+            else:
+                shared_df.concat.remote(new_df)
+            shared_df.to_csv.remote(df_path)
+        
+        del cur_dataset
+        
+
 class MyOwnDataset(Dataset):
     def __init__(self, mapNpzFile, bdNpzFolder, pathNpzFolder,
                 processedOutputFolder, num_cores, k, m, num_priority_copies, num_multi_inputs, num_multi_outputs,
@@ -318,7 +444,7 @@ class MyOwnDataset(Dataset):
             os.makedirs(self.processedOutputFolder)
         self._raw_file_names = None # Use this to avoid recomputing raw_file_names everytime
 
-        self.ct = CustomTimer()
+        # self.ct = CustomTimer()
 
         self.num_cores = num_cores
         self.num_priority_copies = num_priority_copies
@@ -332,7 +458,8 @@ class MyOwnDataset(Dataset):
 
         # self.data_dictionaries = []
         self.length = 0
-        self.df = None
+        # self.df = None
+        self.df = SharedDataFrame.remote()
         super().__init__() # this automatically calls process()
         self.custom_process()
         
@@ -347,9 +474,9 @@ class MyOwnDataset(Dataset):
         folder_name = osp.basename(osp.normpath(self.processedOutputFolder)) # Gets the name of processed folder
         self.df_path = f"{self.processed_dir}/../status_data_{folder_name}.csv"
         if osp.isfile(self.df_path):
-            self.df = pd.read_csv(self.df_path)
+            self.df.set.remote(pd.read_csv(self.df_path))
         else:
-            self.df = pd.DataFrame(columns=["npz_path", "pt_path", "status", "num_pts", "loading_time", "processing_time"])
+            self.df.set.remote(pd.DataFrame(columns=["npz_path", "pt_path", "status", "num_pts", "loading_time", "processing_time"]))
 
     @property
     def raw_dir(self) -> str:
@@ -395,98 +522,35 @@ class MyOwnDataset(Dataset):
     # def download():
     #     raise ImportError
 
-    def create_and_save_graph(self, idx, time_instance):
-        # Graphify
-        # if not time_instance: 
-        #     return #idk why but the last one is None
-        assert(time_instance is not None)
-        cur_locs, multi_inputs, labels, bd_list, grid, goal_locs, priorities = time_instance
+    # def create_and_save_graph(self, idx, time_instance):
+    #     # Graphify
+    #     # if not time_instance: 
+    #     #     return #idk why but the last one is None
+    #     assert(time_instance is not None)
+    #     cur_locs, multi_inputs, labels, bd_list, grid, goal_locs, priorities = time_instance
 
-        curdata = create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, self.k, self.m, 
-                                     self.num_priority_copies, goal_locs, self.extra_layers, self.bd_pred, labels)
-        curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
-        # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
-        return curdata
-
+    #     curdata = create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, self.k, self.m, 
+    #                                  self.num_priority_copies, goal_locs, self.extra_layers, self.bd_pred, labels)
+    #     curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
+    #     # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+    #     return curdata
+            
     def custom_process(self):
         self.load_status_data() # This loads self.df which is used for checking if should process or skip
 
         if self.pathNpzFolder is not None: # Run process
             # idx = 0
             bd_folder = os.listdir(self.bdNpzFolder)
-            print(f"Num cores: {self.num_cores}")
-            for npz_path in self.raw_paths: #TODO check if new npzs are read
-                # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
-                # if "maps" in raw_path or "bds" in raw_path:
-                #     continue
-                if not npz_path.endswith(".npz"):
-                    continue
-                map_name = npz_path.split("/")[-1].removesuffix("_paths.npz")
-                # cur_path_iter = raw_path.split("_")[-1][:-4]
-                # if not (int(cur_path_iter)==self.iternum):
-                #     continue
-                df_row = self.df.loc[self.df['npz_path'] == npz_path]
-                # assert(len(df_row) <= 1)
-                if len(df_row) >0:
-                    if df_row.iloc[0]["status"] == "processed":
-                        print(f"Skipping: {npz_path}")
-                        # idx+=df_row.iloc[0]["num_pts"]
-                        continue
-
-                # cur_dataset = data_manipulator.PipelineDataset(raw_path, self.k, self.size, self.max_agents)
-                maps_bds = list(filter(lambda k: map_name in k and "bds.npz" == k[-7:], bd_folder))
-                idx_start = 0 
-                for bd_file_name in maps_bds:
-                    bdNpzFile = f"{self.bdNpzFolder}/{bd_file_name}"
-                    goalsNpzFile = bdNpzFile[:-7] + "goals.npz"
-                    self.ct.start("Loading")
-                    cur_dataset = data_manipulator.PipelineDataset(self.mapNpzFile, goalsNpzFile, bdNpzFile, npz_path, self.k, self.size, self.max_agents,
-                                                                    self.num_multi_inputs, self.num_multi_outputs)
-                    print(f"Loading: {npz_path} of size {len(cur_dataset)}")
-
-                    self.ct.stop("Loading")
-                    self.ct.start("Processing")
-                    # pr = cProfile.Profile()
-                    # pr.enable()
-                    # tmp = []
-                    counter = 0
-                    batch_graphs = []
-                    for t in tqdm(range(len(cur_dataset))):
-                        time_instance = cur_dataset[t]
-                        torch.save(self.create_and_save_graph(t, time_instance),
-                                    osp.join(self.processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
-                    
-                    idx_start+=len(cur_dataset)
-                    # Save tmp to pt
-                    # torch.save(tmp, osp.join(self.processed_dir, f"data_{map_name}.pt"))
-                    # idx += len(cur_dataset)
-                    self.ct.stop("Processing")
-                    # pr.disable()
-                    # ps = pstats.Stats(pr).sort_stats('cumtime')
-                    # ps.print_stats(10)
-                    # self.ct.start("Parallel Processing")
-                    ### Note: Multiprocessing seems slower than single processing
-                    # with Pool(self.num_cores) as p: #change number of workers later
-                    #     p.starmap(self.create_and_save_graph, zip(range(len(cur_dataset)), cur_dataset))
-                    # self.ct.stop("Parallel Processing")
-                    self.ct.printTimes()
-                    if(len(cur_dataset)>0):
-                        new_df = pd.DataFrame.from_dict({"npz_path": [npz_path],
-                                                        "pt_path": [f"data_{map_name}"],
-                                                        "status": ["processed"], 
-                                                        "num_pts": [len(cur_dataset)],
-                                                        "loading_time": [self.ct.getTimes("Loading", "list")[-1]], 
-                                                        "processing_time": [self.ct.getTimes("Processing", "list")[-1]]})
-                        if len(self.df) == 0:
-                            self.df = new_df
-                        else:
-                            self.df = pd.concat([self.df, new_df], ignore_index=True)
-                        self.df.to_csv(self.df_path, index=False)
-                    
-                    del cur_dataset
+            # print(f"Num cores: {self.num_cores}")
+            print(f"Num cores: {int(ray.cluster_resources().get('CPU', 0))}")
+            futures = [process_map.remote(self.bdNpzFolder, self.mapNpzFile, self.k, self.m, self.size, self.max_agents, 
+                                        self.num_priority_copies, self.num_multi_inputs, self.num_multi_outputs,
+                                        self.extra_layers, self.bd_pred, self.processed_dir, 
+                                        npz_path, bd_folder, self.df_path, self.df) for npz_path in self.raw_paths]
+            results = ray.get(futures)
             # self.length = idx
-        
-        self.length = self.df["num_pts"].sum()
+        df = ray.get(self.df.get.remote())
+        self.length = df["num_pts"].sum()
         print("Loading dataset with length: ", self.length)
 
         ### Get indices and files
@@ -495,7 +559,7 @@ class MyOwnDataset(Dataset):
         self.order_of_indices = [0] # start with 0
         self.order_of_files = []
         # self.order_to_loaded_pt = []
-        for row in self.df.iterrows():
+        for row in df.iterrows():
             pt_path = row[1]["pt_path"]
             self.order_of_files.append(pt_path)
             self.order_of_indices.append(row[1]["num_pts"])
@@ -517,14 +581,10 @@ class MyOwnDataset(Dataset):
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
         filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
-        assert(osp.exists(osp.join(self.processed_dir, filename)))
-        try:
-            curdata = torch.load(osp.join(self.processed_dir, filename))
-        except:
-            print("Empty file:", osp.join(self.processed_dir, filename))
-            exit(0)
+        curdata = torch.load(osp.join(self.processed_dir, filename))
 
         return normalize_graph_data(curdata, self.k, edge_normalize="k", bd_normalize="center")
+
 
 ### Example run
 """
@@ -569,6 +629,8 @@ if __name__ == "__main__":
 
     assert(0 <= args.num_multi_inputs)
     assert(1 <= args.num_multi_outputs <= 3)
+
+    ray.init()
 
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
