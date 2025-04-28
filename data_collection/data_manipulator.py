@@ -1,6 +1,5 @@
 import os
 import sys
-import csv
 import time
 from datetime import datetime # For printing current datetime
 import subprocess # For executing c++ executable
@@ -235,9 +234,9 @@ def parse_path(pathfile):
     with open(pathfile, 'r') as fd:
         linenum = 0
         for line in fd.readlines():
-            if linenum <= 1:
+            if linenum == 0 or linenum == 1:
                 linenum += 1
-                continue # ignore dimension, priorities line
+                continue # ignore dimension line and priorities line
             timesteps = 0
             for c in line:
                 if c == ',': timesteps += 1
@@ -382,7 +381,8 @@ def batch_bd(bdInDir, scenInDir, num_parallel):
                 index = len(goal_to_index)
                 goal_to_index[goal] = index
                 goal_bds.append(bd) # add to list of unique goals
-        scen_to_goals[scenname] = np.asarray([goal_to_index[goal] for goals[agent] in range(len(agent_to_bd))])
+                
+        scen_to_goals[scenname] = np.asarray([goal_to_index[goals[agent]] for agent in range(len(agent_to_bd))])
 
     for filename in os.listdir(bdInDir):
         f = os.path.join(bdInDir, filename)
