@@ -425,6 +425,8 @@ def generic_batch_runner(args):
 """
 Collecting initial bd and map data:
 
+rm -rf ~/mapf/gnn-mapf/data_collection/data/mini_benchmark_data/constant_npzs
+
 python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
         --scenFolder=data_collection/data/mini_benchmark_data/scens \
         --constantMapAndBDFolder=data_collection/data/mini_benchmark_data/constant_npzs \

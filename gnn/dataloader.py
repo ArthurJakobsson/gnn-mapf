@@ -517,17 +517,14 @@ class MyOwnDataset(Dataset):
         data_idx = idx-self.order_of_indices[which_file_index]
         assert(data_idx >= 0)
         filename = f"{self.order_of_files[which_file_index]}_{data_idx}.pt"
-        assert(osp.exists(osp.join(self.processed_dir, filename)))
-        try:
-            curdata = torch.load(osp.join(self.processed_dir, filename))
-        except:
-            print("Empty file:", osp.join(self.processed_dir, filename))
-            exit(0)
+        curdata = torch.load(osp.join(self.processed_dir, filename))
 
         return normalize_graph_data(curdata, self.k, edge_normalize="k", bd_normalize="center")
 
 ### Example run
 """
+rm ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/status_data_processed_0_1.csv
+
 python -m gnn.dataloader --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
       --bdNpzFolder=data_collection/data/mini_benchmark_data/constant_npzs \
       --pathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \

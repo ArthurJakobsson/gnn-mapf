@@ -4,7 +4,7 @@ import numpy as np
 import pdb
 import pandas as pd # for loading status df
 
-from tqdm import tqdm
+# from tqdm import tqdm
 import os
 import os.path as osp
 import argparse
@@ -395,7 +395,8 @@ def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_co
         # tmp = []
         counter = 0
         batch_graphs = []
-        for t in tqdm(range(len(cur_dataset))):
+        for t in range(len(cur_dataset)):
+        # for t in tqdm(range(len(cur_dataset))):
             time_instance = cur_dataset[t]
             torch.save(create_and_save_graph(t, time_instance, k, m, num_priority_copies, extra_layers, bd_pred, 
                                 processed_dir, map_name, idx_start),
@@ -588,7 +589,9 @@ class MyOwnDataset(Dataset):
 
 ### Example run
 """
-python -m gnn.dataloader --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
+rm ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/status_data_processed_0_1.csv
+
+python -m gnn.dataloader2 --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
       --bdNpzFolder=data_collection/data/mini_benchmark_data/constant_npzs \
       --pathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
       --processedFolder=data_collection/data/logs/EXP_mini/iter0/processed_0_1 \

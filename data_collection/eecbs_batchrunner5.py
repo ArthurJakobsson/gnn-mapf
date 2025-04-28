@@ -551,37 +551,17 @@ def generic_batch_runner(args):
 ## Example calls of BatchRunner5
 """
 rm -rf ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/eecbs_npzs
+rm -rf ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/eecbs_outputs
 
 python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
     --scenFolder=data_collection/data/mini_benchmark_data/scens \
-    --numAgents=threshold \
-    --runtime_threshold=0.1 \
+    --numAgents=50,100 \
     --outputFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_outputs \
     --num_parallel_runs=1 \
     "eecbs" \
     --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
     --outputPathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
-    --firstIter=true --cutoffTime=60
-
-python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
-    --scenFolder=data_collection/data/mini_benchmark_data/scens \
-    --numAgents=increment \
-    --outputFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_outputs \
-    --num_parallel_runs=1 \
-    "eecbs" \
-    --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
-    --outputPathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
-    --firstIter=true --cutoffTime=60
-
-python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
-    --scenFolder=data_collection/data/mini_benchmark_data/scens \
-    --numAgents=increment \
-    --outputFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_outputs \
-    --num_parallel_runs=1 \
-    "eecbs" \
-    --eecbsPath=./data_collection/eecbs/build_release4/eecbs \
-    --outputPathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
-    --firstIter=true --cutoffTime=60
+    --firstIter=true --cutoffTime=5
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -592,7 +572,7 @@ if __name__ == "__main__":
     numAgentsHelp = "Number of agents per scen; [int1,int2,..], or `increment` for all agents up to the max, or 'threshold' to increment and only keep examples that take eecbs longer than runtime_threshold seconds to solve"
     parser.add_argument("--numAgents", help=numAgentsHelp, type=str, required=True)
     parser.add_argument("--increment_size", help=numAgentsHelp, type=int, default=100)
-    parser.add_argument("--runtime_threshold", type=float, default=10)
+    parser.add_argument("--runtime_threshold", type=float, default=0)
     parser.add_argument("--outputFolder", help="parent output folder where each map folder will contain paths/ and csvs/ results", 
                         type=str, required=True)
     parser.add_argument('--num_parallel_runs', help="How many multiple maps in parallel tmux sessions. 1 = No parallel runs.", 

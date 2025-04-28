@@ -547,7 +547,7 @@ def main():
             with ct("Saving npz"):
                 np.savez_compressed(args.pathOutFile, **paths_data)
             ct.printTimes("Saving npz")
-            # print('\n'.join(paths_data.keys()))
+            
             print(f"Saved npz for {len(paths_data)//2}/{len(os.listdir(args.pathsIn))} txt files.") # priorities and paths array for each txt file
 
     # Verify that the dataloader works by sampling 10 random items
