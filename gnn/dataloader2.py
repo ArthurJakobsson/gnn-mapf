@@ -4,7 +4,7 @@ import numpy as np
 import pdb
 import pandas as pd # for loading status df
 
-# from tqdm import tqdm
+from tqdm import tqdm
 import os
 import os.path as osp
 import argparse
@@ -18,6 +18,7 @@ from data_collection import data_manipulator
 from custom_utils.custom_timer import CustomTimer
 
 import ray
+import time
 
 
 def apply_masks(data_len, curdata):
@@ -325,37 +326,23 @@ class SharedDataFrame:
     def to_csv(self, df_path):
         self.df.to_csv(df_path, index=False)
 
-
-@ray.remote
-class SharedCounter:
-    def __init__(self):
-        self.count = 0
-
-    def add(self, n):
-        self.count += n
-
-    def get(self):
-        return self.count
-
-
-def create_and_save_graph(idx, time_instance, k, m, num_priority_copies, extra_layers, bd_pred, 
-                                processed_dir, map_name, idx_start):
-    # Graphify
-    # if not time_instance: 
-    #     return #idk why but the last one is None
-    assert(time_instance is not None)
-    cur_locs, multi_inputs, labels, bd_list, grid, goal_locs, priorities = time_instance
-
-    curdata = create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, k, m, 
-                                    num_priority_copies, goal_locs, extra_layers, bd_pred, labels)
-    curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
-    # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
-    torch.save(curdata, osp.join(processed_dir, f"data_{map_name}_{idx_start+idx}.pt"))
-    return
-
 @ray.remote
 def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_copies, num_multi_inputs, num_multi_outputs,
                 extra_layers, bd_pred, processed_dir, npz_path, bd_folder, df_path, shared_df):
+    
+    def create_and_save_graph(idx, time_instance):
+        # Graphify
+        # if not time_instance: 
+        #     return #idk why but the last one is None
+        assert(time_instance is not None)
+        cur_locs, multi_inputs, labels, bd_list, grid, goal_locs, priorities = time_instance
+
+        curdata = create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, k, m, 
+                                     num_priority_copies, goal_locs, extra_layers, bd_pred, labels)
+        curdata = apply_masks(len(curdata.x), curdata) # Adds train and test masks to data
+        # torch.save(curdata, osp.join(self.processed_dir, f"data_{idx}.pt"))
+        return curdata
+
     print(f"running for {mapNpzFile}")
     ct = CustomTimer()
     # raw_path = "data_collection/data/logs/EXP_Test/iter0/eecbs_npzs/brc202d_paths.npz"
@@ -395,12 +382,10 @@ def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_co
         # tmp = []
         counter = 0
         batch_graphs = []
-        for t in range(len(cur_dataset)):
         # for t in tqdm(range(len(cur_dataset))):
+        for t in range(len(cur_dataset)):
             time_instance = cur_dataset[t]
-            torch.save(create_and_save_graph(t, time_instance, k, m, num_priority_copies, extra_layers, bd_pred, 
-                                processed_dir, map_name, idx_start),
-                        osp.join(processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
+            torch.save(create_and_save_graph(t, time_instance), osp.join(processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
         
         idx_start+=len(cur_dataset)
         # Save tmp to pt
@@ -544,11 +529,13 @@ class MyOwnDataset(Dataset):
             bd_folder = os.listdir(self.bdNpzFolder)
             # print(f"Num cores: {self.num_cores}")
             print(f"Num cores: {int(ray.cluster_resources().get('CPU', 0))}")
+
             futures = [process_map.remote(self.bdNpzFolder, self.mapNpzFile, self.k, self.m, self.size, self.max_agents, 
                                         self.num_priority_copies, self.num_multi_inputs, self.num_multi_outputs,
                                         self.extra_layers, self.bd_pred, self.processed_dir, 
                                         npz_path, bd_folder, self.df_path, self.df) for npz_path in self.raw_paths]
             results = ray.get(futures)
+
             # self.length = idx
         df = ray.get(self.df.get.remote())
         self.length = df["num_pts"].sum()
@@ -586,11 +573,9 @@ class MyOwnDataset(Dataset):
 
         return normalize_graph_data(curdata, self.k, edge_normalize="k", bd_normalize="center")
 
-
 ### Example run
 """
-rm ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/status_data_processed_0_1.csv
-
+rm ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/status_data_processed_0_1.csv; \
 python -m gnn.dataloader2 --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
       --bdNpzFolder=data_collection/data/mini_benchmark_data/constant_npzs \
       --pathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
@@ -635,11 +620,13 @@ if __name__ == "__main__":
 
     ray.init()
 
+    t0 = time.time()
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
                         num_cores=1, k=args.k, m=args.m, num_priority_copies=args.num_priority_copies, 
                         num_multi_inputs=args.num_multi_inputs, num_multi_outputs=args.num_multi_outputs,
-                        extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=args.num_per_pt)
+                        extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=args.num_per_pt) 
+    print("Dataloader:", time.time()-t0)
 
 
 

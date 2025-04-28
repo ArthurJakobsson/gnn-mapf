@@ -17,6 +17,8 @@ import pstats
 from data_collection import data_manipulator
 from custom_utils.custom_timer import CustomTimer
 
+import time
+
 
 def apply_masks(data_len, curdata):
     tr_mask, te_mask = np.zeros(data_len), np.zeros(data_len)
@@ -523,8 +525,7 @@ class MyOwnDataset(Dataset):
 
 ### Example run
 """
-rm ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/status_data_processed_0_1.csv
-
+rm ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/status_data_processed_0_1.csv; \
 python -m gnn.dataloader --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
       --bdNpzFolder=data_collection/data/mini_benchmark_data/constant_npzs \
       --pathNpzFolder=data_collection/data/logs/EXP_mini/iter0/eecbs_npzs \
@@ -567,11 +568,13 @@ if __name__ == "__main__":
     assert(0 <= args.num_multi_inputs)
     assert(1 <= args.num_multi_outputs <= 3)
 
+    t0 = time.time()
     dataset = MyOwnDataset(mapNpzFile=args.mapNpzFile, bdNpzFolder=args.bdNpzFolder, 
                         pathNpzFolder=args.pathNpzFolder, processedOutputFolder=args.processedFolder,
                         num_cores=1, k=args.k, m=args.m, num_priority_copies=args.num_priority_copies, 
                         num_multi_inputs=args.num_multi_inputs, num_multi_outputs=args.num_multi_outputs,
                         extra_layers=args.extra_layers, bd_pred=args.bd_pred, num_per_pt=args.num_per_pt)
+    print("Dataloader:", time.time()-t0)
 
 
 
