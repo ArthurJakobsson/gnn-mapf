@@ -166,8 +166,8 @@ def parallel_process_map(my_map, open_cells, num_processes=4):
     return my_map
 
 if __name__ == "__main__":
-    num_scens = 128
-    map_folder = "data_collection/data/benchmark_data/maps"
+    num_scens = 5 # 128
+    map_folder = "/ocean/projects/cis240049p/mliu13/data/benchmark_data_eval/maps"
     map_names = os.listdir(map_folder)
 
     # Parameters
@@ -176,8 +176,8 @@ if __name__ == "__main__":
     
 
     for mapname in map_names:  
-        if "_custom_" not in mapname:
-            continue  
+        # if "_custom_" not in mapname:
+        #     continue  
         map_path = os.path.join(map_folder, mapname)
         my_map = parse_map(map_path)
         open_cells = np.count_nonzero(my_map==0)

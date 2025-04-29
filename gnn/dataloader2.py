@@ -324,7 +324,7 @@ class SharedDataFrame:
         self.df.to_csv(df_path, index=False)
 
 
-@ray.remote(memory=30 * 1024 * 1024 * 1024)
+@ray.remote(memory=10 * 1024 * 1024 * 1024)
 def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_copies, num_multi_inputs, num_multi_outputs,
                 extra_layers, bd_pred, processed_dir, npz_path, bd_folder, df_path, shared_df):
     
@@ -530,11 +530,11 @@ class MyOwnDataset(Dataset):
             # print(f"Num cores: {self.num_cores}")
             print(f"Num cores: {int(ray.cluster_resources().get('CPU', 0))}")
 
-            futures = [process_map.remote(
-                                    self.bdNpzFolder, self.mapNpzFile, self.k, self.m, self.size, self.max_agents, 
-                                    self.num_priority_copies, self.num_multi_inputs, self.num_multi_outputs,
-                                    self.extra_layers, self.bd_pred, self.processed_dir, 
-                                    npz_path, bd_folder, self.df_path, self.df) for npz_path in self.raw_paths]
+            futures = [process_map.remote(self.bdNpzFolder, self.mapNpzFile, self.k, self.m, self.size, 
+                                          self.max_agents, self.num_priority_copies, self.num_multi_inputs, 
+                                          self.num_multi_outputs, self.extra_layers, self.bd_pred, 
+                                          self.processed_dir, npz_path, bd_folder, self.df_path, self.df) 
+                        for npz_path in self.raw_paths]
             
             for _ in tqdm(to_iterator(futures), total=len(futures)):
                 pass

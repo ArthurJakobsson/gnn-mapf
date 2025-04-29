@@ -601,6 +601,7 @@ def update_multi_inputs(multi_inputs, new_move):
 
 
 def main(args: argparse.ArgumentParser):
+    print(f'Scen file: {args.scenFile}')
     # Setting constants
     torch.set_num_threads(1) # Make pytorch use only 1 thread, otherwise by default will try using all threads    
     k = args.k
@@ -745,28 +746,18 @@ def main(args: argparse.ArgumentParser):
 
 ### Example command
 """
-python -m gnn.simulator3 --mapNpzFile=data_collection/data/maze_benchmark_data/constant_npzs/all_maps.npz \
-        --mapName=maze2_16_16_1 --scenFile=data_collection/data/maze_benchmark_data/scens/maze2_16_16_1-random-1.scen \
-        --agentNum=4 --bdPath=data_collection/data/maze_benchmark_data/constant_npzs/\
+# simulator \
+python -m gnn.simulator3 --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
+        --mapName=warehouse_10_20_10_2_2 --scenFile=data_collection/data/mini_benchmark_data/scens/warehouse_10_20_10_2_2-random-1.scen \
+        --agentNum=1000 --bdPath=data_collection/data/mini_benchmark_data/constant_npzs/\
         --k=5 --m=3 \
         --outputCSVFile=data_collection/data/logs/EXP_mini/tests/results.csv \
         --outputPathsFile=data_collection/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
-        --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
+        --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_mini/iter0/encountered_scens/warehouse_10_20_10_2_2/warehouse_10_20_10_2_2-random-1.scen100 \
         --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
         --num_priority_copies=10 \
         --useGPU=False --modelPath=data_collection/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_0_1_p/max_test_acc.pt \
-        --num_multi_inputs=0 --num_multi_outputs=1 --shieldType=CS-PIBT 
-python -m gnn.simulator3 --mapNpzFile=data_collection/data/maze_benchmark_data/constant_npzs/all_maps.npz \
-        --mapName=maze1_16_16_1 --scenFile=data_collection/data/maze_benchmark_data/scens/maze1_16_16_1-random-1.scen \
-        --agentNum=4 --bdPath=data_collection/data/maze_benchmark_data/constant_npzs/\
-        --k=5 --m=3 \
-        --outputCSVFile=data_collection/data/logs/EXP_mini/tests/results.csv \
-        --outputPathsFile=data_collection/data/logs/EXP_mini/tests/encountered_scens/paths.npy \
-        --numScensToCreate=10 --outputScenPrefix=data_collection/data/logs/EXP_mini/iter0/encountered_scens/den520d/den520d-random-1.scen100 \
-        --maxSteps=400 --seed=0 --lacamLookahead=5 --timeLimit=100 --bd_pred \
-        --num_priority_copies=10 \
-        --useGPU=False --modelPath=data_collection/data/logs/EXP_mini/iter0/models_ResGatedGraphConv_3_1_p/max_test_acc.pt \
-        --num_multi_inputs=3 --num_multi_outputs=1 --shieldType=CS-PIBT 
+        --num_multi_inputs=0 --num_multi_outputs=1 --shieldType=CS-PIBT
 """
 if __name__ == '__main__':
     # testGetCosts()
