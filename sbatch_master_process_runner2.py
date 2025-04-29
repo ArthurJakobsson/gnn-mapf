@@ -249,7 +249,7 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr --logging \
-    --num_multi_inputs_list=3 --num_multi_outputs_list=1 \
+    --num_multi_inputs_list=3 --num_multi_outputs_list=2 \
     --which_section=train
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
@@ -257,12 +257,6 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
     --num_multi_inputs_list=3 --num_multi_outputs_list=1 \
     --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
     --clean --which_section=simulate
-        python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-            --data_dir=benchmark_data --exp_dir=EXP_full \
-            --model=ResGatedGraphConv --use_edge_attr \
-            --num_multi_inputs_list=0 --num_multi_outputs_list=1 \
-            --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
-            --clean --which_section=simulate
 
 
 """

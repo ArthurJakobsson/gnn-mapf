@@ -324,7 +324,7 @@ class SharedDataFrame:
         self.df.to_csv(df_path, index=False)
 
 
-@ray.remote(memory=120 * 1024 * 1024 * 1024)
+@ray.remote(memory=30 * 1024 * 1024 * 1024)
 def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_copies, num_multi_inputs, num_multi_outputs,
                 extra_layers, bd_pred, processed_dir, npz_path, bd_folder, df_path, shared_df):
     
