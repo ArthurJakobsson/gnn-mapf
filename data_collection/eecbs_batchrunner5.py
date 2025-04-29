@@ -9,6 +9,7 @@ from collections import defaultdict
 import shutil
 import json
 import glob
+from tqdm import tqdm
 
 import ray
 import ray.util.multiprocessing
@@ -516,13 +517,16 @@ def generic_batch_runner(args):
 
     futures = [runSingleInstanceMT.remote(nameToNumRun, num_workers, idToWorkerOutputFilepath, 
                                           static_dict, *args) for args in tasks]
-
+    
     # Wait for all tasks to be processed
+    pbar = tqdm(desc='eecbs', total=len(futures))
     while len(futures):
         ready, futures = ray.wait(futures)
+        pbar.update(1)
         for finished_task in ready:
             children = ray.get(finished_task)
             futures += children # append child futures
+            pbar.total += len(children)
 
     # Delete CSV files with {mapName}_worker naming convention
     for mapName in maps_to_run:
@@ -550,9 +554,9 @@ def generic_batch_runner(args):
 
 ## Example calls of BatchRunner5
 """
-rm -rf ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/eecbs_npzs
-rm -rf ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/eecbs_outputs
-
+# eecbs_batchrunner \
+rm -rf ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/eecbs_npzs; \
+rm -rf ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/eecbs_outputs; \
 python -m data_collection.eecbs_batchrunner5 --mapFolder=data_collection/data/mini_benchmark_data/maps \
     --scenFolder=data_collection/data/mini_benchmark_data/scens \
     --numAgents=50,100 \

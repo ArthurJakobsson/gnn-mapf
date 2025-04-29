@@ -9,6 +9,7 @@ from collections import defaultdict
 import shutil
 import json
 import glob
+from tqdm import tqdm
 
 import ray
 import ray.util.multiprocessing
@@ -398,8 +399,10 @@ def generic_batch_runner(args):
                                           static_dict, *args) for args in tasks]
 
     # Wait for all tasks to be processed
+    pbar = tqdm(desc='bds', total=sum(len(mapsToScens[mapFile]) for mapFile in mapsToScens))
     while len(futures):
         ready, futures = ray.wait(futures)
+        pbar.update(1)
         for finished_task in ready:
             children = ray.get(finished_task)
             futures += children # append child futures
@@ -425,8 +428,8 @@ def generic_batch_runner(args):
 """
 Collecting initial bd and map data:
 
-rm -rf ~/mapf/gnn-mapf/data_collection/data/mini_benchmark_data/constant_npzs
-
+# constants_generator \
+rm -rf ~/mapf/gnn-mapf/data_collection/data/mini_benchmark_data/constant_npzs; \
 python -m data_collection.constants_generator --mapFolder=data_collection/data/mini_benchmark_data/maps \
         --scenFolder=data_collection/data/mini_benchmark_data/scens \
         --constantMapAndBDFolder=data_collection/data/mini_benchmark_data/constant_npzs \

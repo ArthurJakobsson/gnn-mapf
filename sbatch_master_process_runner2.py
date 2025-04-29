@@ -94,7 +94,7 @@ def run_dataloader(num_multi_inputs, num_multi_outputs, args):
             os.remove(f'{args.exp_path}/iter{args.iternum}/status_data_processed_{num_multi_inputs}_{num_multi_outputs}.csv')
         except: pass
 
-    dataloader_cmd = f'''python -m gnn.dataloader --mapNpzFile={args.data_path}/constant_npzs/all_maps.npz \\
+    dataloader_cmd = f'''python -m gnn.dataloader2 --mapNpzFile={args.data_path}/constant_npzs/all_maps.npz \\
         --bdNpzFolder={args.data_path}/constant_npzs \\
         --pathNpzFolder={args.exp_path}/iter{args.iternum}/eecbs_npzs \\
         --processedFolder={args.exp_path}/iter{args.iternum}/processed_{num_multi_inputs}_{num_multi_outputs} \\
@@ -207,12 +207,6 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
     --clean --which_section=simulate \
-    --sim_scenname='maze0_16_16_2-random-1' --sim_num_agents=10
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=maze_benchmark_data --exp_dir=EXP_new_maps \
-    --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --clean --which_section=simulate \
     --sim_data_dir='maze_benchmark_data' --sim_scenname='maze_16_16_2-random-1' --sim_num_agents=10
 
     
@@ -229,55 +223,20 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0 --num_multi_outputs_list=1 --bd_pred \
     --which_section=mini \
-    --sim_scenname='maze4_32_32_1-random-1' --sim_num_agents=10 --clean
-    
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --num_agents=50,100 \
-    --increment_size=10 \
-    --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0 --num_multi_outputs_list=1 --bd_pred \
-    --which_section=load --clean
+    --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
+    --clean
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=mini_benchmark_data --exp_dir=EXP_mini \
     --model=ResGatedGraphConv --use_edge_attr \
     --num_multi_inputs_list=0 --num_multi_outputs_list=1 \
-    --which_section=train --clean
-    
-
-Full run old (no threshold):
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
-    --which_section=constants
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
-    --which_section=eecbs
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
-    --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,3 --num_multi_outputs_list=1,2 \
-    --which_section=load
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
-    --model=ResGatedGraphConv --use_edge_attr --logging \
-    --num_multi_inputs_list=3 --num_multi_outputs_list=1 \
-    --which_section=train
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
-    --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0 --num_multi_outputs_list=1 \
-    --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
-    --clean --which_section=simulate
-python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
-    --data_dir=benchmark_data --exp_dir=EXP_full_increment_old \
-    --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0 --num_multi_outputs_list=1 \
-    --sim_scenname='Berlin_1_256-random-1' --sim_data_dir=benchmark_data --sim_num_agents=10 \
+    --sim_scenname='warehouse_10_20_10_2_2-random-1' --sim_data_dir=mini_benchmark_data --sim_num_agents=10 \
     --clean --which_section=simulate
     
-Full run (10s threshold): 
+    
+EXP_full_increment (10s threshold): 
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
-    --which_section=constants
+    --which_section=constants --clean
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --eecbs_threshold=10 \
@@ -285,7 +244,7 @@ python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting=
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \
     --model=ResGatedGraphConv --use_edge_attr \
-    --num_multi_inputs_list=0,1,3 --num_multi_outputs_list=1 \
+    --num_multi_inputs_list=3 --num_multi_outputs_list=1 \
     --which_section=load
 python sbatch_master_process_runner2.py --machine_setting='PSC' --which_setting='Michelle' \
     --data_dir=benchmark_data --exp_dir=EXP_full_increment \

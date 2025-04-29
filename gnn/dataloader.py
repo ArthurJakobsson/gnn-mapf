@@ -453,7 +453,7 @@ class MyOwnDataset(Dataset):
                     # tmp = []
                     counter = 0
                     batch_graphs = []
-                    for t in tqdm(range(len(cur_dataset))):
+                    for t in tqdm(range(len(cur_dataset)), mininterval=60):
                         time_instance = cur_dataset[t]
                         torch.save(self.create_and_save_graph(t, time_instance),
                                     osp.join(self.processed_dir, f"data_{map_name}_{idx_start+t}.pt"))
@@ -525,6 +525,7 @@ class MyOwnDataset(Dataset):
 
 ### Example run
 """
+# dataloader \
 rm ~/mapf/gnn-mapf/data_collection/data/logs/EXP_mini/iter0/status_data_processed_0_1.csv; \
 python -m gnn.dataloader --mapNpzFile=data_collection/data/mini_benchmark_data/constant_npzs/all_maps.npz \
       --bdNpzFolder=data_collection/data/mini_benchmark_data/constant_npzs \

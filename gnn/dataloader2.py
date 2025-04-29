@@ -305,14 +305,10 @@ def create_data_object(cur_locs, bd_list, grid, priorities, multi_inputs, k, m, 
                 weights=torch.from_numpy(weights), y=torch.from_numpy(labels))
 
 
-
 @ray.remote
 class SharedDataFrame:
     def __init__(self):
         self.df = pd.DataFrame()
-
-    def concat(self, new_data):
-        self.df = pd.concat([self.df, new_data], ignore_index=True)
 
     def get(self):
         return self.df.copy()
@@ -320,13 +316,15 @@ class SharedDataFrame:
     def set(self, new_df):
         self.df = new_df.copy()
 
-    def length(self):
-        return len(self.df)
-
-    def to_csv(self, df_path):
+    def update(self, new_df, df_path):
+        if len(self.df) == 0:
+            self.df = new_df.copy()
+        else:
+            self.df = pd.concat([self.df, new_df], ignore_index=True)
         self.df.to_csv(df_path, index=False)
 
-@ray.remote
+
+@ray.remote(memory=120 * 1024 * 1024 * 1024)
 def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_copies, num_multi_inputs, num_multi_outputs,
                 extra_layers, bd_pred, processed_dir, npz_path, bd_folder, df_path, shared_df):
     
@@ -357,7 +355,7 @@ def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_co
     df = ray.get(shared_df.get.remote())
     df_row = df.loc[df['npz_path'] == npz_path]
     # assert(len(df_row) <= 1)
-    if len(df_row) >0:
+    if len(df_row) > 0:
         if df_row.iloc[0]["status"] == "processed":
             print(f"Skipping: {npz_path}")
             # idx+=df_row.iloc[0]["num_pts"]
@@ -405,11 +403,7 @@ def process_map(bdNpzFolder, mapNpzFile, k, m, size, max_agents, num_priority_co
                                             "num_pts": [len(cur_dataset)],
                                             "loading_time": [ct.getTimes("Loading", "list")[-1]], 
                                             "processing_time": [ct.getTimes("Processing", "list")[-1]]})
-            if shared_df.length.remote() == 0:
-                shared_df.set.remote(new_df)
-            else:
-                shared_df.concat.remote(new_df)
-            shared_df.to_csv.remote(df_path)
+            shared_df.update.remote(new_df, df_path)
         
         del cur_dataset
         
@@ -522,6 +516,12 @@ class MyOwnDataset(Dataset):
     #     return curdata
             
     def custom_process(self):
+
+        def to_iterator(obj_ids):
+            while obj_ids:
+                done, obj_ids = ray.wait(obj_ids)
+                yield ray.get(done[0])
+
         self.load_status_data() # This loads self.df which is used for checking if should process or skip
 
         if self.pathNpzFolder is not None: # Run process
@@ -530,11 +530,15 @@ class MyOwnDataset(Dataset):
             # print(f"Num cores: {self.num_cores}")
             print(f"Num cores: {int(ray.cluster_resources().get('CPU', 0))}")
 
-            futures = [process_map.remote(self.bdNpzFolder, self.mapNpzFile, self.k, self.m, self.size, self.max_agents, 
-                                        self.num_priority_copies, self.num_multi_inputs, self.num_multi_outputs,
-                                        self.extra_layers, self.bd_pred, self.processed_dir, 
-                                        npz_path, bd_folder, self.df_path, self.df) for npz_path in self.raw_paths]
-            results = ray.get(futures)
+            futures = [process_map.remote(
+                                    self.bdNpzFolder, self.mapNpzFile, self.k, self.m, self.size, self.max_agents, 
+                                    self.num_priority_copies, self.num_multi_inputs, self.num_multi_outputs,
+                                    self.extra_layers, self.bd_pred, self.processed_dir, 
+                                    npz_path, bd_folder, self.df_path, self.df) for npz_path in self.raw_paths]
+            
+            for _ in tqdm(to_iterator(futures), total=len(futures)):
+                pass
+            _ = ray.get(futures)
 
             # self.length = idx
         df = ray.get(self.df.get.remote())

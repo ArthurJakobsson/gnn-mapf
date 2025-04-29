@@ -232,7 +232,7 @@ def train(combined_dataset, run_lr, num_epochs, edge_dim, relu_type, my_batch_si
         # start_time = time.time()
         
         model.train()
-        for batch in tqdm(loader):
+        for batch in tqdm(loader, mininterval=60):
             batch = batch.to(device)
             opt.zero_grad()
             # with autocast():
